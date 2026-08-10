@@ -5,6 +5,7 @@ import { TiltCard } from './TiltCard'
 import { ScrollReveal } from './ScrollReveal'
 import { AnimatedNumber } from './AnimatedNumber'
 import { BrandIcon, CategoryIcon } from '../lib/icons'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import type { Category } from '../types/app'
 
 type CategoryRailProps = {
@@ -30,6 +31,7 @@ export function CategoryRail({
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('✨')
   const [color, setColor] = useState('#dbe9ff')
+  const reducedMotion = usePrefersReducedMotion()
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -47,63 +49,98 @@ export function CategoryRail({
       aria-label="Categories"
       className="grid auto-rows-[minmax(150px,auto)] grid-cols-2 gap-4 lg:grid-cols-4"
     >
-      {categories.map((category, index) => (
-        <ScrollReveal key={category.id} className={index === 0 ? 'col-span-2' : ''}>
-          <TiltCard
-            active={selectedCategoryId === category.id}
-            glowColor={category.color}
-            onClick={() => onSelect(category.id)}
-            className={`flex h-full cursor-pointer flex-col justify-between ${
-              index === 0 ? 'p-6' : 'p-5'
-            } ${selectedCategoryId === category.id ? 'border-accent' : ''}`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <CategoryIcon
-                  icon={category.icon}
-                  color={category.color}
-                  size={index === 0 ? 36 : 26}
-                />
-                <h3
-                  className={`mt-2 font-semibold uppercase tracking-tight ${
-                    index === 0 ? 'text-xl' : 'text-base'
-                  }`}
+      {categories.map((category, index) => {
+        const even = index % 2 === 0
+        const count = itemCountByCategory.get(category.id) ?? 0
+        return (
+          <ScrollReveal key={category.id} className={index === 0 ? 'col-span-2' : ''}>
+            <motion.div className="h-full" style={{ perspective: 900, transformStyle: 'preserve-3d' }}>
+              <motion.div
+                className="h-full"
+                style={{ transformStyle: 'preserve-3d' }}
+                {...(reducedMotion
+                  ? {}
+                  : {
+                      animate: {
+                        rotateY: even ? [0, 4, 0] : [0, -4, 0],
+                        y: [0, -6, 0],
+                        z: even ? [0, 12, 0] : [0, -6, 0],
+                      },
+                      transition: {
+                        duration: 7 + (index % 3),
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: index * 0.5,
+                      },
+                    })}
+              >
+                <TiltCard
+                  active={selectedCategoryId === category.id}
+                  glowColor={category.color}
+                  trailColor="rgba(220,80,0,0.85)"
+                  onClick={() => onSelect(category.id)}
+                  className={`flex h-full cursor-pointer flex-col justify-between ${
+                    index === 0 ? 'p-6' : 'p-5'
+                  } ${selectedCategoryId === category.id ? 'border-accent' : ''}`}
                 >
-                  {category.name}
-                </h3>
-                <p className="mt-1 text-sm text-ink-soft">
-                  <AnimatedNumber value={itemCountByCategory.get(category.id) ?? 0} /> saved
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onManageFields(category)
-                  }}
-                  className="term-chip flex items-center gap-1 rounded-full px-2 py-1 text-xs"
-                  title="Customize fields"
-                >
-                  <BrandIcon icon={Settings} size={14} /> Fields
-                </button>
-                {!category.is_default ? (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onDelete(category.id)
-                    }}
-                    className="term-chip rounded-full px-2 py-1 text-xs"
-                  >
-                    Remove
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </TiltCard>
-        </ScrollReveal>
-      ))}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <CategoryIcon
+                        icon={category.icon}
+                        color={category.color}
+                        size={index === 0 ? 28 : 22}
+                      />
+                      <div>
+                        <h3
+                          className={`font-display font-semibold uppercase leading-tight ${
+                            index === 0 ? 'text-lg' : 'text-base'
+                          }`}
+                        >
+                          {category.name}
+                        </h3>
+                        <p className="mt-0.5 text-xs text-ink-soft">saved</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onManageFields(category)
+                        }}
+                        className="term-chip flex items-center gap-1 rounded-full px-2 py-1 text-xs"
+                        title="Customize fields"
+                      >
+                        <BrandIcon icon={Settings} size={14} /> Fields
+                      </button>
+                      {!category.is_default ? (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onDelete(category.id)
+                          }}
+                          className="term-chip rounded-full px-2 py-1 text-xs"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex items-end justify-between gap-2">
+                    <p className="text-xs uppercase tracking-widest text-ink-soft/70">
+                      {selectedCategoryId === category.id ? '[ viewing ]' : '—'}
+                    </p>
+                    <p className="font-display text-3xl font-medium leading-none text-ink/80">
+                      <AnimatedNumber value={count} />
+                    </p>
+                  </div>
+                </TiltCard>
+              </motion.div>
+            </motion.div>
+          </ScrollReveal>
+        )
+      })}
 
       <motion.div
         layout

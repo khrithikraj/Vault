@@ -1,5 +1,5 @@
 import { NotebookPen } from 'lucide-react'
-import { AmbientBackground } from '../AmbientBackground'
+import { Atmosphere } from '../Atmosphere'
 import { ScrollReveal } from '../ScrollReveal'
 import { BrandIcon } from '../../lib/icons'
 import { JOURNAL_PAGES } from './storyboard'
@@ -13,7 +13,7 @@ type JournalFallbackProps = {
 export function JournalFallback({ onGetStarted }: JournalFallbackProps) {
   return (
     <main className="relative">
-      <AmbientBackground />
+      <Atmosphere variant="full" />
 
       <button
         type="button"
@@ -24,8 +24,11 @@ export function JournalFallback({ onGetStarted }: JournalFallbackProps) {
       </button>
 
       <section className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">Raj&apos;s</p>
-        <h1 className="max-w-sm text-3xl font-bold uppercase leading-[0.95] tracking-tight">
+        <p className="text-micro text-ink-soft">Raj&apos;s — a personal vault</p>
+        <h1
+          className="text-display max-w-4xl"
+          style={{ '--text-display': 'clamp(1.9rem, 6vw, 4.25rem)' } as React.CSSProperties}
+        >
           Your life, saved beautifully.
         </h1>
         <div
@@ -45,17 +48,22 @@ export function JournalFallback({ onGetStarted }: JournalFallbackProps) {
             >
               <BrandIcon icon={page.icon} size={28} />
             </div>
-            <h2 className="text-2xl font-bold uppercase tracking-tight">{page.title}</h2>
-            <p className="text-sm leading-relaxed text-ink-soft">{page.body}</p>
+            <h2 className="font-display text-2xl font-medium uppercase tracking-normal">
+              {page.title}
+            </h2>
+            <p className="text-base leading-relaxed text-ink-soft">{page.body}</p>
           </div>
         </ScrollReveal>
       ))}
 
       <ScrollReveal className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-        <h2 className="text-2xl font-bold uppercase leading-tight tracking-tight sm:text-3xl">
+        <h2
+          className="text-display"
+          style={{ '--text-display': 'clamp(1.9rem, 6vw, 4.25rem)' } as React.CSSProperties}
+        >
           Ready when you are.
         </h2>
-        <p className="max-w-xs text-sm leading-relaxed text-ink-soft">
+        <p className="max-w-md text-base leading-relaxed text-ink-soft">
           Sign in to sync everything across your devices — or try it without an account.
         </p>
         <button

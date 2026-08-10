@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { AmbientBackground } from './AmbientBackground'
+import { Atmosphere } from './Atmosphere'
+import { BorderTrail } from './BorderTrail'
 import { ShimmerText } from './ShimmerText'
+import { VerticalSerial } from './VerticalSerial'
+import { VaultArtifact } from './VaultArtifact'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 
 type UpdatePasswordScreenProps = {
   message: string
@@ -13,6 +17,7 @@ export function UpdatePasswordScreen({ message, onUpdatePassword }: UpdatePasswo
   const [confirmPassword, setConfirmPassword] = useState('')
   const [localError, setLocalError] = useState('')
   const [loading, setLoading] = useState(false)
+  const reducedMotion = usePrefersReducedMotion()
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -32,23 +37,40 @@ export function UpdatePasswordScreen({ message, onUpdatePassword }: UpdatePasswo
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center px-4 py-10">
-      <AmbientBackground />
+    <main className="relative flex min-h-screen flex-col items-center justify-center gap-10 px-4 py-16">
+      <Atmosphere variant="full" />
+      <VerticalSerial label="RAJ'S — RESET PASSWORD" />
+
+      <motion.div
+        {...(reducedMotion
+          ? {}
+          : {
+              animate: { y: [0, -8, 0] },
+              transition: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
+            })}
+      >
+        <VaultArtifact size={64} />
+      </motion.div>
 
       <motion.section
-        initial={{ opacity: 0, y: 24, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.55, ease: 'easeOut' }}
-        className="term-panel term-brackets w-full max-w-md rounded p-8"
+        initial={{ opacity: 0, y: 40, rotateX: 14, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 24, delay: 0.15 }}
+        style={{ transformPerspective: 900 }}
+        className="term-panel term-brackets rim-light relative w-full max-w-md overflow-hidden rounded p-8"
       >
-        <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">Raj&apos;s</p>
-        <ShimmerText
-          as="h1"
-          text="Choose a new password."
-          className="mt-2 block text-2xl font-bold uppercase leading-tight tracking-tight"
-        />
-        <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-          You're in via your reset link — set a new password to finish.
+        <BorderTrail color="rgba(220,80,0,0.55)" size={84} duration={8} />
+
+        <p className="text-micro text-ink-soft">Raj&apos;s — account recovery</p>
+        <div style={{ '--text-display': 'clamp(1.6rem, 5.5vw, 2.75rem)' } as React.CSSProperties}>
+          <ShimmerText
+            as="h1"
+            text="Choose a new password."
+            className="text-display mt-2 block"
+          />
+        </div>
+        <p className="mt-3 text-base leading-relaxed text-ink-soft">
+          You&apos;re in via your reset link — set a new password to finish.
         </p>
 
         <form className="mt-6 grid gap-3" onSubmit={handleSubmit}>
@@ -82,6 +104,7 @@ export function UpdatePasswordScreen({ message, onUpdatePassword }: UpdatePasswo
             className="term-btn-primary mt-2 rounded-full px-4 py-3 text-sm font-semibold uppercase tracking-widest disabled:opacity-60"
           >
             {loading ? 'Updating…' : 'Update password'}
+            <span className="term-cursor" />
           </motion.button>
         </form>
 

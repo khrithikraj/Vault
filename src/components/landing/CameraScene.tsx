@@ -1,7 +1,8 @@
 import { useRef } from 'react'
 import { motion, useMotionTemplate, useScroll, useSpring, useTransform } from 'motion/react'
 import { ChevronDown } from 'lucide-react'
-import { AmbientBackground } from '../AmbientBackground'
+import { Atmosphere } from '../Atmosphere'
+import { Magnetic } from '../Magnetic'
 import { ShimmerText } from '../ShimmerText'
 import { ParticleField } from './ParticleField'
 import { JournalBook } from './JournalBook'
@@ -103,9 +104,29 @@ export function CameraScene({ onGetStarted }: CameraSceneProps) {
   const ctaOpacity = useTransform(progress, [STORY.returnHome[0] + 0.04, 1], [0, 1])
   const ctaPointerEvents = useTransform(ctaOpacity, (value) => (value > 0.5 ? 'auto' : 'none'))
 
+  // Chapter folio in the corner — reads as a numbered artifact as the story advances.
+  const FOLIO_KEYPOINTS = [
+    0,
+    STORY.approach[1],
+    STORY.opening[1],
+    STORY.page1[1],
+    STORY.page2[1],
+    STORY.page3[1],
+    1,
+  ]
+  const folioLabel = useTransform(progress, FOLIO_KEYPOINTS, [
+    '01 · Approach',
+    '02 · Opening',
+    '03 · Capture',
+    '04 · Organize',
+    '05 · Find',
+    '06 · Ready',
+    '06 · Ready',
+  ])
+
   return (
     <main className="relative">
-      <AmbientBackground />
+      <Atmosphere variant="full" />
 
       <button
         type="button"
@@ -114,6 +135,14 @@ export function CameraScene({ onGetStarted }: CameraSceneProps) {
       >
         Sign in
       </button>
+
+      <motion.div
+        aria-hidden="true"
+        className="text-micro fixed left-4 top-4 z-20 hidden select-none text-ink-soft sm:block"
+      >
+        <motion.span>Raj&apos;s — </motion.span>
+        <motion.span className="text-accent">{folioLabel}</motion.span>
+      </motion.div>
 
       <div ref={pinRef} className="relative" style={{ height: PIN_HEIGHT }}>
         <div className="sticky top-0 flex h-screen flex-col items-center justify-center gap-8 overflow-hidden px-4 text-center">
@@ -233,14 +262,16 @@ export function CameraScene({ onGetStarted }: CameraSceneProps) {
           {/* Intro title — the only beat before the journal itself takes over the story. */}
           <motion.div
             style={{ opacity: introOpacity }}
-            className="absolute inset-x-0 bottom-[8%] flex flex-col items-center gap-3 px-4"
+            className="absolute inset-x-0 bottom-[8%] flex flex-col items-center gap-4 px-4"
           >
-            <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">Raj&apos;s</p>
-            <ShimmerText
-              as="h1"
-              text="Your life, saved beautifully."
-              className="block text-2xl leading-[0.95] font-bold uppercase tracking-tight sm:text-4xl"
-            />
+            <p className="text-micro text-ink-soft">Raj&apos;s — a personal vault</p>
+            <div style={{ '--text-display': 'clamp(1.9rem, 5.5vw, 3.75rem)' } as React.CSSProperties}>
+              <ShimmerText
+                as="h1"
+                text="Your life, saved beautifully."
+                className="text-display block max-w-4xl text-center"
+              />
+            </div>
             <motion.div
               animate={{ y: [0, 8, 0] }}
               transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
@@ -255,21 +286,26 @@ export function CameraScene({ onGetStarted }: CameraSceneProps) {
             style={{ opacity: ctaOpacity, pointerEvents: ctaPointerEvents }}
             className="absolute inset-x-0 bottom-[6%] flex flex-col items-center gap-4 px-4"
           >
-            <h2 className="text-2xl font-bold uppercase leading-tight tracking-tight sm:text-3xl">
+            <h2
+              className="text-display text-center"
+              style={{ '--text-display': 'clamp(1.9rem, 6vw, 4.25rem)' } as React.CSSProperties}
+            >
               Ready when you are.
             </h2>
-            <p className="max-w-xs text-sm leading-relaxed text-ink-soft">
+            <p className="max-w-md text-base leading-relaxed text-ink-soft">
               Sign in to sync everything across your devices — or try it without an account.
             </p>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              onClick={onGetStarted}
-              className="term-btn-primary rounded-full px-6 py-3.5 text-sm font-semibold uppercase tracking-widest"
-            >
-              Get started
-            </motion.button>
+            <Magnetic className="inline-block">
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                type="button"
+                onClick={onGetStarted}
+                className="term-btn-primary rounded-full px-7 py-3.5 text-sm font-semibold uppercase tracking-widest"
+              >
+                Get started
+              </motion.button>
+            </Magnetic>
           </motion.div>
         </div>
       </div>

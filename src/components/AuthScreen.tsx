@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Lock } from 'lucide-react'
-import { AmbientBackground } from './AmbientBackground'
-import { BrandIcon } from '../lib/icons'
+import { Atmosphere } from './Atmosphere'
+import { BorderTrail } from './BorderTrail'
 import { ShimmerText } from './ShimmerText'
+import { VerticalSerial } from './VerticalSerial'
+import { VaultArtifact } from './VaultArtifact'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
+import { supabaseConfigured } from '../lib/supabase'
 
 type AuthScreenProps = {
   message: string
@@ -26,6 +29,7 @@ export function AuthScreen({
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const reducedMotion = usePrefersReducedMotion()
 
   const handleForgotPassword = async () => {
     setResetting(true)
@@ -53,49 +57,45 @@ export function AuthScreen({
   }
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center gap-10 px-4 py-16">
-      <AmbientBackground />
+    <main className="relative flex min-h-screen flex-col items-center justify-center gap-12 px-4 py-16">
+      <Atmosphere variant="full" />
+      <VerticalSerial label="RAJ'S — SECURE ENTRY" />
 
-      {/* A lone object suspended in warm darkness — the void-mode hero moment. */}
+      {/* A lone artifact suspended in warm darkness — the void-mode hero moment. */}
       <motion.div
-        animate={{ y: [0, -10, 0] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-        className="relative flex h-20 w-20 items-center justify-center"
+        {...(reducedMotion
+          ? {}
+          : {
+              animate: { y: [0, -10, 0] },
+              transition: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
+            })}
       >
-        <motion.span
-          aria-hidden="true"
-          className="bg-accent/30 absolute inset-0 rounded-full blur-2xl"
-          animate={{ opacity: [0.35, 0.75, 0.35], scale: [0.9, 1.08, 0.9] }}
-          transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          initial={{ scale: 0, rotate: -18 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
-          className="border-ink/40 bg-cloud relative flex h-16 w-16 items-center justify-center rounded-full border"
-        >
-          <BrandIcon icon={Lock} size={28} />
-        </motion.div>
+        <VaultArtifact size={92} />
       </motion.div>
 
       <div className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">Raj&apos;s</p>
-        <ShimmerText
-          as="h1"
-          text="Your life, saved beautifully."
-          className="mt-2 block text-3xl leading-[0.95] font-bold uppercase tracking-tight sm:text-4xl"
-        />
-        <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-ink-soft">
+        <p className="text-micro text-ink-soft">Raj&apos;s — secure entry</p>
+        <div style={{ '--text-display': 'clamp(2rem, 6vw, 4.5rem)' } as React.CSSProperties}>
+          <ShimmerText
+            as="h1"
+            text="Your life, saved beautifully."
+            className="text-display mt-2 block text-center"
+          />
+        </div>
+        <p className="mx-auto mt-4 max-w-sm text-base leading-relaxed text-ink-soft">
           Sign in to sync every screenshot, wishlist, and idea across your devices.
         </p>
       </div>
 
       <motion.section
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, ease: 'easeOut', delay: 0.15 }}
-        className="term-panel term-brackets w-full max-w-md rounded p-8"
+        initial={{ opacity: 0, y: 40, rotateX: 14, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 24, delay: 0.15 }}
+        style={{ transformPerspective: 900 }}
+        className="term-panel term-brackets rim-light relative w-full max-w-md overflow-hidden rounded p-8"
       >
+        <BorderTrail color="rgba(220,80,0,0.55)" size={84} duration={8} />
+
         <div className="border-ink/30 relative grid grid-cols-2 rounded border">
           {(['in', 'up'] as const).map((tab) => (
             <button
@@ -175,17 +175,18 @@ export function AuthScreen({
           ) : null}
         </AnimatePresence>
 
-        {import.meta.env.DEV && onPreview ? (
+        {(import.meta.env.DEV || !supabaseConfigured) && onPreview ? (
           <button
             type="button"
             onClick={onPreview}
             className="border-ink/30 rounded-outline mt-5 w-full border border-dashed py-2 text-xs font-medium uppercase tracking-widest text-ink-soft/70 hover:text-ink-soft"
           >
-            Dev only: preview without signing in
+            {import.meta.env.DEV
+              ? 'Dev only: preview without signing in'
+              : 'Preview the vault without a database'}
           </button>
         ) : null}
       </motion.section>
     </main>
   )
 }
-

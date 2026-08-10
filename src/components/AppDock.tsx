@@ -117,6 +117,10 @@ function DockButton({
         <motion.span
           layoutId="dock-active-pill"
           className="bg-accent absolute inset-0 rounded-full"
+          style={{
+            boxShadow:
+              '0 12px 28px -8px rgba(220,80,0,0.8), inset 0 1px 0 rgba(255,237,215,0.25)',
+          }}
           transition={{ type: 'spring', stiffness: 380, damping: 30 }}
         />
       ) : null}

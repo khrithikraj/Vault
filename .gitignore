@@ -1,0 +1,25 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Environment — never commit secrets.
+# `.env.example` is the committed template; local values live in `.env.local`.
+.env
+.env*.local
+
+# Editor / OS
+.DS_Store
+*.swp
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript incremental build cache (generated, tracked accidentally before)
+*.tsbuildinfo
+
+# Local audit artifact
+audit-prod.json

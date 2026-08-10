@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 @theme {
@@ -14,7 +14,8 @@
   --color-accent: #dc5000;
   --color-warn: #f2b134;
 
-  --font-display: 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
 
   /* Radius vocabulary: 12px cards (bare `rounded`), 22.5px outlined/ghost controls
    * (`rounded-outline`), full pill for the primary CTA (`rounded-full`). */
@@ -38,9 +39,15 @@
   }
 
   body {
-    font-family: var(--font-display);
+    font-family: var(--font-body);
     color: var(--color-ink);
     background: var(--color-cloud);
+  }
+
+  /* Ember focus ring everywhere, keyboard-only — visible focus states per the design checklist. */
+  :where(a, button, input, textarea, select, summary):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 
   ::selection {
@@ -116,7 +123,7 @@
     background: var(--color-cloud);
     border: 1px solid var(--color-border-dash);
     color: var(--color-ink);
-    font-family: var(--font-display);
+    font-family: var(--font-body);
   }
 
   .term-input:focus {
@@ -206,6 +213,68 @@ input,
 textarea,
 button {
   font: inherit;
+}
+
+@layer utilities {
+  /* Giant editorial display heading — the Oryzo signature: uppercase, weight 500,
+   * line-height 0.9 so the letterforms overlap into a sculptural block. */
+  .text-display {
+    font-family: var(--font-display);
+    font-weight: 500;
+    text-transform: uppercase;
+    line-height: var(--leading-display);
+    letter-spacing: 0;
+    font-size: var(--text-display);
+    text-wrap: balance;
+  }
+
+  /* Small uppercase serial/eyebrow label — wide tracked, muted. */
+  .text-micro {
+    font-size: var(--text-micro);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+
+  /* Page folio number — Space Grotesk, wide tracked. */
+  .folio {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  /* Fixed film-grain overlay — rendered as inline SVG by <FilmGrain/>; this class handles
+   * positioning/opacity. Gives the warm dark a photographic, non-digital texture. */
+  .film-grain {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    pointer-events: none;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+  }
+
+  /* Subtle inner rim light — reads as a lit artifact edge without a drop shadow
+   * (keeps the "depth from the surface stack" rule). */
+  .rim-light {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 237, 215, 0.08),
+      inset 0 0 32px rgba(220, 80, 0, 0.05);
+  }
+
+  /* Ember glow — reserved for active/primary moments. */
+  .glow-ember {
+    box-shadow:
+      0 0 0 1px rgba(220, 80, 0, 0.4),
+      0 0 28px rgba(220, 80, 0, 0.35);
+  }
+
+  /* Under-surface reflection — Chromium/Safari only, graceful everywhere else.
+   * Use sparingly on hero artifacts; never on scroll-heavy surfaces. */
+  .reflect-below {
+    -webkit-box-reflect: below 10px linear-gradient(transparent 70%, rgba(255, 255, 255, 0.1));
+  }
 }
 
 

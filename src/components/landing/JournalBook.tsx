@@ -54,11 +54,30 @@ const CoverPage = forwardRef<HTMLDivElement>(function CoverPage(_props, ref) {
         boxShadow: 'inset 0 1px 0 rgba(255,237,215,0.1)',
       }}
     >
-      <div
-        className="flex items-center justify-center rounded-md"
-        style={{ width: '46%', aspectRatio: '1', border: '1px solid rgba(255,237,215,0.25)' }}
-      >
-        <BrandIcon icon={NotebookPen} size={28} />
+      <div className="flex flex-col items-center gap-2.5">
+        <div
+          className="flex items-center justify-center rounded-md"
+          style={{
+            width: '58%',
+            aspectRatio: '1',
+            border: '1px solid rgba(255,237,215,0.22)',
+            boxShadow: 'inset 0 1px 0 rgba(255,237,215,0.08)',
+          }}
+        >
+          <BrandIcon icon={NotebookPen} size={26} />
+        </div>
+        <p
+          className="font-display text-[10px] font-medium uppercase"
+          style={{ color: 'rgba(255,237,215,0.6)', letterSpacing: '0.28em' }}
+        >
+          Raj&apos;s
+        </p>
+        <p
+          className="text-[7px] font-semibold uppercase"
+          style={{ color: 'rgba(255,237,215,0.35)', letterSpacing: '0.2em' }}
+        >
+          Vol. I — A Personal Vault
+        </p>
       </div>
     </div>
   )
@@ -101,7 +120,7 @@ const ContentPage = forwardRef<HTMLDivElement, ContentPageProps>(function Conten
         style={{ background: 'rgba(214,181,140,0.55)', boxShadow: '0 1px 2px rgba(16,9,4,0.15)' }}
       />
 
-      <p className="text-ink/40 absolute top-4 left-[18%] text-[9px] font-semibold tracking-[0.2em] uppercase">
+      <p className="font-display text-ink/40 absolute top-4 left-[18%] text-[9px] font-semibold tracking-[0.2em] uppercase">
         Chapter {index + 1}
       </p>
 
@@ -111,11 +130,13 @@ const ContentPage = forwardRef<HTMLDivElement, ContentPageProps>(function Conten
       >
         <BrandIcon icon={icon} size={28} />
       </div>
-      <h2 className="text-ink text-lg font-bold uppercase tracking-tight">{title}</h2>
-      <p className="text-ink/60 text-xs leading-relaxed">{body}</p>
+      <h2 className="font-display text-ink text-lg font-medium uppercase leading-tight">
+        {title}
+      </h2>
+      <p className="text-ink/60 text-[12.5px] leading-relaxed">{body}</p>
 
       {/* Folio page number, bottom corner, like a printed book. */}
-      <p className="text-ink/35 absolute bottom-3 right-[14%] text-[10px] font-semibold">
+      <p className="font-display text-ink/35 absolute bottom-3 right-[14%] text-[10px] font-semibold">
         {String(index + 1).padStart(2, '0')}
       </p>
     </div>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { describeSupabaseError, fallbackFieldSchema, getErrorMessage, normalizeCategory } from '../lib/fields'
-import { supabase, vaultBucket } from '../lib/supabase'
+import { SUPABASE_CONFIG_MESSAGE, supabase, supabaseConfigured, vaultBucket } from '../lib/supabase'
 import type { Category, FieldDefinition, Note, VaultItem } from '../types/app'
 
 export function useVault() {
@@ -30,6 +30,14 @@ export function useVault() {
   }, [])
 
   useEffect(() => {
+    // An unconfigured deploy (missing env vars) must not crash — show the auth UI with a
+    // helpful message and bail out of every Supabase call. No session can exist anyway.
+    if (!supabaseConfigured) {
+      setCheckingSession(false)
+      setMessage(SUPABASE_CONFIG_MESSAGE)
+      return
+    }
+
     let mounted = true
 
     const init = async () => {
@@ -203,6 +211,10 @@ export function useVault() {
   }
 
   const signIn = async (email: string, password: string) => {
+    if (!supabaseConfigured) {
+      setMessage(SUPABASE_CONFIG_MESSAGE)
+      return
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setMessage(error.message)
@@ -211,6 +223,10 @@ export function useVault() {
   }
 
   const signUp = async (email: string, password: string) => {
+    if (!supabaseConfigured) {
+      setMessage(SUPABASE_CONFIG_MESSAGE)
+      return
+    }
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) {
       setMessage(error.message)
@@ -227,6 +243,10 @@ export function useVault() {
   }
 
   const resetPassword = async (email: string) => {
+    if (!supabaseConfigured) {
+      setMessage(SUPABASE_CONFIG_MESSAGE)
+      return
+    }
     if (!email.trim()) {
       setMessage('Enter your email above first, then tap "Forgot password?" again.')
       return

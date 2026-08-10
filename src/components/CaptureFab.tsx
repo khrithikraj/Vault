@@ -4,6 +4,7 @@ import { Camera, CheckCircle2 } from 'lucide-react'
 import { fallbackFieldSchema } from '../lib/fields'
 import { BrandIcon, CategoryIcon } from '../lib/icons'
 import { BorderTrail } from './BorderTrail'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import type { Category, FieldDefinition } from '../types/app'
 
 type CaptureFabProps = {
@@ -79,6 +80,7 @@ export function CaptureFab({
     icon: string
     color: string
   } | null>(null)
+  const reducedMotion = usePrefersReducedMotion()
 
   const fabRef = useRef<HTMLButtonElement>(null)
   const saveButtonRef = useRef<HTMLButtonElement>(null)
@@ -281,10 +283,11 @@ export function CaptureFab({
             onClick={() => setOpen(false)}
           >
             <motion.div
-              initial={{ y: '100%', opacity: 0.6 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100%', opacity: 0.6 }}
-              transition={{ type: 'spring', stiffness: 280, damping: 32 }}
+              initial={{ y: 60, rotateX: -18, opacity: 0 }}
+              animate={{ y: 0, rotateX: 0, opacity: 1 }}
+              exit={{ y: 60, rotateX: -18, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 30 }}
+              style={{ transformPerspective: 900, transformOrigin: 'bottom' }}
               onClick={(event) => event.stopPropagation()}
               className="term-panel term-brackets relative w-full max-w-lg overflow-hidden rounded-t sm:rounded p-6 sm:p-7"
             >
@@ -605,6 +608,18 @@ export function CaptureFab({
           className="group relative flex h-16 w-16 items-center justify-center rounded-full"
           aria-label="Add a new memory"
         >
+          {!reducedMotion ? (
+            <motion.span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-[-16px] rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(220,80,0,0.45), transparent 70%)',
+                filter: 'blur(10px)',
+              }}
+              animate={{ opacity: [0.35, 0.75, 0.35], scale: [0.94, 1.08, 0.94] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          ) : null}
           <motion.span
             aria-hidden="true"
             className="absolute inset-[-3px] rounded-full opacity-90"

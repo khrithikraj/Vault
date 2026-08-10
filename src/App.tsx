@@ -5,7 +5,7 @@ import { useVault } from './hooks/useVault'
 import { useMockVault } from './hooks/useMockVault'
 import { consumeSharedPhoto } from './lib/shareTarget'
 import { CategoryIcon } from './lib/icons'
-import { AmbientBackground } from './components/AmbientBackground'
+import { Atmosphere } from './components/Atmosphere'
 import { AuthScreen } from './components/AuthScreen'
 import { LandingPage } from './components/LandingPage'
 import { UpdatePasswordScreen } from './components/UpdatePasswordScreen'
@@ -17,6 +17,8 @@ import { ShimmerText } from './components/ShimmerText'
 import { AnimatedNumber } from './components/AnimatedNumber'
 import { ProgressiveBlur } from './components/ProgressiveBlur'
 import { ScrollReveal } from './components/ScrollReveal'
+import { ScrollProgress } from './components/ScrollProgress'
+import { VerticalSerial } from './components/VerticalSerial'
 import type { Category } from './types/app'
 
 // Modals opened on demand only — lazy-loaded to keep the initial bundle lean.
@@ -67,7 +69,7 @@ export default function App() {
   if (vault.checkingSession) {
     return (
       <main className="relative flex min-h-screen items-center justify-center">
-        <AmbientBackground />
+        <Atmosphere variant="full" />
         <div className="term-panel flex items-center gap-3 rounded px-5 py-3">
           <span className="bg-ink/40 h-2 w-2 animate-pulse rounded-full" />
           <span
@@ -109,38 +111,43 @@ export default function App() {
 
   return (
     <main className="relative min-h-screen pb-32">
-      <AmbientBackground activeCategory={activeCategory} />
+      <Atmosphere activeCategory={activeCategory} />
+      <ScrollProgress />
+      <VerticalSerial label="RAJ'S — VAULT 01" />
       <ProgressiveBlur side="bottom" height={120} />
 
-      <div className="mx-auto max-w-5xl px-4 pt-10 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 pt-12 sm:px-6">
         <motion.header
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="term-panel term-brackets flex flex-col gap-4 rounded p-6 sm:flex-row sm:items-center sm:justify-between"
+          className="term-panel term-brackets rim-light relative flex flex-col gap-4 overflow-hidden rounded p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8"
         >
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
-              Raj&apos;s Vault
-            </p>
-            <ShimmerText
-              as="h1"
-              text="Capture it once. Find it when it matters."
-              className="mt-1 block text-2xl font-bold uppercase leading-tight tracking-tight sm:text-3xl"
-            />
-            <p className="mt-2 text-sm text-ink-soft">
+            <p className="text-micro text-ink-soft">Raj&apos;s — personal vault</p>
+            <div style={{ '--text-display': 'clamp(1.5rem, 4.5vw, 2.75rem)' } as React.CSSProperties}>
+              <ShimmerText
+                as="h1"
+                text="Capture it once. Find it when it matters."
+                className="text-display mt-3 block"
+              />
+            </div>
+            <p className="mt-4 text-sm text-ink-soft">
               <AnimatedNumber value={vault.items.length} className="font-semibold text-ink" />{' '}
               saved · <AnimatedNumber value={vault.doneCount} className="font-semibold text-ink" />{' '}
               done
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="term-chip self-start rounded-full px-4 py-2 text-sm font-medium uppercase tracking-wide"
-          >
-            {devPreview ? 'Exit preview' : 'Sign out'}
-          </button>
+          <div className="flex items-center gap-3 sm:pb-1">
+            <span className="folio hidden text-xs text-ink-soft/60 sm:inline">Vol. I — RAJ&apos;S</span>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="term-chip rounded-full px-4 py-2 text-sm font-medium uppercase tracking-wide"
+            >
+              {devPreview ? 'Exit preview' : 'Sign out'}
+            </button>
+          </div>
         </motion.header>
 
         {vault.message ? (
@@ -158,9 +165,11 @@ export default function App() {
 
         {mainView === 'vault' ? (
           <>
-            <ScrollReveal className="mt-8">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold uppercase tracking-wide">Categories</h2>
+            <ScrollReveal className="mt-10">
+              <div className="mb-4 flex items-baseline justify-between">
+                <h2 className="font-display flex items-baseline gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
+                  <span className="folio text-xs text-ink-soft/50">01</span> Categories
+                </h2>
                 {vault.loadingData && vault.categories.length > 0 ? (
                   <span className="text-xs uppercase tracking-widest text-ink-soft">Syncing…</span>
                 ) : null}
@@ -184,18 +193,19 @@ export default function App() {
               )}
             </ScrollReveal>
 
-            <div className="divider-dash mt-10" />
+            <div className="divider-dash mt-12" />
 
-            <ScrollReveal className="mt-10">
-              <h2 className="flex items-center gap-2 text-lg font-semibold uppercase tracking-wide">
+            <ScrollReveal className="mt-12">
+              <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
+                <span className="folio text-xs text-ink-soft/50">02</span>
                 {activeCategory ? (
                   <>
-                    <CategoryIcon icon={activeCategory.icon} color={activeCategory.color} size={20} />
+                    <CategoryIcon icon={activeCategory.icon} color={activeCategory.color} size={18} />
                     {activeCategory.name}
                   </>
                 ) : (
                   <>
-                    <Sparkles size={20} className="text-ink-soft" />
+                    <Sparkles size={18} className="text-ink-soft" />
                     Everything
                   </>
                 )}
@@ -262,4 +272,3 @@ export default function App() {
     </main>
   )
 }
-

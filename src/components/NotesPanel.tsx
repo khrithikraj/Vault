@@ -72,8 +72,9 @@ export function NotesPanel({ notes, onAddNote, onUpdateNote, onDeleteNote }: Not
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {notes.map((note) => {
+          {notes.map((note, index) => {
             const doneCount = note.checklist.filter((entry) => entry.done).length
+            const allDone = note.checklist.length > 0 && doneCount === note.checklist.length
             return (
               <motion.button
                 layout
@@ -82,12 +83,22 @@ export function NotesPanel({ notes, onAddNote, onUpdateNote, onDeleteNote }: Not
                 onClick={() => setOpenNoteId(note.id)}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -3 }}
+                whileHover={{
+                  y: -6,
+                  rotateX: -5,
+                  rotateY: index % 2 === 0 ? -3 : 3,
+                }}
                 whileTap={{ scale: 0.97 }}
-                className="term-panel term-brackets grid gap-1 rounded p-4 text-left"
+                style={{ transformPerspective: 800 }}
+                className="term-panel term-brackets relative grid gap-1 overflow-hidden rounded p-4 text-left"
               >
+                {allDone ? (
+                  <span className="border-accent text-accent pointer-events-none absolute right-3 top-3 -rotate-12 rounded-sm border-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] opacity-80">
+                    Done
+                  </span>
+                ) : null}
                 <div className="flex items-start justify-between gap-3">
-                  <p className="font-medium text-ink">
+                  <p className="font-display font-semibold uppercase leading-snug text-ink">
                     {note.title.trim() || 'Untitled note'}
                   </p>
                   <span className="shrink-0 text-xs text-ink-soft">
@@ -236,10 +247,13 @@ function NoteEditor({
                 onChange={() => toggleChecklistItem(item.id)}
                 className="h-4 w-4 shrink-0 accent-ink"
               />
-              <span
-                className={`flex-1 text-sm ${item.done ? 'text-ink-soft line-through' : 'text-ink'}`}
-              >
-                {item.text}
+              <span className={`flex flex-1 items-center gap-2 text-sm ${item.done ? 'text-ink-soft' : 'text-ink'}`}>
+                {item.done ? (
+                  <span className="border-accent text-accent rounded-sm border px-1 text-[9px] font-bold uppercase tracking-widest">
+                    ✓
+                  </span>
+                ) : null}
+                <span className={item.done ? 'line-through' : ''}>{item.text}</span>
               </span>
               <button
                 type="button"
