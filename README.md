@@ -49,18 +49,20 @@ npm run lint     # eslint
 
 ## Deployment
 
-It's a static Vite build — deploy `dist/` to any static host (Netlify, Vercel, Cloudflare Pages, GitHub Pages, etc.). Two things to get right on every deploy:
+It's a static Vite build — deploy `dist/` to any static host (Netlify, Vercel, Cloudflare Pages, GitHub Pages, etc.). Three things to get right on every deploy:
 
-1. **Set the env vars** (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) on the host — not in the repo. Vite inlines them at build time.
+1. **Set the env vars** (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) on the host — not in the repo. Vite inlines them at build time. Missing them won't white-screen the app (it degrades to a "preview without a database" mode), but real auth needs real values.
 2. **Serving path**: the app uses absolute paths (`/assets/...`, `/sw.js`, `/manifest.webmanifest`), so serve from the domain root or set `base` in `vite.config.ts` if deploying to a sub-path.
+3. **SPA history fallback**: route all unmatched paths to `index.html` so deep links and the **password-reset email callback** resolve. Netlify → `public/_redirects` with `/* /index.html 200`. Vercel → Rewrites, Source `/(.*)` → Destination `/index.html`. Cloudflare → a `_redirects` file (same as Netlify).
 
-Example Netlify:
+Host quick reference:
 
-```bash
-# Build command
-npm run build
-# Publish directory
-dist
-```
+| Host | Build command | Output dir | History fallback |
+| --- | --- | --- | --- |
+| Netlify | `npm run build` | `dist` | `public/_redirects`: `/* /index.html 200` |
+| Vercel | `npm run build` | `dist` | Rewrites → `/(.*)` → `/index.html` |
+| Cloudflare Pages | `npm run build` | `dist` | `public/_redirects`: `/* /index.html 200` |
+
+Also set the **deployed domain** under Supabase → **Auth → URL Configuration** so verification/reset emails route back correctly.
 
 That's it — after the first deploy, install it from the browser's address bar (PWA) and share images to it from your phone's share sheet.
