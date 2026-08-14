@@ -6,11 +6,22 @@ type DustMotesProps = {
   /** Number of motes drifting in the warm dark. Default 16. */
   count?: number
   className?: string
+  /** Mote color (defaults to the warm cream specks). */
+  color?: string
+  /** Soft glow tint cast by each mote (defaults to a dimmed cream). */
+  glow?: string
 }
 
-/** Ambient dust drifting in the warm dark — tiny cream specks on slow, independent float paths.
- * Purely decorative and reduced-motion-safe (renders nothing when motion is reduced). */
-export function DustMotes({ count = 16, className = '' }: DustMotesProps) {
+/** Ambient dust drifting in the warm dark — tiny specks on slow, independent float paths.
+ * The `color`/`glow` props let callers dial in a second tone (e.g. sparse ember motes) while
+ * keeping the same float choreography. Purely decorative and reduced-motion-safe (renders
+ * nothing when motion is reduced). */
+export function DustMotes({
+  count = 16,
+  className = '',
+  color = 'rgba(255,237,215,0.9)',
+  glow = 'rgba(255,237,215,0.45)',
+}: DustMotesProps) {
   const reducedMotion = usePrefersReducedMotion()
   const motes = useMemo(
     () =>
@@ -46,8 +57,8 @@ export function DustMotes({ count = 16, className = '' }: DustMotesProps) {
             top: `${mote.top}%`,
             width: mote.size,
             height: mote.size,
-            background: 'rgba(255,237,215,0.9)',
-            boxShadow: '0 0 6px rgba(255,237,215,0.45)',
+            background: color,
+            boxShadow: `0 0 6px ${glow}`,
             opacity: mote.opacity,
           }}
           animate={{

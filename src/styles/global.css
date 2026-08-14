@@ -68,6 +68,40 @@
     background: rgba(255, 237, 215, 0.25);
     border: 2px solid var(--color-cloud);
   }
+
+  .term-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(220, 80, 0, 0.3) transparent;
+    scrollbar-gutter: stable;
+  }
+
+  .term-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 0;
+  }
+
+  .term-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 999px;
+  }
+
+  .term-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(220, 80, 0, 0.55), rgba(220, 80, 0, 0.2));
+    border: 1px solid rgba(16, 9, 4, 0.9);
+    border-radius: 999px;
+  }
+
+  .term-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(242, 177, 52, 0.8), rgba(220, 80, 0, 0.45));
+  }
+
+  .term-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .term-scrollbar::-webkit-scrollbar:horizontal {
+    height: 0;
+  }
 }
 
 @layer components {
@@ -159,8 +193,8 @@
   }
 
   .term-btn-primary:hover:not(:disabled) {
-    background: transparent;
-    color: var(--color-accent);
+    background: #f05c00;
+    border-color: #f05c00;
   }
 
   .term-btn-primary:disabled {
@@ -277,4 +311,192 @@ button {
   }
 }
 
+/* Isometric vault room backdrop (rendered by <VaultRoom/> inside Atmosphere's -z-10
+ * canvas). Faint blueprint line-art + a huge editorial watermark + an edge vignette.
+ * All pure decoration (aria-hidden); motion is gated on reduced motion in the component. */
+.vault-room {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
 
+.vault-room-scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0.13;
+  will-change: transform;
+}
+
+.vault-room-lines {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vault-room-lines .vault-grid {
+  stroke-width: 0.9;
+  opacity: 0.55;
+}
+
+.vault-room-lines .vault-accent {
+  stroke: var(--vault-accent, var(--color-accent));
+  stroke-width: 1.6;
+}
+
+.vault-leak {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, rgba(220, 80, 0, 0.08), transparent 46%);
+}
+
+.vault-wordmark-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.vault-wordmark {
+  font-family: var(--font-display);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: clamp(3.5rem, 14vw, 15rem);
+  letter-spacing: 0.1em;
+  line-height: 0.9;
+  color: var(--color-ink);
+  white-space: nowrap;
+  opacity: 0.07;
+  user-select: none;
+}
+
+.vault-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(130% 115% at 50% 42%, transparent 52%, rgba(10, 6, 3, 0.55) 100%);
+}
+
+/* The breathing light pooled behind the door — opacity pulses, so keep it compositor-only. */
+.vault-door-glow {
+  will-change: opacity;
+}
+
+/* The turning combination dial on the door. */
+.vault-dial {
+  will-change: transform;
+}
+
+/* Objects resting on the shelf edges — a touch brighter than the grid so they read as
+ * things, while the room itself stays a whisper. */
+.vault-shelf-item {
+  opacity: 0.85;
+}
+
+/* The dial's index marks echo the room's accent (active category color). */
+.vault-room-lines .vault-dial-index {
+  stroke: var(--vault-accent, var(--color-accent));
+  stroke-width: 1.5;
+}
+
+/* ------------------------------------------------------------------ */
+/* The Door — the background's hero. A massive tilted vault door in    */
+/* the bottom-right corner. Positioned in the fixed Atmosphere         */
+/* container; negative offsets crop it as it rises from the void.      */
+/* ------------------------------------------------------------------ */
+.vault-door {
+  position: absolute;
+  right: -18%;
+  bottom: -24%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.vault-door-tilt {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.vault-door-spin {
+  will-change: transform;
+}
+
+.vault-door svg {
+  display: block;
+}
+
+.vault-door-frame {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 8;
+  opacity: 0.9;
+}
+
+.vault-door-frame-thin {
+  stroke-width: 2.5;
+  opacity: 0.55;
+}
+
+.vault-door-hinge rect {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 6;
+  opacity: 0.8;
+}
+
+.vault-door-hinge circle {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 3;
+  opacity: 0.7;
+}
+
+.vault-door-rim {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 6;
+}
+
+.vault-door-rim-thin {
+  stroke-width: 2.5;
+  opacity: 0.65;
+}
+
+.vault-door-tick {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 4;
+  opacity: 0.55;
+}
+
+/* Index ticks echo the active category color, like the room's dial. */
+.vault-door-index {
+  fill: none;
+  stroke: var(--vault-accent, var(--color-accent));
+  stroke-width: 6;
+}
+
+.vault-door-spoke {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 30;
+  stroke-linecap: round;
+  opacity: 0.22;
+}
+
+.vault-door-knob {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 5;
+  opacity: 0.8;
+}
+
+.vault-door-bolt {
+  fill: var(--vault-accent, var(--color-accent));
+  stroke: var(--color-ink);
+  stroke-width: 2;
+  opacity: 0.9;
+}

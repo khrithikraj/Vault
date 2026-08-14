@@ -2,6 +2,8 @@ import { AnimatePresence, motion, useScroll, useTransform } from 'motion/react'
 import type { Category } from '../types/app'
 import { FilmGrain } from './FilmGrain'
 import { DustMotes } from './DustMotes'
+import { VaultRoom } from './VaultRoom'
+import { VaultDoor } from './VaultDoor'
 
 type AtmosphereProps = {
   /** The currently focused category — its color tints the backdrop glow. */
@@ -14,9 +16,10 @@ type AtmosphereProps = {
   dust?: boolean
 }
 
-/** The signature backdrop: a warm, category-aware void glow with a whisper of the active
- * category's color, wrapped with film grain and drifting dust. The glow swells and sinks with
- * scroll so the darkness itself feels alive. Supersedes the old AmbientBackground. */
+/** The signature backdrop: the isometric vault room (blueprint line-art, watermark,
+ * vignette) layered under a warm, category-aware void glow that whispers the active
+ * category's color, wrapped with film grain and drifting dust. The glow swells and sinks
+ * with scroll so the darkness itself feels alive. Supersedes the old AmbientBackground. */
 export function Atmosphere({
   activeCategory,
   variant = 'void',
@@ -32,6 +35,7 @@ export function Atmosphere({
   return (
     <>
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-cloud">
+        <VaultRoom activeCategory={activeCategory} />
         <AnimatePresence mode="wait">
           <motion.div
             key={seed}
@@ -48,9 +52,17 @@ export function Atmosphere({
             }}
           />
         </AnimatePresence>
+        {/* The hero: the giant vault door rises in front of the room, still behind content. */}
+        <VaultDoor variant={variant} activeCategory={activeCategory} />
       </div>
       {grain ? <FilmGrain /> : null}
-      {dust ? <DustMotes count={variant === 'full' ? 26 : 14} /> : null}
+      {dust ? (
+        <>
+          <DustMotes count={variant === 'full' ? 26 : 14} />
+          {/* A few warm sparks rising through the dark — ember is editorial-only, so sparse. */}
+          <DustMotes count={6} color="rgba(220,80,0,0.9)" glow="rgba(220,80,0,0.55)" />
+        </>
+      ) : null}
     </>
   )
 }

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'motion/react'
 import { Camera, CheckCircle2 } from 'lucide-react'
-import { fallbackFieldSchema } from '../lib/fields'
+import { fallbackFieldSchema, getErrorMessage } from '../lib/fields'
+import { buildScreenshotAutofill, extractScreenshotText, type ScreenshotExtraction } from '../lib/screenshotAutofill'
 import { BrandIcon, CategoryIcon } from '../lib/icons'
 import { BorderTrail } from './BorderTrail'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
@@ -67,10 +68,16 @@ export function CaptureFab({
   const [direction, setDirection] = useState(1)
   const [values, setValues] = useState<Record<string, string>>({})
   const [shakeToken, setShakeToken] = useState(0)
+  const [cameFromReview, setCameFromReview] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState<string | null>(null)
+  const [ocrStatus, setOcrStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
+  const [ocrError, setOcrError] = useState<string | null>(null)
+  const [ocrExtraction, setOcrExtraction] = useState<ScreenshotExtraction | null>(null)
+  const [autofillSummary, setAutofillSummary] = useState<{ matchedFields: string[]; confidence: number } | null>(null)
+  const [showFullExtraction, setShowFullExtraction] = useState(false)
   const [ghost, setGhost] = useState<{
     id: number
     fromX: number
@@ -89,6 +96,7 @@ export function CaptureFab({
   const magnetY = useMotionValue(0)
   const springX = useSpring(magnetX, { stiffness: 200, damping: 14 })
   const springY = useSpring(magnetY, { stiffness: 200, damping: 14 })
+  const appliedAutofillKey = useRef('')
 
   useEffect(() => {
     if (!open) {
@@ -107,14 +115,28 @@ export function CaptureFab({
         setPhotoPreview(URL.createObjectURL(initialPhotoFile))
       }
     }
-    if (defaultCategoryId) {
-      setCategoryId(defaultCategoryId)
-      setStage('photo')
-    } else {
-      setCategoryId('')
-      setStage('category')
-    }
+    setCategoryId(defaultCategoryId ?? '')
+    setStage('category')
+    setOcrStatus('idle')
+    setOcrError(null)
+    setOcrExtraction(null)
+    setAutofillSummary(null)
+    setShowFullExtraction(false)
+    appliedAutofillKey.current = ''
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
   }, [open])
 
   // A fresh share-target photo forces the wizard open, even if it's currently closed.
@@ -123,6 +145,45 @@ export function CaptureFab({
       setOpen(true)
     }
   }, [openToken])
+
+  useEffect(() => {
+    if (!photoFile) {
+      setOcrStatus('idle')
+      setOcrError(null)
+      setOcrExtraction(null)
+      setAutofillSummary(null)
+      setShowFullExtraction(false)
+      appliedAutofillKey.current = ''
+      return
+    }
+
+    let cancelled = false
+    setOcrStatus('running')
+    setOcrError(null)
+    setOcrExtraction(null)
+    setAutofillSummary(null)
+    setShowFullExtraction(false)
+
+    void extractScreenshotText(photoFile)
+      .then((extraction) => {
+        if (cancelled) {
+          return
+        }
+        setOcrStatus('done')
+        setOcrExtraction(extraction)
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return
+        }
+        setOcrStatus('error')
+        setOcrError(getErrorMessage(error))
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [photoFile])
 
   // Revoke the preview object URL whenever it's replaced or the component unmounts.
   useEffect(() => {
@@ -137,6 +198,12 @@ export function CaptureFab({
   const fields: FieldDefinition[] = activeCategory?.field_schema.length
     ? activeCategory.field_schema
     : fallbackFieldSchema
+  const autofillPreview = useMemo(() => {
+    if (!ocrExtraction || !categoryId) {
+      return null
+    }
+    return buildScreenshotAutofill(ocrExtraction, fields)
+  }, [categoryId, fields, ocrExtraction])
 
   const handleMagnetMove = (event: React.MouseEvent<HTMLButtonElement>) => {
     const bounds = fabRef.current?.getBoundingClientRect()
@@ -156,6 +223,7 @@ export function CaptureFab({
     setCategoryId(id)
     setStepIndex(0)
     setDirection(1)
+    setValues({})
     setStage('photo')
   }
 
@@ -195,12 +263,24 @@ export function CaptureFab({
       }
       return null
     })
+    setOcrStatus('idle')
+    setOcrError(null)
+    setOcrExtraction(null)
+    setAutofillSummary(null)
+    setShowFullExtraction(false)
+    appliedAutofillKey.current = ''
   }
 
   const goNext = () => {
     const field = fields[stepIndex]
     if (field.required && !values[field.key]?.trim()) {
       setShakeToken((token) => token + 1)
+      return
+    }
+    // If we jumped here from the review screen, go straight back to review
+    if (cameFromReview) {
+      setCameFromReview(false)
+      setStage('review')
       return
     }
     if (stepIndex < fields.length - 1) {
@@ -217,6 +297,12 @@ export function CaptureFab({
       setStage('fields')
       return
     }
+    // If we jumped here from the review screen, go straight back to review
+    if (cameFromReview) {
+      setCameFromReview(false)
+      setStage('review')
+      return
+    }
     if (stage === 'photo') {
       setStage('category')
       return
@@ -230,10 +316,41 @@ export function CaptureFab({
   }
 
   const jumpToStep = (index: number) => {
+    setCameFromReview(true)
     setDirection(index > stepIndex ? 1 : -1)
     setStepIndex(index)
     setStage('fields')
   }
+
+  useEffect(() => {
+    if (!photoFile || !ocrExtraction || !categoryId) {
+      return
+    }
+
+    const autofillKey = `${ocrExtraction.signature}:${categoryId}`
+    if (appliedAutofillKey.current === autofillKey) {
+      return
+    }
+
+    const draft = autofillPreview ?? buildScreenshotAutofill(ocrExtraction, fields)
+    if (Object.keys(draft.values).length > 0) {
+      setValues((current) => {
+        const next = { ...current }
+        for (const [key, value] of Object.entries(draft.values)) {
+          if (!next[key]?.trim()) {
+            next[key] = value
+          }
+        }
+        return next
+      })
+    }
+
+    setAutofillSummary({
+      matchedFields: draft.matchedFields,
+      confidence: ocrExtraction.confidence,
+    })
+    appliedAutofillKey.current = autofillKey
+  }, [autofillPreview, categoryId, fields, ocrExtraction, photoFile])
 
   const handleSave = () => {
     if (!categoryId || !values.title?.trim()) {
@@ -289,134 +406,94 @@ export function CaptureFab({
               transition={{ type: 'spring', stiffness: 280, damping: 30 }}
               style={{ transformPerspective: 900, transformOrigin: 'bottom' }}
               onClick={(event) => event.stopPropagation()}
-              className="term-panel term-brackets relative w-full max-w-lg overflow-hidden rounded-t sm:rounded p-6 sm:p-7"
+              className="term-panel term-brackets relative flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-t p-6 sm:rounded sm:p-7"
             >
               <BorderTrail color="rgba(220,80,0,0.85)" size={90} duration={6} />
               <div className="bg-ink/25 mx-auto mb-4 h-1.5 w-12 rounded-full sm:hidden" />
 
-              <AnimatePresence mode="wait">
-                {justSaved ? (
-                  <motion.div
-                    key="saved"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col items-center justify-center gap-3 py-10"
-                  >
-                    <motion.span
-                      initial={{ scale: 0, rotate: -30 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 16 }}
-                      className="bg-ink text-cloud flex h-16 w-16 items-center justify-center rounded-full"
+              <div className="term-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pb-8 pr-1">
+                <AnimatePresence mode="wait">
+                  {justSaved ? (
+                    <motion.div
+                      key="saved"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col items-center justify-center gap-3 py-10"
                     >
-                      <CheckCircle2 size={32} />
-                    </motion.span>
-                    <p className="text-sm font-medium uppercase tracking-widest text-ink-soft">
-                      Flying into your vault…
-                    </p>
-                  </motion.div>
-                ) : stage === 'category' ? (
-                  <motion.div key="category" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
-                      Quick capture
-                    </p>
-                    <h2 className="mt-1 text-xl font-bold uppercase tracking-tight">
-                      Where does this belong?
-                    </h2>
-
-                    {categories.length === 0 ? (
-                      <p className="mt-5 text-sm text-ink-soft">
-                        Add a category first — tap “+ New category” above.
-                      </p>
-                    ) : (
-                      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        {categories.map((category, index) => (
-                          <motion.button
-                            key={category.id}
-                            type="button"
-                            onClick={() => chooseCategory(category.id)}
-                            initial={{ opacity: 0, scale: 0.7, rotate: index % 2 === 0 ? -6 : 6 }}
-                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                            transition={{
-                              delay: index * 0.04,
-                              type: 'spring',
-                              stiffness: 300,
-                              damping: 20,
-                            }}
-                            whileHover={{ scale: 1.05, y: -3 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="term-panel-soft flex flex-col items-center gap-1.5 rounded p-4"
-                          >
-                            <CategoryIcon icon={category.icon} color={category.color} size={30} />
-                            <span className="text-center text-xs font-medium uppercase tracking-wide text-ink-soft">
-                              {category.name}
-                            </span>
-                          </motion.button>
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-                ) : stage === 'photo' ? (
-                  <motion.div key="photo" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <button
-                      type="button"
-                      onClick={goBack}
-                      className="text-sm font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
-                    >
-                      [ ← Back ]
-                    </button>
-                    <h2 className="mt-2 text-xl font-bold uppercase tracking-tight">Add a photo?</h2>
-                    <p className="mt-1 text-sm text-ink-soft">Totally optional — you can skip this.</p>
-
-                    <input
-                      ref={photoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoPick}
-                      className="hidden"
-                    />
-
-                    {photoPreview ? (
-                      <div className="border-ink/20 relative mt-5 border">
-                        <img src={photoPreview} alt="Selected" className="h-48 w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={clearPhoto}
-                          className="bg-cloud/80 text-ink absolute right-3 top-3 rounded px-3 py-1 text-xs font-medium uppercase tracking-wide backdrop-blur-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <motion.button
-                        type="button"
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => photoInputRef.current?.click()}
-                        className="term-panel-soft border-ink/30 mt-5 flex h-48 w-full flex-col items-center justify-center gap-2 rounded border-dashed"
+                      <motion.span
+                        initial={{ scale: 0, rotate: -30 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 16 }}
+                        className="bg-ink text-cloud flex h-16 w-16 items-center justify-center rounded-full"
                       >
-                        <BrandIcon icon={Camera} size={30} />
-                        <span className="text-sm font-medium uppercase tracking-wide text-ink-soft">
-                          Tap to add a photo
-                        </span>
+                        <CheckCircle2 size={32} />
+                      </motion.span>
+                      <p className="text-sm font-medium uppercase tracking-widest text-ink-soft">
+                        Flying into your vault…
+                      </p>
+                    </motion.div>
+                  ) : stage === 'category' ? (
+                    <motion.div key="category" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                        Quick capture
+                      </p>
+                      <h2 className="mt-1 text-xl font-bold uppercase tracking-tight">
+                        Where does this belong?
+                      </h2>
+
+                      {categories.length === 0 ? (
+                        <p className="mt-5 text-sm text-ink-soft">
+                          Add a category first — tap “+ New category” above.
+                        </p>
+                      ) : (
+                        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                          {categories.map((category, index) => (
+                            <motion.button
+                              key={category.id}
+                              type="button"
+                              onClick={() => chooseCategory(category.id)}
+                              initial={{ opacity: 0, scale: 0.7, rotate: index % 2 === 0 ? -6 : 6 }}
+                              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                              transition={{
+                                delay: index * 0.04,
+                                type: 'spring',
+                                stiffness: 300,
+                                damping: 20,
+                              }}
+                              whileHover={{ scale: 1.05, y: -3 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`term-panel-soft flex flex-col items-center gap-1.5 rounded p-4 transition-colors ${
+                                categoryId === category.id ? 'border border-ink bg-cloud/80' : ''
+                              }`}
+                            >
+                              <CategoryIcon icon={category.icon} color={category.color} size={30} />
+                              <span className="text-center text-xs font-medium uppercase tracking-wide text-ink-soft">
+                                {category.name}
+                              </span>
+                            </motion.button>
+                          ))}
+                          {categoryId ? (
+                            <div className="col-span-full mt-2 rounded border border-dashed border-ink/20 p-3 text-sm text-ink-soft">
+                              Selected: {activeCategory?.name ?? 'Default category'}
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="button"
+                        onClick={() => categoryId && setStage('photo')}
+                        disabled={!categoryId}
+                        className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Continue to screenshot →
                       </motion.button>
-                    )}
-
-                    {photoError ? <p className="mt-2 text-sm text-red-400">{photoError}</p> : null}
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      onClick={() => setStage('fields')}
-                      className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
-                    >
-                      {photoFile ? 'Continue →' : 'Skip →'}
-                    </motion.button>
-                  </motion.div>
-                ) : stage === 'fields' ? (
-                  <motion.div key="fields" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <div className="flex items-center justify-between">
+                    </motion.div>
+                  ) : stage === 'photo' ? (
+                    <motion.div key="photo" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                       <button
                         type="button"
                         onClick={goBack}
@@ -424,18 +501,144 @@ export function CaptureFab({
                       >
                         [ ← Back ]
                       </button>
-                      <span className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
-                        [ {stepIndex + 1}/{fields.length} ]
-                      </span>
-                    </div>
+                      <h2 className="mt-2 text-xl font-bold uppercase tracking-tight">Add a photo?</h2>
+                      <p className="mt-1 text-sm text-ink-soft">Totally optional — you can skip this.</p>
 
-                    <form
-                      onSubmit={(event) => {
-                        event.preventDefault()
-                        goNext()
-                      }}
-                      className="mt-6"
-                    >
+                      <input
+                        ref={photoInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoPick}
+                        className="hidden"
+                      />
+
+                      {photoPreview ? (
+                        <div className="border-ink/20 relative mt-5 border bg-ink/5">
+                          <img src={photoPreview} alt="Selected" className="h-auto max-h-64 w-full object-contain" />
+                          <button
+                            type="button"
+                            onClick={clearPhoto}
+                            className="bg-cloud/80 text-ink absolute right-3 top-3 rounded px-3 py-1 text-xs font-medium uppercase tracking-wide backdrop-blur-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => photoInputRef.current?.click()}
+                          className="term-panel-soft border-ink/30 mt-5 flex h-48 w-full flex-col items-center justify-center gap-2 rounded border-dashed"
+                        >
+                          <BrandIcon icon={Camera} size={30} />
+                          <span className="text-sm font-medium uppercase tracking-wide text-ink-soft">
+                            Tap to add a photo
+                          </span>
+                        </motion.button>
+                      )}
+
+                      {ocrExtraction && categoryId ? (
+                        <div className="border-ink/20 mt-5 rounded border bg-transparent p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                                Extracted preview
+                              </p>
+                              <p className="mt-1 text-sm text-ink-soft">
+                                Confidence {Math.round(ocrExtraction.confidence)}%
+                              </p>
+                            </div>
+                            <span className="text-xs uppercase tracking-widest text-ink-soft">
+                              {autofillSummary?.matchedFields.length ?? autofillPreview?.matchedFields.length ?? 0} field
+                              {(autofillSummary?.matchedFields.length ?? autofillPreview?.matchedFields.length ?? 0) === 1
+                                ? ''
+                                : 's'} matched
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid gap-3">
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft/70">
+                                Likely fields
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {(autofillSummary?.matchedFields ?? autofillPreview?.matchedFields ?? []).length > 0 ? (
+                                  (autofillSummary?.matchedFields ?? autofillPreview?.matchedFields ?? []).map((field) => (
+                                    <span
+                                      key={field}
+                                      className="bg-ink/10 border-ink/20 rounded-full border px-2.5 py-1 text-xs text-ink"
+                                    >
+                                      {field}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <p className="text-sm text-ink-soft">No confident field matches yet.</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft/70">
+                                Extracted text
+                              </p>
+                              <div className="mt-2 max-h-48 overflow-y-auto overflow-x-hidden rounded border border-dashed border-ink/20 bg-cloud/40 p-3 font-mono text-[13px] leading-6 text-ink-soft">
+                                {ocrExtraction.rawText ? (
+                                  <p className="whitespace-pre-wrap break-words">
+                                    {showFullExtraction ? ocrExtraction.rawText : ocrExtraction.rawText.slice(0, 700)}
+                                  </p>
+                                ) : (
+                                  <p className="font-sans text-sm">No readable text found.</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {photoError ? <p className="mt-2 text-sm text-red-400">{photoError}</p> : null}
+                      {ocrStatus === 'running' ? (
+                        <p className="mt-2 text-sm text-ink-soft">Analyzing screenshot for text…</p>
+                      ) : null}
+                      {ocrStatus === 'error' ? (
+                        <p className="mt-2 text-sm text-amber-300">
+                          Could not analyze the screenshot automatically. You can still fill it manually.
+                          {ocrError ? ` ${ocrError}` : ''}
+                        </p>
+                      ) : null}
+
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="button"
+                        onClick={() => setStage('fields')}
+                        className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
+                      >
+                        {photoFile ? 'Continue →' : 'Skip →'}
+                      </motion.button>
+                    </motion.div>
+                  ) : stage === 'fields' ? (
+                    <motion.div key="fields" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={goBack}
+                          className="text-sm font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
+                        >
+                          [ ← Back ]
+                        </button>
+                        <span className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                          [ {stepIndex + 1}/{fields.length} ]
+                        </span>
+                      </div>
+
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault()
+                          goNext()
+                        }}
+                        className="mt-6"
+                      >
                       <AnimatePresence mode="wait" custom={direction}>
                         <motion.div
                           key={stepIndex}
@@ -517,63 +720,150 @@ export function CaptureFab({
                       <p className="mt-2 text-center text-xs text-ink-soft/70">Press Enter ↵</p>
                     </form>
                   </motion.div>
-                ) : (
-                  <motion.div
-                    key="review"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={goBack}
-                      className="text-sm font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
+                  ) : (
+                    <motion.div
+                      key="review"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                     >
-                      [ ← Back ]
-                    </button>
-                    <h2 className="mt-2 flex items-center gap-2 text-xl font-bold uppercase tracking-tight">
-                      {activeCategory ? (
-                        <CategoryIcon icon={activeCategory.icon} color={activeCategory.color} size={20} />
-                      ) : null}
-                      Ready to save?
-                    </h2>
+                      <button
+                        type="button"
+                        onClick={goBack}
+                        className="text-sm font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
+                      >
+                        [ ← Back ]
+                      </button>
+                      <h2 className="mt-2 flex items-center gap-2 text-xl font-bold uppercase tracking-tight">
+                        {activeCategory ? (
+                          <CategoryIcon icon={activeCategory.icon} color={activeCategory.color} size={20} />
+                        ) : null}
+                        Ready to save?
+                      </h2>
 
-                    {photoPreview ? (
-                      <div className="border-ink/20 mt-4 border">
-                        <img src={photoPreview} alt="Selected" className="h-40 w-full object-cover" />
+                      {photoPreview ? (
+                        <div className="border-ink/20 mt-4 border bg-ink/5">
+                          <img src={photoPreview} alt="Selected" className="h-auto max-h-56 w-full object-contain" />
+                        </div>
+                      ) : null}
+                      {ocrExtraction && categoryId ? (
+                        <div className="border-ink/20 mt-4 rounded border bg-transparent p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                              Extraction preview
+                            </p>
+                            <span className="bg-ink/10 border-ink/20 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft">
+                              {Math.round(ocrExtraction.confidence)}% confidence
+                            </span>
+                          </div>
+
+                          <div className="mt-4 space-y-3">
+                            {autofillPreview && Object.keys(autofillPreview.values).length > 0 ? (
+                              <div className="rounded border border-dashed border-ink/20 bg-cloud/40 p-3">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft/70">
+                                  Field matches
+                                </p>
+                                <p className="mt-1 text-xs text-ink-soft">Click any field to correct it.</p>
+                                <div className="mt-2 max-h-36 space-y-2 overflow-y-auto overflow-x-hidden pr-1">
+                                  {fields
+                                    .filter((field) => autofillPreview.values[field.key])
+                                    .map((field) => {
+                                      const fieldIndex = fields.findIndex((candidate) => candidate.key === field.key)
+                                      return (
+                                        <button
+                                          key={field.key}
+                                          type="button"
+                                          onClick={() => {
+                                            if (fieldIndex >= 0) {
+                                              jumpToStep(fieldIndex)
+                                            }
+                                          }}
+                                          className="flex w-full items-start justify-between gap-4 rounded border border-transparent px-2 py-1 text-left text-sm transition-colors hover:border-ink/15 hover:bg-ink/5"
+                                        >
+                                          <span className="shrink-0 text-ink-soft">{field.label}</span>
+                                          <span className="text-right font-medium text-ink">
+                                            {autofillPreview.values[field.key]}
+                                          </span>
+                                        </button>
+                                      )
+                                    })}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-ink-soft">No confident fields mapped yet.</p>
+                            )}
+
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft/70">
+                              Extracted text
+                            </p>
+                            <div className="mt-2 rounded border border-dashed border-ink/20 bg-cloud/40 p-3 text-sm text-ink-soft">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-xs uppercase tracking-[0.2em] text-ink-soft/70">
+                                  {showFullExtraction ? 'Full text' : 'Preview'}
+                                </p>
+                                {ocrExtraction.lines.length > 5 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowFullExtraction((current) => !current)}
+                                    className="text-xs font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
+                                  >
+                                    {showFullExtraction ? 'Show less' : `Show full text (${ocrExtraction.lines.length})`}
+                                  </button>
+                                ) : null}
+                              </div>
+                              <div className="term-scrollbar mt-2 max-h-56 overflow-y-auto overflow-x-hidden pb-4 pr-1 font-mono text-[13px] leading-6 text-ink-soft">
+                                {ocrExtraction.rawText ? (
+                                  <p className="whitespace-pre-wrap break-words">
+                                    {showFullExtraction ? ocrExtraction.rawText : ocrExtraction.rawText.slice(0, 700)}
+                                  </p>
+                                ) : (
+                                  <p className="font-sans text-sm">No readable text found.</p>
+                                )}
+                              </div>
+                              {!showFullExtraction && ocrExtraction.rawText && ocrExtraction.rawText.length > 700 ? (
+                                <p className="mt-2 text-xs text-ink-soft/70">
+                                  Preview trimmed to the first 700 characters. Expand to review the full transcript.
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ) : null}
 
-                    <div className="mt-4 grid gap-2">
-                      {fields.map((field, index) => (
-                        <button
-                          key={field.key}
-                          type="button"
-                          onClick={() => jumpToStep(index)}
-                          className="term-panel-soft flex items-center justify-between gap-3 rounded p-3 text-left"
-                        >
-                          <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-ink-soft">
-                            {field.label}
-                          </span>
-                          <span className="truncate text-sm font-medium text-ink">
-                            {values[field.key]?.trim() || '—'}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                      <div className="mt-4 grid gap-2">
+                        {fields.map((field, index) => (
+                          <button
+                            key={field.key}
+                            type="button"
+                            onClick={() => jumpToStep(index)}
+                            className="term-panel-soft flex flex-col gap-1 rounded p-3 text-left hover:border-ink/30"
+                          >
+                            <span className="text-xs font-medium uppercase tracking-wide text-ink-soft">
+                              {field.label}
+                            </span>
+                            <span className="w-full break-words text-sm font-medium text-ink">
+                              {values[field.key]?.trim() || '—'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
 
-                    <motion.button
-                      ref={saveButtonRef}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      onClick={handleSave}
-                      className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
-                    >
-                      Save to vault
-                    </motion.button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+
+                      <motion.button
+                        ref={saveButtonRef}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="button"
+                        onClick={handleSave}
+                        className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
+                      >
+                        Save to vault
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </motion.div>
           </motion.div>
         ) : null}
