@@ -366,7 +366,7 @@ export function useVault() {
     let imageUrl: string | null = null
     if (input.imageFile) {
       try {
-        imageUrl = null
+        imageUrl = await uploadItemImage(session.user.id, input.imageFile)
       } catch (error) {
         setMessage(`Couldn't upload photo: ${getErrorMessage(error)}`)
         return
