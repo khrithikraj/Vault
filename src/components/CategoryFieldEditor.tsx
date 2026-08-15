@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowDown, ArrowUp } from 'lucide-react'
 import { FIELD_TYPE_OPTIONS, makeFieldKey } from '../lib/fields'
@@ -14,12 +14,15 @@ type CategoryFieldEditorProps = {
 /** Lets you redesign what a category asks for — add/rename/reorder/retype/remove fields anytime. */
 export function CategoryFieldEditor({ category, onClose, onSave }: CategoryFieldEditorProps) {
   const [fields, setFields] = useState<FieldDefinition[]>([])
-  const [openedFor, setOpenedFor] = useState<string | null>(null)
 
-  if (category && openedFor !== category.id) {
-    setOpenedFor(category.id)
-    setFields(category.field_schema.length > 0 ? category.field_schema : [])
-  }
+  // Sync local fields state whenever the category prop changes (e.g. user opens a
+  // different category's editor). Using useEffect avoids the render-time setState
+  // anti-pattern and keeps strict-mode safe.
+  useEffect(() => {
+    if (category) {
+      setFields(category.field_schema.length > 0 ? category.field_schema : [])
+    }
+  }, [category])
 
   const updateField = (index: number, patch: Partial<FieldDefinition>) => {
     setFields((current) =>
@@ -83,7 +86,7 @@ export function CategoryFieldEditor({ category, onClose, onSave }: CategoryField
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 320, damping: 30 }}
             onClick={(event) => event.stopPropagation()}
-            className="term-panel term-brackets max-h-[85vh] w-full max-w-lg overflow-y-auto rounded p-6"
+            className="term-panel term-brackets term-scrollbar max-h-[85vh] w-full max-w-lg overflow-y-auto overflow-x-hidden rounded p-6"
           >
             <div className="flex items-start justify-between gap-3">
               <div>

@@ -31,6 +31,7 @@ export function CategoryRail({
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('✨')
   const [color, setColor] = useState('#dbe9ff')
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const reducedMotion = usePrefersReducedMotion()
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -53,12 +54,17 @@ export function CategoryRail({
         const even = index % 2 === 0
         const count = itemCountByCategory.get(category.id) ?? 0
         return (
-          <ScrollReveal key={category.id} className={index === 0 ? 'col-span-2' : ''}>
-            <motion.div className="h-full" style={{ perspective: 900, transformStyle: 'preserve-3d' }}>
+          <ScrollReveal key={category.id} className={index === 0 ? 'col-span-2' : ''} style={{overflowX:'hidden'}}>
+            <motion.div
+              className="h-full"
+              style={{ perspective: 900, transformStyle: 'preserve-3d' }}
+              onMouseEnter={() => setHoveredId(category.id)}
+              onMouseLeave={() => setHoveredId(null)}
+            >
               <motion.div
                 className="h-full"
                 style={{ transformStyle: 'preserve-3d' }}
-                {...(reducedMotion
+                {...(reducedMotion || hoveredId === category.id
                   ? {}
                   : {
                       animate: {

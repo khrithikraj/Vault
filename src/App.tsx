@@ -166,9 +166,34 @@ export default function App() {
         {mainView === 'vault' ? (
           <>
             <ScrollReveal className="mt-10">
+              <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
+                <span className="folio text-xs text-ink-soft/50">01</span>
+                {activeCategory ? (
+                  <>
+                    <CategoryIcon icon={activeCategory.icon} color={activeCategory.color} size={18} />
+                    {activeCategory.name}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={18} className="text-ink-soft" />
+                    Everything
+                  </>
+                )}
+              </h2>
+              <ItemGrid
+                items={vault.selectedItems}
+                categories={vault.categories}
+                onOpen={(item) => setOpenItemId(item.id)}
+                onToggle={(item) => void vault.toggleItem(item)}
+              />
+            </ScrollReveal>
+
+            <div className="divider-dash mt-12" />
+
+            <ScrollReveal className="mt-12">
               <div className="mb-4 flex items-baseline justify-between">
                 <h2 className="font-display flex items-baseline gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
-                  <span className="folio text-xs text-ink-soft/50">01</span> Categories
+                  <span className="folio text-xs text-ink-soft/50">02</span> Categories
                 </h2>
                 {vault.loadingData && vault.categories.length > 0 ? (
                   <span className="text-xs uppercase tracking-widest text-ink-soft">Syncing…</span>
@@ -191,31 +216,6 @@ export default function App() {
                   onManageFields={setEditingFieldsFor}
                 />
               )}
-            </ScrollReveal>
-
-            <div className="divider-dash mt-12" />
-
-            <ScrollReveal className="mt-12">
-              <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
-                <span className="folio text-xs text-ink-soft/50">02</span>
-                {activeCategory ? (
-                  <>
-                    <CategoryIcon icon={activeCategory.icon} color={activeCategory.color} size={18} />
-                    {activeCategory.name}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={18} className="text-ink-soft" />
-                    Everything
-                  </>
-                )}
-              </h2>
-              <ItemGrid
-                items={vault.selectedItems}
-                categories={vault.categories}
-                onOpen={(item) => setOpenItemId(item.id)}
-                onToggle={(item) => void vault.toggleItem(item)}
-              />
             </ScrollReveal>
           </>
         ) : (
@@ -264,6 +264,7 @@ export default function App() {
         />
 
         <CategoryFieldEditor
+          key={editingFieldsFor?.id ?? 'none'}
           category={editingFieldsFor}
           onClose={() => setEditingFieldsFor(null)}
           onSave={(id, fields) => void vault.updateCategoryFields(id, fields)}
