@@ -92,6 +92,32 @@ export function useMockVault() {
     )
   }
 
+  const updateCategory = async (
+    categoryId: string,
+    name: string,
+    icon: string,
+    color: string,
+    fieldSchema?: FieldDefinition[],
+  ) => {
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      return
+    }
+    setCategories((current) =>
+      current.map((category) =>
+        category.id === categoryId
+          ? {
+              ...category,
+              name: trimmedName,
+              icon: icon.trim() || '✨',
+              color,
+              ...(fieldSchema !== undefined ? { field_schema: fieldSchema } : {}),
+            }
+          : category,
+      ),
+    )
+  }
+
   const addItem = async (input: {
     categoryId: string
     values: Record<string, string>
@@ -124,6 +150,43 @@ export function useMockVault() {
       updated_at: new Date().toISOString(),
     }
     setItems((current) => [item, ...current])
+  }
+
+  const updateItem = async (
+    itemId: string,
+    input: {
+      title?: string
+      notes?: string | null
+      categoryId?: string
+      metadata?: Record<string, unknown>
+      status?: 'saved' | 'done'
+      imageFile?: File | null
+      removeImage?: boolean
+    },
+  ) => {
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== itemId) return item
+        let imageUrl = item.image_url
+        if (input.removeImage) {
+          if (imageUrl?.startsWith('blob:')) URL.revokeObjectURL(imageUrl)
+          imageUrl = null
+        } else if (input.imageFile) {
+          if (imageUrl?.startsWith('blob:')) URL.revokeObjectURL(imageUrl)
+          imageUrl = URL.createObjectURL(input.imageFile)
+        }
+        return {
+          ...item,
+          ...(input.title !== undefined ? { title: input.title.trim() || item.title } : {}),
+          ...(input.notes !== undefined ? { notes: input.notes?.trim() || null } : {}),
+          ...(input.categoryId !== undefined ? { category_id: input.categoryId } : {}),
+          ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+          ...(input.status !== undefined ? { status: input.status } : {}),
+          image_url: imageUrl,
+          updated_at: new Date().toISOString(),
+        }
+      }),
+    )
   }
 
   const toggleItem = async (item: VaultItem) => {
@@ -207,8 +270,10 @@ export function useMockVault() {
     },
     addCategory,
     deleteCategory,
+    updateCategory,
     updateCategoryFields,
     addItem,
+    updateItem,
     toggleItem,
     deleteItem,
     addNote,
