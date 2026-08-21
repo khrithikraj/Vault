@@ -34,7 +34,11 @@ export function AppDock({
       <div
         onMouseMove={(event) => mouseX.set(event.clientX)}
         onMouseLeave={() => mouseX.set(Infinity)}
-        className="term-panel flex max-w-full items-end gap-1 overflow-x-auto rounded-full px-2 py-2"
+        className="term-panel flex max-w-full items-end gap-0.5 sm:gap-1 overflow-x-auto rounded-full px-2 py-2"
+        style={{
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+        }}
       >
         <DockButton
           mouseX={mouseX}
@@ -102,13 +106,13 @@ function DockButton({
   const lift = useTransform(scale, (value) => (value - 1) * -22)
 
   return (
-    <motion.button
+      <motion.button
       ref={ref}
       type="button"
       data-dock-item={dockKey}
       onClick={onClick}
       whileTap={{ scale: 0.9 }}
-      className={`relative flex shrink-0 flex-col items-center gap-0.5 rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wide ${
+      className={`relative flex shrink-0 flex-col items-center gap-0.5 rounded-full px-2 sm:px-3 py-1.5 text-xs font-medium uppercase tracking-wide ${
         active ? 'text-ink' : 'text-ink-soft'
       }`}
       title={label}
@@ -135,7 +139,7 @@ function DockButton({
           {renderIcon(20)}
         </motion.span>
       </motion.span>
-      <span className="relative z-10 max-w-14 truncate">{label}</span>
+      <span className="relative z-10 max-w-[2.5rem] sm:max-w-[3.5rem] truncate">{label}</span>
     </motion.button>
   )
 }

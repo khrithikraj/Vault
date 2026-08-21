@@ -306,6 +306,47 @@ export function useVault() {
     setSelectedCategoryId(next.id)
   }
 
+  /** Edit a category's metadata and/or field schema in one call. */
+  const updateCategory = async (
+    categoryId: string,
+    name: string,
+    icon: string,
+    color: string,
+    fieldSchema?: FieldDefinition[],
+  ) => {
+    if (!session?.user?.id) {
+      return
+    }
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      return
+    }
+
+    const payload: { name: string; icon: string; color: string; field_schema?: FieldDefinition[] } = {
+      name: trimmedName,
+      icon: icon.trim() || '✨',
+      color,
+    }
+    if (fieldSchema !== undefined) {
+      payload.field_schema = fieldSchema
+    }
+
+    const { data, error } = await supabase
+      .from('categories')
+      .update(payload)
+      .eq('id', categoryId)
+      .select('*')
+      .single()
+
+    if (error) {
+      setMessage(describeSupabaseError(error))
+      return
+    }
+
+    const updated = normalizeCategory(data as Category)
+    setCategories((current) => current.map((category) => (category.id === updated.id ? updated : category)))
+  }
+
   const updateCategoryFields = async (categoryId: string, fieldSchema: FieldDefinition[]) => {
     const { data, error } = await supabase
       .from('categories')
@@ -392,6 +433,58 @@ export function useVault() {
     }
 
     setItems((current) => [data as VaultItem, ...current])
+  }
+
+  const updateItem = async (
+    itemId: string,
+    input: {
+      title?: string
+      notes?: string | null
+      categoryId?: string
+      metadata?: Record<string, unknown>
+      status?: 'saved' | 'done'
+      imageFile?: File | null
+      removeImage?: boolean
+    },
+  ) => {
+    if (!session?.user?.id) {
+      return
+    }
+
+    let imageUrl: string | null | undefined = undefined
+    if (input.removeImage) {
+      imageUrl = null
+    } else if (input.imageFile) {
+      try {
+        imageUrl = await uploadItemImage(session.user.id, input.imageFile)
+      } catch (error) {
+        setMessage(`Couldn't upload photo: ${getErrorMessage(error)}`)
+        return
+      }
+    }
+
+    const patch: Record<string, unknown> = {}
+    if (input.title !== undefined) patch.title = input.title.trim()
+    if (input.notes !== undefined) patch.notes = input.notes?.trim() || null
+    if (input.categoryId !== undefined) patch.category_id = input.categoryId
+    if (input.metadata !== undefined) patch.metadata = input.metadata
+    if (input.status !== undefined) patch.status = input.status
+    if (imageUrl !== undefined) patch.image_url = imageUrl
+
+    const { data, error } = await supabase
+      .from('items')
+      .update(patch)
+      .eq('id', itemId)
+      .select('*')
+      .single()
+
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+
+    const updated = data as VaultItem
+    setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
   }
 
   const toggleItem = async (item: VaultItem) => {
@@ -504,9 +597,11 @@ export function useVault() {
     updatePassword,
     passwordRecovery,
     addCategory,
+    updateCategory,
     deleteCategory,
     updateCategoryFields,
     addItem,
+    updateItem,
     toggleItem,
     deleteItem,
     addNote,

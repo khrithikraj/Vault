@@ -1,4 +1,3 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { Sparkles } from 'lucide-react'
 import { useVault } from './hooks/useVault'
@@ -19,14 +18,18 @@ import { ProgressiveBlur } from './components/ProgressiveBlur'
 import { ScrollReveal } from './components/ScrollReveal'
 import { ScrollProgress } from './components/ScrollProgress'
 import { VerticalSerial } from './components/VerticalSerial'
-import type { Category } from './types/app'
+import type { VaultItem } from './types/app'
+import { useState, useEffect, lazy, Suspense } from 'react'
 
 // Modals opened on demand only — lazy-loaded to keep the initial bundle lean.
 const ItemDetailOverlay = lazy(() =>
   import('./components/ItemDetailOverlay').then((mod) => ({ default: mod.ItemDetailOverlay })),
 )
-const CategoryFieldEditor = lazy(() =>
-  import('./components/CategoryFieldEditor').then((mod) => ({ default: mod.CategoryFieldEditor })),
+const CategoryEditor = lazy(() =>
+  import('./components/CategoryEditor').then((mod) => ({ default: mod.CategoryEditor })),
+)
+const NoteDetailOverlay = lazy(() =>
+  import('./components/NoteDetailOverlay').then((mod) => ({ default: mod.NoteDetailOverlay })),
 )
 const NotesPanel = lazy(() =>
   import('./components/NotesPanel').then((mod) => ({ default: mod.NotesPanel })),
@@ -38,8 +41,17 @@ export default function App() {
   const [devPreview, setDevPreview] = useState(false)
   const vault = devPreview ? mockVault : realVault
   const [openItemId, setOpenItemId] = useState<string | null>(null)
-  const openItem = openItemId ? vault.items.find((item) => item.id === openItemId) ?? null : null
-  const [editingFieldsFor, setEditingFieldsFor] = useState<Category | null>(null)
+  const openItem: VaultItem | null = openItemId
+    ? vault.items.find((item) => item.id === openItemId) ?? null
+    : null
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null)
+  const openNote = openNoteId ? vault.notes.find((note) => note.id === openNoteId) ?? null : null
+  // Store only the ID of the category being edited — always resolve to the live category object
+  // so CategoryEditor gets fresh field_schema even after a Supabase reload.
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
+  const editingCategory = editingCategoryId
+    ? (vault.categories.find((c) => c.id === editingCategoryId) ?? null)
+    : null
   const [celebration, setCelebration] = useState<{ id: string; token: number } | null>(null)
   const [sharedPhoto, setSharedPhoto] = useState<File | null>(null)
   const [sharedPhotoToken, setSharedPhotoToken] = useState(0)
@@ -213,7 +225,7 @@ export default function App() {
                   onSelect={vault.setSelectedCategoryId}
                   onDelete={(id) => void vault.deleteCategory(id)}
                   onAdd={(input) => void vault.addCategory(input)}
-                  onManageFields={setEditingFieldsFor}
+                  onEdit={(category) => setEditingCategoryId(category.id)}
                 />
               )}
             </ScrollReveal>
@@ -223,8 +235,8 @@ export default function App() {
             <NotesPanel
               notes={vault.notes}
               onAddNote={vault.addNote}
-              onUpdateNote={vault.updateNote}
-              onDeleteNote={vault.deleteNote}
+              onOpenNote={setOpenNoteId}
+              onDeleteNote={(id) => void vault.deleteNote(id)}
             />
           </Suspense>
         )}
@@ -257,17 +269,37 @@ export default function App() {
       <Suspense fallback={null}>
         <ItemDetailOverlay
           item={openItem}
+          categories={vault.categories}
           category={vault.categories.find((category) => category.id === openItem?.category_id)}
           onClose={() => setOpenItemId(null)}
           onToggle={(item) => void vault.toggleItem(item)}
           onDelete={(id) => void vault.deleteItem(id)}
+          onUpdate={(itemId, input) => void vault.updateItem(itemId, input)}
         />
 
-        <CategoryFieldEditor
-          key={editingFieldsFor?.id ?? 'none'}
-          category={editingFieldsFor}
-          onClose={() => setEditingFieldsFor(null)}
-          onSave={(id, fields) => void vault.updateCategoryFields(id, fields)}
+        <CategoryEditor
+          key={editingCategoryId ?? 'none'}
+          category={editingCategory}
+          onClose={() => setEditingCategoryId(null)}
+          onSave={(id, name, icon, color, fields) =>
+            void vault.updateCategory(id, name, icon, color, fields)
+          }
+        />
+
+        <NoteDetailOverlay
+          note={openNote}
+          onClose={() => setOpenNoteId(null)}
+          onDelete={() => {
+            if (openNote) {
+              void vault.deleteNote(openNote.id)
+              setOpenNoteId(null)
+            }
+          }}
+          onUpdate={async (patch) => {
+            if (openNote) {
+              await vault.updateNote(openNote.id, patch)
+            }
+          }}
         />
       </Suspense>
     </main>

@@ -25,7 +25,7 @@ export function ItemGrid({ items, categories, onOpen, onToggle }: ItemGridProps)
   }
 
   return (
-    <section className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <section className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       {items.map((item) => {
         const category = categories.find((entry) => entry.id === item.category_id)
         const highlightField = category?.field_schema.find(
@@ -53,7 +53,7 @@ export function ItemGrid({ items, categories, onOpen, onToggle }: ItemGridProps)
                     <img
                       src={item.image_url}
                       alt=""
-                      className="h-32 w-full object-cover"
+                      className="h-28 sm:h-32 w-full object-cover"
                     />
                     {/* Inner bevel: a whisper of light along the top edge, warm falloff below. */}
                     <div
@@ -74,18 +74,24 @@ export function ItemGrid({ items, categories, onOpen, onToggle }: ItemGridProps)
                   </span>
                 ) : null}
 
-                <div className="flex items-start justify-between gap-2 p-4">
-                  <div>
-                    <h4 className="font-display font-semibold uppercase leading-snug">{item.title}</h4>
+                <div className="flex items-start justify-between gap-2 p-3 sm:p-4">
+                  {/* Text content: strictly constrained so long names never blow the grid */}
+                  <div className="min-w-0 flex-1">
+                    <h4
+                      className="font-display line-clamp-2 font-semibold uppercase leading-snug break-words"
+                      title={item.title}
+                    >
+                      {item.title}
+                    </h4>
                     {highlightField ? (
-                      <p className="mt-1 text-sm text-ink-soft">
+                      <p className="mt-1 truncate text-xs sm:text-sm text-ink-soft">
                         <span className="font-medium">{highlightField.label}:</span>{' '}
                         {String(item.metadata[highlightField.key])}
                       </p>
                     ) : item.notes ? (
-                      <p className="mt-1 line-clamp-2 text-sm text-ink-soft">{item.notes}</p>
+                      <p className="mt-1 line-clamp-2 text-xs sm:text-sm text-ink-soft">{item.notes}</p>
                     ) : null}
-                    <p className="mt-2 text-xs text-ink-soft/80">
+                    <p className="mt-1.5 text-xs text-ink-soft/80">
                       {prettyDate.format(new Date(item.created_at))}
                     </p>
                   </div>
