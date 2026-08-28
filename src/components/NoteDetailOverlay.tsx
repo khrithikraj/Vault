@@ -36,7 +36,7 @@ export function NoteDetailOverlay({
           onClick={onClose}
         >
           <motion.div
-            className="term-panel term-brackets term-scrollbar relative flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded p-4 sm:p-6"
+            className="term-panel term-brackets term-scrollbar relative flex max-h-screen md:max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded p-4 sm:p-6"
             style={{ transformPerspective: 1200 }}
             onClick={(e) => e.stopPropagation()}
             initial={{ opacity: 0, y: 20, scale: 0.97 }}

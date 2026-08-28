@@ -23,3 +23,13 @@ yarn-error.log*
 
 # Local audit artifact
 audit-prod.json
+# Local editor configuration
+.vscode/
+
+# Local document test fixtures
+aadhaar1.pdf
+aadhaar2.pdf
+
+# Supabase local CLI state
+supabase/.temp/
+

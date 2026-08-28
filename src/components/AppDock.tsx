@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import type { ReactNode } from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
 import type { MotionValue } from 'motion/react'
-import { Home, NotebookPen } from 'lucide-react'
+import { FolderLock, Home, NotebookPen } from 'lucide-react'
 import { BrandIcon, CategoryIcon } from '../lib/icons'
 import type { Category } from '../types/app'
 
@@ -14,6 +14,8 @@ type AppDockProps = {
   celebrateToken?: number
   notesActive: boolean
   onSelectNotes: () => void
+  docsActive: boolean
+  onSelectDocs: () => void
 }
 
 /** Fixed bottom dock, macOS-style: a sliding active pill, plus real cursor-proximity
@@ -26,6 +28,8 @@ export function AppDock({
   celebrateToken,
   notesActive,
   onSelectNotes,
+  docsActive,
+  onSelectDocs,
 }: AppDockProps) {
   const mouseX = useMotionValue(Infinity)
 
@@ -68,6 +72,14 @@ export function AppDock({
           renderIcon={(size) => <BrandIcon icon={NotebookPen} size={size} />}
           active={notesActive}
           onClick={onSelectNotes}
+        />
+        <div className="bg-ink/20 mx-1 h-8 w-px shrink-0 self-center" />
+        <DockButton
+          mouseX={mouseX}
+          label="Docs"
+          renderIcon={(size) => <BrandIcon icon={FolderLock} size={size} />}
+          active={docsActive}
+          onClick={onSelectDocs}
         />
       </div>
     </nav>
