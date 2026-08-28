@@ -506,11 +506,11 @@ export function useVault() {
     setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
   }
 
-  const deleteItem = async (itemId: string) => {
+  const deleteItem = async (itemId: string): Promise<boolean> => {
     const { error } = await supabase.from('items').delete().eq('id', itemId)
     if (error) {
       setMessage(error.message)
-      return
+      return false
     }
 
     setItems((current) => {
@@ -524,6 +524,7 @@ export function useVault() {
       }
       return current.filter((item) => item.id !== itemId)
     })
+    return true
   }
 
   const addNote = async () => {
@@ -567,13 +568,14 @@ export function useVault() {
     setNotes((current) => current.map((note) => (note.id === updated.id ? updated : note)))
   }
 
-  const deleteNote = async (noteId: string) => {
+  const deleteNote = async (noteId: string): Promise<boolean> => {
     const { error } = await supabase.from('notes').delete().eq('id', noteId)
     if (error) {
       setMessage(error.message)
-      return
+      return false
     }
     setNotes((current) => current.filter((note) => note.id !== noteId))
+    return true
   }
 
   return {

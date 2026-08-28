@@ -2,6 +2,7 @@ import { motion } from 'motion/react'
 import { Sparkles } from 'lucide-react'
 import { useVault } from './hooks/useVault'
 import { useMockVault } from './hooks/useMockVault'
+import { useDocuments } from './hooks/useDocuments'
 import { consumeSharedPhoto } from './lib/shareTarget'
 import { CategoryIcon } from './lib/icons'
 import { Atmosphere } from './components/Atmosphere'
@@ -18,8 +19,8 @@ import { ProgressiveBlur } from './components/ProgressiveBlur'
 import { ScrollReveal } from './components/ScrollReveal'
 import { ScrollProgress } from './components/ScrollProgress'
 import { VerticalSerial } from './components/VerticalSerial'
-import type { VaultItem } from './types/app'
-import { useState, useEffect, lazy, Suspense } from 'react'
+import type { VaultDocument, VaultItem } from './types/app'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 
 // Modals opened on demand only — lazy-loaded to keep the initial bundle lean.
 const ItemDetailOverlay = lazy(() =>
@@ -34,18 +35,34 @@ const NoteDetailOverlay = lazy(() =>
 const NotesPanel = lazy(() =>
   import('./components/NotesPanel').then((mod) => ({ default: mod.NotesPanel })),
 )
+const DocumentsPanel = lazy(() =>
+  import('./components/documents/DocumentsPanel').then((mod) => ({ default: mod.DocumentsPanel })),
+)
+const DocumentViewer = lazy(() =>
+  import('./components/documents/DocumentViewer').then((mod) => ({ default: mod.DocumentViewer })),
+)
 
 export default function App() {
   const realVault = useVault()
   const mockVault = useMockVault()
   const [devPreview, setDevPreview] = useState(false)
   const vault = devPreview ? mockVault : realVault
+  const docs = useDocuments()
+
+  // Overlay state: item, note, document
   const [openItemId, setOpenItemId] = useState<string | null>(null)
   const openItem: VaultItem | null = openItemId
     ? vault.items.find((item) => item.id === openItemId) ?? null
     : null
+
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
   const openNote = openNoteId ? vault.notes.find((note) => note.id === openNoteId) ?? null : null
+
+  const [openDocId, setOpenDocId] = useState<string | null>(null)
+  const openDoc: VaultDocument | null = openDocId
+    ? docs.documents.find((doc) => doc.id === openDocId) ?? null
+    : null
+
   // Store only the ID of the category being edited — always resolve to the live category object
   // so CategoryEditor gets fresh field_schema even after a Supabase reload.
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
@@ -55,8 +72,64 @@ export default function App() {
   const [celebration, setCelebration] = useState<{ id: string; token: number } | null>(null)
   const [sharedPhoto, setSharedPhoto] = useState<File | null>(null)
   const [sharedPhotoToken, setSharedPhotoToken] = useState(0)
-  const [mainView, setMainView] = useState<'vault' | 'notes'>('vault')
+  const [mainView, setMainView] = useState<'vault' | 'notes' | 'documents'>('vault')
   const [showLanding, setShowLanding] = useState(true)
+  // Track whether documents have been loaded for the current session
+  const docsLoadedRef = useRef(false)
+
+  // ---------------------------------------------------------------------------
+  // Unified Overlay History Architecture
+  // Ensures hardware/browser Back button closes open overlays first without
+  // leaving stale history entries or closing the PWA unexpectedly.
+  // ---------------------------------------------------------------------------
+  const closeAllOverlays = useCallback(() => {
+    setOpenItemId(null)
+    setOpenNoteId(null)
+    setOpenDocId(null)
+  }, [])
+
+  const handleDismissOverlay = useCallback(() => {
+    if (window.history.state?.vaultOverlay) {
+      window.history.back()
+    } else {
+      closeAllOverlays()
+    }
+  }, [closeAllOverlays])
+
+  const handleOpenItem = useCallback((id: string) => {
+    if (!window.history.state?.vaultOverlay) {
+      window.history.pushState({ vaultOverlay: true }, '')
+    }
+    setOpenItemId(id)
+    setOpenNoteId(null)
+    setOpenDocId(null)
+  }, [])
+
+  const handleOpenNote = useCallback((id: string) => {
+    if (!window.history.state?.vaultOverlay) {
+      window.history.pushState({ vaultOverlay: true }, '')
+    }
+    setOpenNoteId(id)
+    setOpenItemId(null)
+    setOpenDocId(null)
+  }, [])
+
+  const handleOpenDoc = useCallback((doc: VaultDocument) => {
+    if (!window.history.state?.vaultOverlay) {
+      window.history.pushState({ vaultOverlay: true }, '')
+    }
+    setOpenDocId(doc.id)
+    setOpenItemId(null)
+    setOpenNoteId(null)
+  }, [])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      closeAllOverlays()
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [closeAllOverlays])
 
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has('shared')) {
@@ -70,6 +143,23 @@ export default function App() {
       }
     })
   }, [])
+
+  // Load documents when the user navigates to the Documents tab (lazy — only once per session).
+  // If already loaded (docsLoadedRef.current), skip to avoid redundant fetches.
+  useEffect(() => {
+    if (mainView !== 'documents') return
+    if (docsLoadedRef.current) return
+    if (!vault.session?.user?.id || devPreview) return
+    docsLoadedRef.current = true
+    void docs.load()
+  }, [mainView, vault.session?.user?.id, devPreview, docs])
+
+  // Reset docs state on sign-out so a new sign-in gets fresh data.
+  useEffect(() => {
+    if (!vault.session) {
+      docsLoadedRef.current = false
+    }
+  }, [vault.session])
 
   const handleSignOut = () => {
     if (devPreview) {
@@ -195,7 +285,7 @@ export default function App() {
               <ItemGrid
                 items={vault.selectedItems}
                 categories={vault.categories}
-                onOpen={(item) => setOpenItemId(item.id)}
+                onOpen={(item) => handleOpenItem(item.id)}
                 onToggle={(item) => void vault.toggleItem(item)}
               />
             </ScrollReveal>
@@ -230,13 +320,26 @@ export default function App() {
               )}
             </ScrollReveal>
           </>
-        ) : (
+        ) : mainView === 'notes' ? (
           <Suspense fallback={null}>
             <NotesPanel
               notes={vault.notes}
               onAddNote={vault.addNote}
-              onOpenNote={setOpenNoteId}
+              onOpenNote={handleOpenNote}
               onDeleteNote={(id) => void vault.deleteNote(id)}
+            />
+          </Suspense>
+        ) : (
+          <Suspense fallback={null}>
+            <DocumentsPanel
+              documents={docs.documents}
+              loading={docs.loading}
+              uploading={docs.uploading}
+              message={docs.message}
+              onOpenDoc={handleOpenDoc}
+              onUpload={async (file, name, category) => docs.addDocument(file, name, category)}
+              onDelete={docs.removeDocument}
+              onDismissMessage={() => docs.setMessage('')}
             />
           </Suspense>
         )}
@@ -246,13 +349,15 @@ export default function App() {
         categories={vault.categories}
         selectedCategoryId={vault.selectedCategoryId}
         onSelect={(id) => {
-          setMainView('vault')
-          vault.setSelectedCategoryId(id)
+          setMainView('vault');
+          vault.setSelectedCategoryId(id);
         }}
         celebrateCategoryId={celebration?.id ?? null}
         celebrateToken={celebration?.token}
         notesActive={mainView === 'notes'}
         onSelectNotes={() => setMainView('notes')}
+        docsActive={mainView === 'documents'}
+        onSelectDocs={() => setMainView('documents')}
       />
 
       {mainView === 'vault' ? (
@@ -271,9 +376,14 @@ export default function App() {
           item={openItem}
           categories={vault.categories}
           category={vault.categories.find((category) => category.id === openItem?.category_id)}
-          onClose={() => setOpenItemId(null)}
+          onClose={handleDismissOverlay}
           onToggle={(item) => void vault.toggleItem(item)}
-          onDelete={(id) => void vault.deleteItem(id)}
+          onDelete={async (id) => {
+            const ok = await vault.deleteItem(id)
+            if (ok) {
+              handleDismissOverlay()
+            }
+          }}
           onUpdate={(itemId, input) => void vault.updateItem(itemId, input)}
         />
 
@@ -288,11 +398,13 @@ export default function App() {
 
         <NoteDetailOverlay
           note={openNote}
-          onClose={() => setOpenNoteId(null)}
-          onDelete={() => {
+          onClose={handleDismissOverlay}
+          onDelete={async () => {
             if (openNote) {
-              void vault.deleteNote(openNote.id)
-              setOpenNoteId(null)
+              const ok = await vault.deleteNote(openNote.id)
+              if (ok) {
+                handleDismissOverlay()
+              }
             }
           }}
           onUpdate={async (patch) => {
@@ -301,7 +413,12 @@ export default function App() {
             }
           }}
         />
+
+        <DocumentViewer
+          doc={openDoc}
+          onClose={handleDismissOverlay}
+        />
       </Suspense>
     </main>
-  )
+  );
 }

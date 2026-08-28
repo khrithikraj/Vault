@@ -50,3 +50,30 @@ export type Note = {
   created_at: string
   updated_at: string
 }
+
+// ---------------------------------------------------------------------------
+// Documents
+// ---------------------------------------------------------------------------
+
+export const DOCUMENT_CATEGORIES = [
+  'Identity',
+  'Vehicle',
+  'Finance',
+  'Education',
+  'Medical',
+  'Travel',
+  'Other',
+] as const
+
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number]
+
+export type VaultDocument = {
+  id: string
+  user_id: string
+  category: DocumentCategory
+  name: string
+  mime_type: string
+  file_size: number
+  storage_path: string
+  created_at: string
+}

@@ -143,7 +143,7 @@ export function ItemDetailOverlay({
             layoutId={`item-card-${item.id}`}
             onClick={(event) => event.stopPropagation()}
             style={{ transformPerspective: 1200 }}
-            className="term-panel term-brackets term-scrollbar relative max-h-[90dvh] w-full max-w-lg overflow-y-auto overflow-x-hidden rounded p-5 sm:p-7"
+            className="term-panel term-brackets term-scrollbar relative max-h-screen md:max-h-[90vh] w-full max-w-lg overflow-y-auto overflow-x-hidden rounded p-5 sm:p-7"
           >
             <motion.div
               initial={{ opacity: 0, y: 16 }}
