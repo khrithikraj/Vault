@@ -48,13 +48,16 @@ type BrandIconProps = {
   icon: LucideIcon
   size?: number
   className?: string
-  tone?: 'accent' | 'warn'
+  tone?: 'accent' | 'warn' | 'ink'
 }
 
 /** Fixed-color icon for "branded" UI elements that aren't tied to a category (dock tabs,
- * lock badge, checkmark, etc.) — uses the shared accent/warn colors instead of a category color. */
+ * lock badge, checkmark, etc.) — uses the shared accent/warn colors instead of a category color.
+ * The `ink` tone is used where the icon sits on the accent pill (e.g. an active dock item) so it
+ * reads as cream on ember instead of disappearing into it. */
 export function BrandIcon({ icon: Icon, size = 22, className, tone = 'accent' }: BrandIconProps) {
-  const color = tone === 'warn' ? 'var(--color-warn)' : 'var(--color-accent)'
+  const color =
+    tone === 'warn' ? 'var(--color-warn)' : tone === 'ink' ? 'var(--color-ink)' : 'var(--color-accent)'
   return (
     <Icon
       aria-hidden="true"

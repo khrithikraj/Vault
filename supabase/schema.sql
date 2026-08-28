@@ -229,3 +229,96 @@ using (bucket_id = 'vault' and auth.uid()::text = (storage.foldername(name))[1])
 -- (like field_schema) can 404 with "Could not find the column ... in the schema cache"
 -- until the API server restarts on its own. This forces an immediate reload.
 notify pgrst, 'reload schema';
+
+-- =============================================================================
+-- Sharing feature (read-only preview links) — see migrations/ for the full context.
+-- Non-guessable, snapshot-based share links for individual items.
+-- Anonymous readers retrieve a snapshot ONLY via get_shared_item(token) (keyed by
+-- the share token); the table has NO general public SELECT. Write is owner-only.
+-- =============================================================================
+
+create table if not exists public.shared_items (
+  id             uuid        primary key default gen_random_uuid(),
+  token          text        not null unique check (char_length(token) >= 32),
+  owner_id       uuid        not null references auth.users(id) on delete cascade,
+  -- Snapshot discriminator: 'item' (category/item vault) or 'note' (scratchpad note).
+  kind           text        not null default 'item' check (kind in ('item', 'note')),
+  title          text        not null check (char_length(trim(title)) > 0),
+  category_name  text        not null default 'Vault',
+  category_icon  text        not null default '✨',
+  category_color text        not null default '#dc5000',
+  image_url      text,
+  source_url     text,
+  -- For item snapshots this is the item's notes; for note snapshots this is the
+  -- note's body/content.
+  notes          text,
+  -- For note snapshots only: [{ id, text, done }] checklist entries.
+  checklist      jsonb       not null default '[]'::jsonb,
+  fields         jsonb       not null default '[]'::jsonb,
+  created_at     timestamptz not null default timezone('utc', now())
+);
+
+create index if not exists idx_shared_items_token on public.shared_items (token);
+create index if not exists idx_shared_items_owner_id on public.shared_items (owner_id);
+
+alter table public.shared_items enable row level security;
+
+-- Deliberately NO anonymous/public SELECT policy: the shared_items table is not
+-- publicly enumerable. Snapshot retrieval is via get_shared_item(token) below.
+drop policy if exists "shared_items_select_any" on public.shared_items;
+
+-- Owner-only SELECT: supports createSharedItem's INSERT ... RETURNING (.select('token'))
+-- and lets owners read their own records. Anonymous and non-owners cannot SELECT directly.
+drop policy if exists "shared_items_select_own" on public.shared_items;
+create policy "shared_items_select_own"
+  on public.shared_items for select
+  using (auth.uid() = owner_id);
+
+drop policy if exists "shared_items_insert_own" on public.shared_items;
+create policy "shared_items_insert_own"
+  on public.shared_items for insert
+  with check (auth.uid() = owner_id);
+
+drop policy if exists "shared_items_delete_own" on public.shared_items;
+create policy "shared_items_delete_own"
+  on public.shared_items for delete
+  using (auth.uid() = owner_id);
+
+-- get_shared_item(token) — security-definer RPC for anonymous preview access.
+-- Keyed by the exact share token (returns at most one row) and never exposes owner_id.
+-- DROP-then-CREATE (not CREATE OR REPLACE): the return type changed to add kind/checklist,
+-- which Postgres only allows by dropping the existing function first.
+drop function if exists public.get_shared_item(text);
+
+create function public.get_shared_item(p_token text)
+returns table (
+  id             uuid,
+  token          text,
+  kind           text,
+  title          text,
+  category_name  text,
+  category_icon  text,
+  category_color text,
+  image_url      text,
+  source_url     text,
+  notes          text,
+  checklist      jsonb,
+  fields         jsonb,
+  created_at     timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select id, token, kind, title, category_name, category_icon, category_color,
+         image_url, source_url, notes, checklist, fields, created_at
+  from public.shared_items
+  where token = p_token
+  limit 1;
+$$;
+
+revoke all on function public.get_shared_item(text) from public;
+grant execute on function public.get_shared_item(text) to anon, authenticated;
+
+notify pgrst, 'reload schema';

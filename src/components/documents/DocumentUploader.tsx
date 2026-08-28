@@ -16,8 +16,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Upload, X, FolderOpen, FileText, Image, Loader2, AlertTriangle } from 'lucide-react'
+import { Upload, X, FolderOpen, FileText, Image, Loader2, AlertTriangle, Minimize2 } from 'lucide-react'
 import { validateDocumentFile, MAX_DOC_BYTES, ALLOWED_MIME_TYPES } from '../../lib/documents'
+import { VaultSelect } from '../VaultSelect'
+import { compressImage, shouldOfferOptimize } from '../../lib/compressImage'
 import { DOCUMENT_CATEGORIES } from '../../types/app'
 import type { DocumentCategory } from '../../types/app'
 
@@ -63,6 +65,10 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
   const [category, setCategory] = useState<DocumentCategory>('Identity')
   const [fileError, setFileError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  // >5 MB images: let the user choose KEEP ORIGINAL or OPTIMIZE before uploading.
+  const [optimizeChoice, setOptimizeChoice] = useState<'original' | 'optimize' | null>(null)
+  const [optimizedFile, setOptimizedFile] = useState<File | null>(null)
+  const [optimizing, setOptimizing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
@@ -74,6 +80,9 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
       setCategory('Identity')
       setFileError(null)
       setIsDragging(false)
+      setOptimizeChoice(null)
+      setOptimizedFile(null)
+      setOptimizing(false)
       // Focus the name input after animation settles
       setTimeout(() => nameInputRef.current?.focus(), 150)
     }
@@ -103,6 +112,8 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
     }
     setFileError(null)
     setFile(incoming)
+    setOptimizeChoice(shouldOfferOptimize(incoming) ? 'optimize' : null)
+    setOptimizedFile(null)
     // Auto-populate the name field from the filename if it's still empty
     if (!name.trim()) {
       const baseName = incoming.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ')
@@ -123,11 +134,35 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!file || !name.trim() || uploading) return
-    await onUpload(file, name.trim(), category)
+    // Guard against re-entry while an upload or a compression is already in flight.
+    if (!file || !name.trim() || uploading || optimizing) return
+
+    // Resolve the single file to submit:
+    //   - <=5 MB, or >5 MB "Keep Original", or PDF: use the original file as-is.
+    //   - >5 MB image + "Optimize": compress FIRST; on any failure fall back to the
+    //     original file. The original File object is always retained as the fallback,
+    //     so we never lose data. After resolution we call onUpload exactly ONCE.
+    let uploadFile = file
+    if (optimizeChoice === 'optimize' && !optimizedFile) {
+      setOptimizing(true)
+      try {
+        const compressed = await compressImage(file)
+        if (compressed) {
+          setOptimizedFile(compressed)
+          uploadFile = compressed
+        }
+      } finally {
+        setOptimizing(false)
+      }
+    } else if (optimizedFile) {
+      uploadFile = optimizedFile
+    }
+
+    // Single submission point — never call onUpload more than once per submission.
+    await onUpload(uploadFile, name.trim(), category)
   }
 
-  const canSubmit = file !== null && name.trim().length > 0 && !uploading
+  const canSubmit = file !== null && name.trim().length > 0 && !uploading && !optimizing
 
   const acceptedTypes = ALLOWED_MIME_TYPES.join(',')
 
@@ -186,7 +221,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
               />
 
               {file ? (
-                <FilePill file={file} onClear={() => { setFile(null); setFileError(null) }} />
+                <FilePill file={file} onClear={() => { setFile(null); setFileError(null); setOptimizeChoice(null); setOptimizedFile(null) }} />
               ) : (
                 <button
                   type="button"
@@ -208,6 +243,51 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                     PDF · JPEG · PNG · WebP · Max {MAX_DOC_BYTES / (1024 * 1024)} MB
                   </span>
                 </button>
+              )}
+
+              {/* Large-image optimization choice (only shown for >5 MB raster images) */}
+              {file && optimizeChoice && (
+                <div className="rounded border border-accent/40 bg-accent/5 p-3">
+                  <div className="flex items-center gap-2">
+                    <Minimize2 size={14} className="text-accent shrink-0" />
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink">
+                      This image is over 5 MB
+                    </p>
+                  </div>
+                  <p className="mt-1 text-xs text-ink-soft">
+                    Optimize it to upload faster and save storage, or keep the original file.
+                  </p>
+                  <div className="mt-2.5 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setOptimizeChoice('optimize')}
+                      disabled={optimizing}
+                      className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-50 ${
+                        optimizeChoice === 'optimize' ? 'term-btn-primary' : 'border border-ink/30 text-ink-soft hover:text-ink'
+                      }`}
+                    >
+                      {optimizing ? (
+                        <span className="flex items-center justify-center gap-1.5">
+                          <Loader2 size={12} className="animate-spin" /> Optimizing…
+                        </span>
+                      ) : optimizedFile ? (
+                        'Optimized ✓'
+                      ) : (
+                        'Optimize'
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setOptimizeChoice('original'); setOptimizedFile(null) }}
+                      disabled={optimizing}
+                      className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-50 ${
+                        optimizeChoice === 'original' ? 'term-btn-primary' : 'border border-ink/30 text-ink-soft hover:text-ink'
+                      }`}
+                    >
+                      Keep original
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* File validation error */}
@@ -247,17 +327,12 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                 >
                   Category *
                 </label>
-                <select
-                  id="doc-category"
+                <VaultSelect<DocumentCategory>
+                  options={DOCUMENT_CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
                   value={category}
-                  onChange={(e) => setCategory(e.target.value as DocumentCategory)}
-                  className="term-input mt-1.5 w-full rounded-none px-3 py-2.5 text-sm font-medium text-ink uppercase"
-                  required
-                >
-                  {DOCUMENT_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                  onSelect={setCategory}
+                  ariaLabel="Document category"
+                />
               </div>
 
               {/* Actions */}

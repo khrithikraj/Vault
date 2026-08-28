@@ -18,9 +18,10 @@ import { AnimatedNumber } from './components/AnimatedNumber'
 import { ProgressiveBlur } from './components/ProgressiveBlur'
 import { ScrollReveal } from './components/ScrollReveal'
 import { ScrollProgress } from './components/ScrollProgress'
-import { VerticalSerial } from './components/VerticalSerial'
+import { SharedItemView } from './components/SharedItemView'
 import type { VaultDocument, VaultItem } from './types/app'
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
+import type { SharedSnapshot } from './lib/share'
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 
 // Modals opened on demand only — lazy-loaded to keep the initial bundle lean.
 const ItemDetailOverlay = lazy(() =>
@@ -78,15 +79,47 @@ export default function App() {
   const docsLoadedRef = useRef(false)
 
   // ---------------------------------------------------------------------------
-  // Unified Overlay History Architecture
-  // Ensures hardware/browser Back button closes open overlays first without
-  // leaving stale history entries or closing the PWA unexpectedly.
+  // Share route: /s/:token — a read-only preview of a shared item snapshot.
+  // Parsed directly from the URL so it coexists with the overlay/section history
+  // (it's a distinct top-level view, not part of the vault's history stack).
+  // ---------------------------------------------------------------------------
+  const [dismissedShare, setDismissedShare] = useState(false)
+  const shareToken = useMemo(() => {
+    if (dismissedShare) return null
+    const match = window.location.pathname.match(/\/s\/([A-Za-z0-9]+)\/?$/)
+    return match ? match[1] : null
+  }, [dismissedShare])
+
+  const leaveShareView = useCallback(() => {
+    setDismissedShare(true)
+    window.history.replaceState(
+      null,
+      '',
+      window.location.pathname.replace(/\/s\/.*$/, '') || '/',
+    )
+  }, [])
+
+  // ---------------------------------------------------------------------------
+  // Unified Overlay + Section History Architecture
+  // Ensures hardware/browser Back closes open overlays first, then walks back
+  // through the main section history (Vault ⇄ Notes ⇄ Documents), without
+  // leaving stale/duplicate entries or closing the PWA while something is open.
   // ---------------------------------------------------------------------------
   const closeAllOverlays = useCallback(() => {
     setOpenItemId(null)
     setOpenNoteId(null)
     setOpenDocId(null)
   }, [])
+
+  // Live mirror of whether any overlay is open, so the single popstate listener
+  // always sees current state without stale closures.
+  const overlayOpenRef = useRef(false)
+  overlayOpenRef.current = !!(openItemId || openNoteId || openDocId)
+
+  // Stack of the base (non-overlay) sections we've navigated into. The top entry
+  // is the section currently visible underneath any open overlay. Only grows when
+  // the user actually switches main section.
+  const sectionStackRef = useRef<('vault' | 'notes' | 'documents')[]>(['vault'])
 
   const handleDismissOverlay = useCallback(() => {
     if (window.history.state?.vaultOverlay) {
@@ -96,36 +129,125 @@ export default function App() {
     }
   }, [closeAllOverlays])
 
-  const handleOpenItem = useCallback((id: string) => {
+  const pushOverlay = useCallback(() => {
     if (!window.history.state?.vaultOverlay) {
       window.history.pushState({ vaultOverlay: true }, '')
     }
-    setOpenItemId(id)
-    setOpenNoteId(null)
-    setOpenDocId(null)
   }, [])
 
-  const handleOpenNote = useCallback((id: string) => {
-    if (!window.history.state?.vaultOverlay) {
-      window.history.pushState({ vaultOverlay: true }, '')
+  const handleOpenItem = useCallback(
+    (id: string) => {
+      pushOverlay()
+      setOpenItemId(id)
+      setOpenNoteId(null)
+      setOpenDocId(null)
+    },
+    [pushOverlay],
+  )
+
+  const handleOpenNote = useCallback(
+    (id: string) => {
+      pushOverlay()
+      setOpenNoteId(id)
+      setOpenItemId(null)
+      setOpenDocId(null)
+    },
+    [pushOverlay],
+  )
+
+  const handleOpenDoc = useCallback(
+    (doc: VaultDocument) => {
+      pushOverlay()
+      setOpenDocId(doc.id)
+      setOpenItemId(null)
+      setOpenNoteId(null)
+    },
+    [pushOverlay],
+  )
+
+  // Switch the base section and record a history entry so Back can return to it.
+  const goToSection = useCallback((next: 'vault' | 'notes' | 'documents') => {
+    const top = sectionStackRef.current[sectionStackRef.current.length - 1]
+    if (top === next) {
+      return
     }
-    setOpenNoteId(id)
-    setOpenItemId(null)
-    setOpenDocId(null)
+    window.history.pushState({ vaultSection: true }, '')
+    sectionStackRef.current = [...sectionStackRef.current, next]
+    setMainView(next)
   }, [])
 
-  const handleOpenDoc = useCallback((doc: VaultDocument) => {
-    if (!window.history.state?.vaultOverlay) {
-      window.history.pushState({ vaultOverlay: true }, '')
-    }
-    setOpenDocId(doc.id)
-    setOpenItemId(null)
-    setOpenNoteId(null)
-  }, [])
+  // "Add to My Vault" from a shared link: for a shared ITEM, resolve a target
+  // category by name (falling back to the default), map the snapshot fields back by
+  // label, then save a new item in the recipient's vault. For a shared NOTE, copy the
+  // snapshot (title/body/checklist) into a NEW note owned by the recipient. Never
+  // touches the owner's private rows.
+  const handleAddSharedToVault = useCallback(
+    async (shared: SharedSnapshot): Promise<boolean> => {
+      if (!vault.session) {
+        setShowLanding(false)
+        setDismissedShare(true)
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname.replace(/\/s\/.*$/, '') || '/',
+        )
+        return false
+      }
+      if (shared.kind === 'note') {
+        const ok = await vault.importNote({
+          title: shared.title,
+          body: shared.notes ?? '',
+          checklist: shared.checklist,
+        })
+        if (ok) {
+          setMainView('notes')
+        }
+        return ok
+      }
+      let category = vault.categories.find(
+        (c) => c.name.toLowerCase() === shared.category_name.toLowerCase(),
+      )
+      if (!category) {
+        category =
+          vault.categories.find((c) => c.is_default) ??
+          vault.categories.find((c) => c.field_schema && c.field_schema.length > 0) ??
+          vault.categories[0]
+      }
+      if (!category || !vault.addItem) return false
+
+      const values: Record<string, string> = { title: shared.title, notes: shared.notes ?? '' }
+      const schema = category.field_schema ?? []
+      for (const field of shared.fields) {
+        const def = schema.find((d) => d.label.toLowerCase() === field.label.toLowerCase())
+        if (def && def.key !== 'title' && def.key !== 'notes') {
+          values[def.key] = field.value.value
+        }
+      }
+      await vault.addItem({ categoryId: category.id, values })
+      setMainView('vault')
+      vault.setSelectedCategoryId(category.id)
+      return true
+    },
+    [vault],
+  )
 
   useEffect(() => {
     const handlePopState = () => {
-      closeAllOverlays()
+      // An overlay is open → this Back closed the overlay entry. Close it and stay
+      // put in the current section.
+      if (overlayOpenRef.current) {
+        closeAllOverlays()
+        return
+      }
+      // Otherwise this was a section Back: pop to the previous section. If we're
+      // already at the base (nothing left to unwind), let the browser behave
+      // normally (e.g. leave the PWA) rather than intercepting forever.
+      if (sectionStackRef.current.length > 1) {
+        const stack = sectionStackRef.current
+        stack.pop()
+        const prev = stack[stack.length - 1]
+        setMainView(prev)
+      }
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
@@ -166,6 +288,19 @@ export default function App() {
       setDevPreview(false)
     }
     void vault.signOut()
+  }
+
+  // Shared link route — a self-contained read-only preview renderered ahead of the
+  // normal session flow so unauthenticated visitors can view shared items.
+  if (shareToken) {
+    return (
+      <SharedItemView
+        token={shareToken}
+        signedIn={!!vault.session}
+        onAddToVault={handleAddSharedToVault}
+        onBack={leaveShareView}
+      />
+    )
   }
 
   if (vault.checkingSession) {
@@ -215,7 +350,6 @@ export default function App() {
     <main className="relative min-h-screen pb-32">
       <Atmosphere activeCategory={activeCategory} />
       <ScrollProgress />
-      <VerticalSerial label="RAJ'S — VAULT 01" />
       <ProgressiveBlur side="bottom" height={120} />
 
       <div className="mx-auto max-w-5xl px-4 pt-12 sm:px-6">
@@ -287,6 +421,7 @@ export default function App() {
                 categories={vault.categories}
                 onOpen={(item) => handleOpenItem(item.id)}
                 onToggle={(item) => void vault.toggleItem(item)}
+              onDelete={(item) => void vault.deleteItem(item.id)}
               />
             </ScrollReveal>
 
@@ -349,15 +484,15 @@ export default function App() {
         categories={vault.categories}
         selectedCategoryId={vault.selectedCategoryId}
         onSelect={(id) => {
-          setMainView('vault');
-          vault.setSelectedCategoryId(id);
+          goToSection('vault')
+          vault.setSelectedCategoryId(id)
         }}
         celebrateCategoryId={celebration?.id ?? null}
         celebrateToken={celebration?.token}
         notesActive={mainView === 'notes'}
-        onSelectNotes={() => setMainView('notes')}
+        onSelectNotes={() => goToSection('notes')}
         docsActive={mainView === 'documents'}
-        onSelectDocs={() => setMainView('documents')}
+        onSelectDocs={() => goToSection('documents')}
       />
 
       {mainView === 'vault' ? (

@@ -36,7 +36,7 @@ export function NoteDetailOverlay({
           onClick={onClose}
         >
           <motion.div
-            className="term-panel term-brackets term-scrollbar relative flex max-h-screen md:max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded p-4 sm:p-6"
+            className="term-panel term-brackets term-scrollbar relative flex max-h-screen md:max-h-[90vh] w-full max-w-2xl min-w-0 flex-col overflow-hidden rounded p-4 sm:p-6"
             style={{ transformPerspective: 1200 }}
             onClick={(e) => e.stopPropagation()}
             initial={{ opacity: 0, y: 20, scale: 0.97 }}
@@ -45,15 +45,15 @@ export function NoteDetailOverlay({
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
           >
             <div className="flex items-center justify-between gap-3 border-b border-ink/15 pb-3 mb-3">
-              <div className="flex items-center gap-2">
-                <NotebookPen size={18} className="text-accent" />
-                <h2 className="font-display text-base sm:text-lg font-bold uppercase tracking-tight text-ink">
+              <div className="flex items-center gap-2 min-w-0">
+                <NotebookPen size={18} className="text-accent shrink-0" />
+                <h2 className="font-display text-base sm:text-lg font-bold uppercase tracking-tight text-ink truncate">
                   Note Editor
                 </h2>
               </div>
               <button
                 type="button"
-                className="term-chip rounded-full p-1.5 text-ink-soft hover:text-ink"
+                className="term-chip rounded-full p-1.5 text-ink-soft hover:text-ink shrink-0"
                 onClick={onClose}
                 aria-label="Close"
               >
@@ -61,7 +61,7 @@ export function NoteDetailOverlay({
               </button>
             </div>
 
-            <div className="term-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+            <div className="term-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
               <NoteEditor
                 note={note}
                 onBack={onClose}

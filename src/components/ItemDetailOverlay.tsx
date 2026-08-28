@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Camera, Check, Pencil, Trash2, X } from 'lucide-react'
+import { Camera, Check, Pencil, Trash2, X, Share2, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { CategoryIcon } from '../lib/icons'
+import { VaultSelect } from './VaultSelect'
+import { createSharedItem } from '../lib/share'
 import type { Category, FieldDefinition, VaultItem } from '../types/app'
 
 type ItemDetailOverlayProps = {
@@ -51,6 +53,38 @@ export function ItemDetailOverlay({
   const [removeExistingImage, setRemoveExistingImage] = useState(false)
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [shareState, setShareState] = useState<'idle' | 'sharing' | 'done' | 'error'>('idle')
+  const [shareUrl, setShareUrl] = useState('')
+  const [shareError, setShareError] = useState('')
+
+  const handleShare = async () => {
+    if (!item || shareState === 'sharing') return
+    setShareState('sharing')
+    setShareError('')
+    try {
+      const { url } = await createSharedItem(item, selectedCategory)
+      setShareUrl(url)
+      // Prefer the native share sheet when available; fall back to copying the link.
+      if (typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ title: item.title, text: `Check this out on Raj's Vault`, url })
+          setShareState('idle')
+          return
+        } catch {
+          // User cancelled the sheet — leave the copy panel open.
+        }
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+      }
+      setShareState('done')
+      window.setTimeout(() => setShareState('idle'), 3000)
+    } catch (err) {
+      setShareState('error')
+      setShareUrl('')
+      setShareError(err instanceof Error ? err.message : 'Unknown error.')
+    }
+  }
 
   useEffect(() => {
     if (item) {
@@ -221,17 +255,17 @@ export function ItemDetailOverlay({
                         <label className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
                           Category
                         </label>
-                        <select
-                          value={editCategoryId}
-                          onChange={(e) => setEditCategoryId(e.target.value)}
-                          className="term-input mt-1 w-full rounded-none px-3 py-2 text-sm text-ink uppercase font-medium"
-                        >
-                          {categories.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                              {cat.icon} {cat.name}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="mt-1">
+                          <VaultSelect
+                            options={categories.map((cat) => ({
+                              value: cat.id,
+                              label: `${cat.icon} ${cat.name}`,
+                            }))}
+                            value={editCategoryId}
+                            onSelect={setEditCategoryId}
+                            ariaLabel="Category"
+                          />
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
@@ -269,6 +303,21 @@ export function ItemDetailOverlay({
                   {!isEditing && (
                     <button
                       type="button"
+                      onClick={() => void handleShare()}
+                      disabled={shareState === 'sharing'}
+                      className="term-chip flex items-center gap-1 rounded-full px-3 py-1.5 text-xs uppercase font-semibold text-ink hover:text-ink"
+                    >
+                      {shareState === 'sharing' ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Share2 size={12} />
+                      )}
+                      Share
+                    </button>
+                  )}
+                  {!isEditing && (
+                    <button
+                      type="button"
                       onClick={() => setIsEditing(true)}
                       className="term-chip flex items-center gap-1 rounded-full px-3 py-1.5 text-xs uppercase font-semibold text-ink hover:text-ink"
                     >
@@ -285,6 +334,41 @@ export function ItemDetailOverlay({
                   </button>
                 </div>
               </div>
+
+              {/* Share link status panel */}
+              {!isEditing && (shareUrl || shareState === 'error') ? (
+                <div className="mt-3 rounded border border-ink/15 bg-ink/5 px-3 py-2.5">
+                  {shareState === 'error' ? (
+                    <div className="text-xs text-red-400">
+                      <p>Couldn't create a share link right now.</p>
+                      {shareError ? <p className="mt-1 break-words opacity-90">{shareError}</p> : null}
+                    </div>
+                  ) : shareState === 'done' ? (
+                    <div className="flex items-center gap-2 text-xs font-medium text-ink">
+                      <Check size={13} className="shrink-0 text-accent" />
+                      Share link copied to clipboard
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <LinkIcon size={13} className="shrink-0 text-accent" />
+                      <span className="min-w-0 flex-1 truncate text-xs text-ink-soft">{shareUrl}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (navigator.clipboard?.writeText) {
+                            void navigator.clipboard.writeText(shareUrl)
+                          }
+                          setShareState('done')
+                          window.setTimeout(() => setShareState('idle'), 3000)
+                        }}
+                        className="term-chip shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : null}
 
               {/* Dynamic Metadata Fields */}
               {isEditing ? (

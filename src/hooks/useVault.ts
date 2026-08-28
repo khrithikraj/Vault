@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { describeSupabaseError, fallbackFieldSchema, getErrorMessage, normalizeCategory } from '../lib/fields'
 import { SUPABASE_CONFIG_MESSAGE, supabase, supabaseConfigured, vaultBucket } from '../lib/supabase'
-import type { Category, FieldDefinition, Note, VaultItem } from '../types/app'
+import type { Category, ChecklistItem, FieldDefinition, Note, VaultItem } from '../types/app'
 
 export function useVault() {
   const [session, setSession] = useState<Session | null>(null)
@@ -578,6 +578,35 @@ export function useVault() {
     return true
   }
 
+  /** Copies a shared note snapshot into a NEW note owned by the signed-in user. */
+  const importNote = async (input: {
+    title: string
+    body: string
+    checklist: ChecklistItem[]
+  }): Promise<boolean> => {
+    if (!session?.user?.id) {
+      return false
+    }
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({
+        user_id: session.user.id,
+        title: input.title,
+        body: input.body,
+        checklist: input.checklist,
+      })
+      .select('*')
+      .single()
+
+    if (error) {
+      setMessage(describeSupabaseError(error))
+      return false
+    }
+    const note = data as Note
+    setNotes((current) => [note, ...current])
+    return true
+  }
+
   return {
     session,
     checkingSession,
@@ -609,5 +638,6 @@ export function useVault() {
     addNote,
     updateNote,
     deleteNote,
+    importNote,
   }
 }

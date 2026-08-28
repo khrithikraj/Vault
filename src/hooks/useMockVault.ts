@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { normalizeCategory } from '../lib/fields'
-import type { Category, FieldDefinition, Note, VaultItem } from '../types/app'
+import type { Category, ChecklistItem, FieldDefinition, Note, VaultItem } from '../types/app'
 
 const DEV_USER_ID = 'dev-preview-user'
 
@@ -240,6 +240,24 @@ export function useMockVault() {
     setNotes((current) => current.filter((note) => note.id !== noteId))
   }
 
+  const importNote = async (input: {
+    title: string
+    body: string
+    checklist: ChecklistItem[]
+  }) => {
+    const note: Note = {
+      id: makeId(),
+      user_id: DEV_USER_ID,
+      title: input.title,
+      body: input.body,
+      checklist: input.checklist,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    setNotes((current) => [note, ...current])
+    return true
+  }
+
   return {
     session: { user: { id: DEV_USER_ID } } as unknown as Session,
     checkingSession: false,
@@ -279,5 +297,6 @@ export function useMockVault() {
     addNote,
     updateNote,
     deleteNote,
+    importNote,
   }
 }
