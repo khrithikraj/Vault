@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ArrowDown, ArrowUp, Plus, Trash2, X, Sliders, Palette, Check } from 'lucide-react'
 import { FIELD_TYPE_OPTIONS, makeFieldKey } from '../lib/fields'
 import { CategoryIcon } from '../lib/icons'
+import { VaultSelect } from './VaultSelect'
 import type { Category, FieldDefinition, FieldType } from '../types/app'
 
 export type CategoryEditorProps = {
@@ -330,20 +331,16 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
 
                         {/* Bottom row: Type selector & Required toggle */}
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <select
-                            value={field.type}
-                            onChange={(event) =>
-                              updateField(index, { type: event.target.value as FieldType })
-                            }
-                            disabled={field.key === 'title'}
-                            className="term-input rounded-none px-2 py-1 text-xs font-medium uppercase text-ink disabled:opacity-60"
-                          >
-                            {FIELD_TYPE_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="w-40">
+                            <VaultSelect<FieldType>
+                              options={FIELD_TYPE_OPTIONS}
+                              value={field.type}
+                              onSelect={(type) => updateField(index, { type })}
+                              disabled={field.key === 'title'}
+                              up
+                              ariaLabel={`Field type for ${field.label || 'field'}`}
+                            />
+                          </div>
                           <label className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-ink-soft cursor-pointer">
                             <input
                               type="checkbox"

@@ -47,7 +47,9 @@ export function AppDock({
         <DockButton
           mouseX={mouseX}
           label="All"
-          renderIcon={(size) => <BrandIcon icon={Home} size={size} />}
+          renderIcon={(size, active) => (
+            <BrandIcon icon={Home} size={size} tone={active ? 'ink' : 'accent'} />
+          )}
           active={!notesActive && selectedCategoryId === null}
           onClick={() => onSelect(null)}
         />
@@ -57,8 +59,12 @@ export function AppDock({
             mouseX={mouseX}
             dockKey={category.id}
             label={category.name}
-            renderIcon={(size) => (
-              <CategoryIcon icon={category.icon} color={category.color} size={size} />
+            renderIcon={(size, active) => (
+              <CategoryIcon
+                icon={category.icon}
+                color={active ? 'var(--color-ink)' : category.color}
+                size={size}
+              />
             )}
             active={!notesActive && selectedCategoryId === category.id}
             onClick={() => onSelect(category.id)}
@@ -69,7 +75,9 @@ export function AppDock({
         <DockButton
           mouseX={mouseX}
           label="Notes"
-          renderIcon={(size) => <BrandIcon icon={NotebookPen} size={size} />}
+          renderIcon={(size, active) => (
+            <BrandIcon icon={NotebookPen} size={size} tone={active ? 'ink' : 'accent'} />
+          )}
           active={notesActive}
           onClick={onSelectNotes}
         />
@@ -77,7 +85,9 @@ export function AppDock({
         <DockButton
           mouseX={mouseX}
           label="Docs"
-          renderIcon={(size) => <BrandIcon icon={FolderLock} size={size} />}
+          renderIcon={(size, active) => (
+            <BrandIcon icon={FolderLock} size={size} tone={active ? 'ink' : 'accent'} />
+          )}
           active={docsActive}
           onClick={onSelectDocs}
         />
@@ -96,7 +106,7 @@ function DockButton({
   mouseX,
 }: {
   label: string
-  renderIcon: (size: number) => ReactNode
+  renderIcon: (size: number, active: boolean) => ReactNode
   active: boolean
   onClick: () => void
   dockKey?: string
@@ -148,10 +158,16 @@ function DockButton({
         className="relative z-10 block"
       >
         <motion.span style={{ scale, y: lift }} className="block leading-none">
-          {renderIcon(20)}
+          {renderIcon(20, active)}
         </motion.span>
       </motion.span>
-      <span className="relative z-10 max-w-[2.5rem] sm:max-w-[3.5rem] truncate">{label}</span>
+      <span
+        className={`relative z-10 max-w-[2.5rem] sm:max-w-[3.5rem] truncate ${
+          active ? 'text-ink' : 'text-ink-soft'
+        }`}
+      >
+        {label}
+      </span>
     </motion.button>
   )
 }

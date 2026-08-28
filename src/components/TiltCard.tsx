@@ -1,11 +1,6 @@
 import { useRef } from 'react'
 import type { ReactNode } from 'react'
-import {
-  motion,
-  useMotionTemplate,
-  useMotionValue,
-  useSpring,
-} from 'motion/react'
+import { motion, useMotionTemplate, useMotionValue } from 'motion/react'
 import { BorderTrail } from './BorderTrail'
 
 type TiltCardProps = {
@@ -20,10 +15,10 @@ type TiltCardProps = {
   onClick?: () => void
 }
 
-/** 3D tilt + cursor-following spotlight, the signature "tactile" card used everywhere. The card
- * leans toward the pointer (slightly deeper than before), lifts a touch, and casts a soft
- * grounding shadow only while raised — so the darkroom surfaces stay flat at rest, per the
- * "depth from the surface stack" rule, and gain physical depth only when you reach for them. */
+/** The "tactile" card used everywhere. On hover the card gains a cursor-following spotlight
+ * and a soft grounding shadow. The card's physical lift is driven by its parent (a simple
+ * stable translateY), NOT by per-frame 3D spring transforms — those caused hover flicker and
+ * neighboring-card jitter. The surface stays flat at rest and gains depth only when reached for. */
 export function TiltCard({
   children,
   className = '',
@@ -35,9 +30,6 @@ export function TiltCard({
 }: TiltCardProps) {
   const ref = useRef<HTMLDivElement>(null)
 
-  const rotateX = useSpring(0, { stiffness: 260, damping: 18 })
-  const rotateY = useSpring(0, { stiffness: 260, damping: 18 })
-  const scale = useSpring(1, { stiffness: 320, damping: 22 })
   const shadowOpacity = useMotionValue(0)
   const spotlightX = useMotionValue(50)
   const spotlightY = useMotionValue(50)
@@ -49,25 +41,17 @@ export function TiltCard({
     if (!bounds) {
       return
     }
-
     const px = (event.clientX - bounds.left) / bounds.width
     const py = (event.clientY - bounds.top) / bounds.height
-
-    rotateY.set((px - 0.5) * 16)
-    rotateX.set((0.5 - py) * 16)
     spotlightX.set(px * 100)
     spotlightY.set(py * 100)
   }
 
   const handleMouseEnter = () => {
-    scale.set(1.02)
     shadowOpacity.set(0.85)
   }
 
   const handleMouseLeave = () => {
-    rotateX.set(0)
-    rotateY.set(0)
-    scale.set(1)
     shadowOpacity.set(0)
   }
 
@@ -79,7 +63,7 @@ export function TiltCard({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={onClick}
-      style={{ rotateX, rotateY, scale, boxShadow: shadow, transformPerspective: 700 }}
+      style={{ boxShadow: shadow }}
       className={`term-panel term-brackets group relative overflow-hidden rounded will-change-transform ${className}`}
     >
       <motion.div

@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { TiltCard } from './TiltCard'
 import { ScrollReveal } from './ScrollReveal'
+import { Trash2 } from 'lucide-react'
 import type { Category, VaultItem } from '../types/app'
 
 type ItemGridProps = {
@@ -8,6 +9,7 @@ type ItemGridProps = {
   categories: Category[]
   onOpen: (item: VaultItem) => void
   onToggle: (item: VaultItem) => void
+  onDelete: (item: VaultItem) => void
 }
 
 const prettyDate = new Intl.DateTimeFormat('en-IN', {
@@ -15,7 +17,7 @@ const prettyDate = new Intl.DateTimeFormat('en-IN', {
   month: 'short',
 })
 
-export function ItemGrid({ items, categories, onOpen, onToggle }: ItemGridProps) {
+export function ItemGrid({ items, categories, onOpen, onToggle, onDelete }: ItemGridProps) {
   if (items.length === 0) {
     return (
       <div className="term-panel-soft border-ink/30 mt-4 rounded border-dashed p-10 text-center text-sm text-ink-soft">
@@ -34,19 +36,18 @@ export function ItemGrid({ items, categories, onOpen, onToggle }: ItemGridProps)
         const isDone = item.status === 'done'
 
         return (
-          <ScrollReveal key={item.id}>
-            {/* The polaroid-deck hover: each card lifts forward in 3D space, fans slightly, and
-                casts its reflection below — like leaning a photo deck forward to read a stack. */}
+          <ScrollReveal key={item.id} className="h-full">
+            {/* Stable hover elevation: the card lifts a touch with a soft emphasis. No 3D
+                rotation / scale oscillation so neighboring cards never shift or flicker. */}
             <motion.div
               className="h-full"
-              style={{ perspective: 900, transformStyle: 'preserve-3d' }}
-              whileHover={{ rotateY: -6, rotateZ: 1, y: -8, z: 30 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              whileHover={{ y: -4 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 24 }}
             >
               <TiltCard
                 layoutId={`item-card-${item.id}`}
                 onClick={() => onOpen(item)}
-                className={`reflect-below cursor-pointer overflow-hidden p-0 ${isDone ? 'opacity-70' : ''}`}
+                className={`cursor-pointer overflow-hidden p-0 ${isDone ? 'opacity-70' : ''}`}
               >
                 {item.image_url ? (
                   <div className="border-ink/20 relative border-b">
@@ -106,6 +107,25 @@ export function ItemGrid({ items, categories, onOpen, onToggle }: ItemGridProps)
                     }`}
                   >
                     {isDone ? 'Done' : 'Mark'}
+                  </button>
+                </div>
+
+                {/* Footer row: date + delete affordance, mirroring the Documents/Notes cards. */}
+                <div className="flex items-center justify-between border-t border-dashed border-ink/15 p-3 pt-2 sm:p-4 sm:pt-2">
+                  <span className="folio text-[10px] text-ink-soft/60">
+                    #{item.id.slice(0, 4).toUpperCase()}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onDelete(item)
+                    }}
+                    className="term-chip rounded-full p-1.5 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Delete item"
+                    aria-label={`Delete ${item.title}`}
+                  >
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </TiltCard>

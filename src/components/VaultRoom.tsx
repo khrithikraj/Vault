@@ -289,7 +289,7 @@ export function VaultRoom({ activeCategory }: VaultRoomProps) {
         animate={reducedMotion ? undefined : { x: [0, -48, 0] }}
         transition={{ duration: 140, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <span className="vault-wordmark">Raj&apos;s — Vault</span>
+        <span className="vault-wordmark">RAJ&apos;s — Vault</span>
       </motion.div>
 
       {/* Edge vignette — deepens the void at the margins. */}

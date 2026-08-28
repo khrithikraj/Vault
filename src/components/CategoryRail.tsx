@@ -52,17 +52,16 @@ export function CategoryRail({
   return (
     <section
       aria-label="Categories"
-      className="grid auto-rows-[minmax(140px,auto)] grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+      className="grid auto-rows-[minmax(140px,auto)] grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 overflow-x-clip"
     >
       {categories.map((category, index) => {
-        const even = index % 2 === 0
         const count = itemCountByCategory.get(category.id) ?? 0
         const isHovered = hoveredId === category.id
         return (
           <ScrollReveal
             key={category.id}
             className={index === 0 ? 'sm:col-span-2' : ''}
-            style={{ overflowX: 'hidden' }}
+            style={{ overflowX: 'clip' }}
           >
             {/* Use a plain div wrapper whose pointer events trigger the hover state.
                 The inner TiltCard and buttons inherit pointer events normally but we
@@ -73,29 +72,17 @@ export function CategoryRail({
               onPointerEnter={() => setHoveredId(category.id)}
               onPointerLeave={() => setHoveredId(null)}
             >
+              {/* Stable card: a gentle vertical breathing only — no 3D rotateY/z projection,
+                  which overhung the grid and produced an unwanted horizontal scrollbar. */}
               <motion.div
                 className="h-full"
-                style={{ perspective: 900, transformStyle: 'preserve-3d' }}
+                animate={reducedMotion ? { y: 0 } : isHovered ? { y: -3 } : { y: [0, -4, 0] }}
+                transition={
+                  isHovered
+                    ? { duration: 0.2, ease: 'easeOut' }
+                    : { duration: 7 + (index % 3), repeat: Infinity, ease: 'easeInOut', delay: index * 0.5 }
+                }
               >
-                <motion.div
-                  className="h-full"
-                  style={{ transformStyle: 'preserve-3d' }}
-                  {...(reducedMotion || isHovered
-                    ? { animate: { rotateY: 0, y: 0, z: 0 } }
-                    : {
-                        animate: {
-                          rotateY: even ? [0, 4, 0] : [0, -4, 0],
-                          y: [0, -6, 0],
-                          z: even ? [0, 12, 0] : [0, -6, 0],
-                        },
-                        transition: {
-                          duration: 7 + (index % 3),
-                          repeat: Infinity,
-                          ease: 'easeInOut',
-                          delay: index * 0.5,
-                        },
-                      })}
-                >
                   <TiltCard
                     active={selectedCategoryId === category.id}
                     glowColor={category.color}
@@ -168,7 +155,6 @@ export function CategoryRail({
                     </div>
                   </TiltCard>
                 </motion.div>
-              </motion.div>
             </div>
           </ScrollReveal>
         )
