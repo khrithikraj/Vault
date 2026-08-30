@@ -1,38 +1,43 @@
-/**
- * DocumentDeleteDialog — confirmation modal before moving a document to Recently Deleted.
- *
- * Uses the same fixed-inset overlay pattern as ItemDetailOverlay / NoteDetailOverlay:
- * AnimatePresence → motion.div backdrop → motion.div panel.
- * Pressing Escape cancels (matches all other overlays).
- */
-
 import { useEffect } from 'react'
+import { type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AlertTriangle, Trash2, X } from 'lucide-react'
-import type { VaultDocument } from '../../types/app'
 
-type DocumentDeleteDialogProps = {
-  doc: VaultDocument | null
-  deleting: boolean
+type ConfirmDialogProps = {
+  open: boolean
+  title: string
+  message: ReactNode
+  confirmLabel?: string
+  busy?: boolean
+  busyLabel?: string
   onConfirm: () => void
   onCancel: () => void
 }
 
-export function DocumentDeleteDialog({
-  doc,
-  deleting,
+/** Generic permanent-delete confirmation modal, mirroring the DocumentDeleteDialog
+ *  overlay pattern (backdrop + panel + Escape-to-cancel). Kept at App level so the same
+ *  dialog serves item/note/document purges from Recently Deleted. */
+export function ConfirmDialog({
+  open,
+  title,
+  message,
+  confirmLabel = 'Delete permanently',
+  busy = false,
+  busyLabel = 'Deleting…',
   onConfirm,
   onCancel,
-}: DocumentDeleteDialogProps) {
+}: ConfirmDialogProps) {
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel()
+    }
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
   }, [onCancel])
 
   return (
     <AnimatePresence>
-      {doc && (
+      {open ? (
         <motion.div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
           initial={{ opacity: 0 }}
@@ -48,7 +53,6 @@ export function DocumentDeleteDialog({
             transition={{ type: 'spring', stiffness: 360, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
             <button
               type="button"
               onClick={onCancel}
@@ -58,41 +62,28 @@ export function DocumentDeleteDialog({
               <X size={15} />
             </button>
 
-            {/* Icon + heading */}
             <div className="flex items-start gap-3 pr-8">
-              <AlertTriangle
-                size={20}
-                strokeWidth={2}
-                className="mt-0.5 shrink-0 text-red-400"
-                aria-hidden="true"
-              />
+              <AlertTriangle size={20} strokeWidth={2} className="mt-0.5 shrink-0 text-red-400" aria-hidden="true" />
               <div>
-                <h2 className="font-display text-base font-bold uppercase tracking-tight text-ink">
-                  Move to trash?
-                </h2>
-                <p className="mt-1.5 text-sm text-ink-soft leading-relaxed">
-                  <span className="font-semibold text-ink">{doc.name}</span>
-                  {' '}will be moved to Recently Deleted. The file stays stored privately so
-                  you can restore it anytime.
-                </p>
+                <h2 className="font-display text-base font-bold uppercase tracking-tight text-ink">{title}</h2>
+                <div className="mt-1.5 text-sm leading-relaxed text-ink-soft">{message}</div>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="mt-5 flex gap-2">
               <button
                 type="button"
                 onClick={onConfirm}
-                disabled={deleting}
+                disabled={busy}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-red-500/60 bg-red-950/50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-red-400 transition hover:bg-red-900/60 hover:text-red-300 disabled:opacity-50"
               >
                 <Trash2 size={13} />
-                {deleting ? 'Moving…' : 'Move to trash'}
+                {busy ? busyLabel : confirmLabel}
               </button>
               <button
                 type="button"
                 onClick={onCancel}
-                disabled={deleting}
+                disabled={busy}
                 className="rounded-outline border border-ink/30 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-ink-soft hover:text-ink disabled:opacity-50"
               >
                 Cancel
@@ -100,7 +91,7 @@ export function DocumentDeleteDialog({
             </div>
           </motion.div>
         </motion.div>
-      )}
+      ) : null}
     </AnimatePresence>
   )
 }

@@ -2,7 +2,9 @@ import { motion } from 'motion/react'
 import { TiltCard } from './TiltCard'
 import { ScrollReveal } from './ScrollReveal'
 import { Trash2 } from 'lucide-react'
+import { CategoryIcon } from '../lib/icons'
 import type { Category, VaultItem } from '../types/app'
+import type { ItemFieldHit } from '../lib/search'
 
 type ItemGridProps = {
   items: VaultItem[]
@@ -10,6 +12,10 @@ type ItemGridProps = {
   onOpen: (item: VaultItem) => void
   onToggle: (item: VaultItem) => void
   onDelete: (item: VaultItem) => void
+  /** Matched search fields per item id — shown on the card instead of the default highlight. */
+  searchHits?: Map<string, ItemFieldHit[]>
+  /** Show a small category label on each card (used by vault-wide search results). */
+  showCategory?: boolean
 }
 
 const prettyDate = new Intl.DateTimeFormat('en-IN', {
@@ -17,7 +23,15 @@ const prettyDate = new Intl.DateTimeFormat('en-IN', {
   month: 'short',
 })
 
-export function ItemGrid({ items, categories, onOpen, onToggle, onDelete }: ItemGridProps) {
+export function ItemGrid({
+  items,
+  categories,
+  onOpen,
+  onToggle,
+  onDelete,
+  searchHits,
+  showCategory = false,
+}: ItemGridProps) {
   if (items.length === 0) {
     return (
       <div className="term-panel-soft border-ink/30 mt-4 rounded border-dashed p-10 text-center text-sm text-ink-soft">
@@ -34,6 +48,7 @@ export function ItemGrid({ items, categories, onOpen, onToggle, onDelete }: Item
           (field) => field.key !== 'title' && field.key !== 'notes' && item.metadata[field.key],
         )
         const isDone = item.status === 'done'
+        const hits = searchHits?.get(item.id)
 
         return (
           <ScrollReveal key={item.id} className="h-full">
@@ -78,13 +93,27 @@ export function ItemGrid({ items, categories, onOpen, onToggle, onDelete }: Item
                 <div className="flex items-start justify-between gap-2 p-3 sm:p-4">
                   {/* Text content: strictly constrained so long names never blow the grid */}
                   <div className="min-w-0 flex-1">
+                    {showCategory && category ? (
+                      <p className="text-ink-soft/60 mb-0.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest">
+                        <CategoryIcon icon={category.icon} color={category.color} size={11} />
+                        <span className="truncate">{category.name}</span>
+                      </p>
+                    ) : null}
                     <h4
                       className="font-display line-clamp-2 font-semibold uppercase leading-snug break-words"
                       title={item.title}
                     >
                       {item.title}
                     </h4>
-                    {highlightField ? (
+                    {hits && hits.length > 0 ? (
+                      <div className="mt-1 space-y-0.5">
+                        {hits.slice(0, 2).map((hit, hitIndex) => (
+                          <p key={`${hit.label}-${hitIndex}`} className="truncate text-xs sm:text-sm text-ink-soft">
+                            <span className="font-medium">{hit.label}:</span> {hit.value}
+                          </p>
+                        ))}
+                      </div>
+                    ) : highlightField ? (
                       <p className="mt-1 truncate text-xs sm:text-sm text-ink-soft">
                         <span className="font-medium">{highlightField.label}:</span>{' '}
                         {String(item.metadata[highlightField.key])}
@@ -121,7 +150,7 @@ export function ItemGrid({ items, categories, onOpen, onToggle, onDelete }: Item
                       event.stopPropagation()
                       onDelete(item)
                     }}
-                    className="term-chip rounded-full p-1.5 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="term-chip reveal-on-hover rounded-full p-1.5 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Delete item"
                     aria-label={`Delete ${item.title}`}
                   >

@@ -249,6 +249,24 @@ button {
   font: inherit;
 }
 
+/* ---------------------------------------------------------------------------
+ * Touch-aware reveal helper.
+ *
+ * Several cards hide their delete control behind `opacity-0 group-hover:opacity-100`
+ * (hover-reveal). On touch devices there is no hover, so that control becomes an
+ * invisible-but-tappable region — bad UX. Whenever the device cannot hover, force
+ * those controls to stay visible so they are discoverable, while desktop (which has
+ * hover) keeps the subtle reveal behaviour unchanged.
+ *
+ * Scoped to the specific reveal control (never applied app-wide), so it cannot cause
+ * layout shifts or make anything permanently intrusive on hover-capable screens.
+ * --------------------------------------------------------------------------- */
+@media (hover: none) {
+  .reveal-on-hover {
+    opacity: 1 !important;
+  }
+}
+
 @layer utilities {
   /* Giant editorial display heading — the Oryzo signature: uppercase, weight 500,
    * line-height 0.9 so the letterforms overlap into a sculptural block. */

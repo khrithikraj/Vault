@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { describeSupabaseError, fallbackFieldSchema, getErrorMessage, normalizeCategory } from '../lib/fields'
 import { SUPABASE_CONFIG_MESSAGE, supabase, supabaseConfigured, vaultBucket } from '../lib/supabase'
+import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { Category, ChecklistItem, FieldDefinition, Note, VaultItem } from '../types/app'
 
 export function useVault() {
@@ -15,6 +16,8 @@ export function useVault() {
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<VaultItem[]>([])
   const [notes, setNotes] = useState<Note[]>([])
+  const [trashedItems, setTrashedItems] = useState<VaultItem[]>([])
+  const [trashedNotes, setTrashedNotes] = useState<Note[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -70,6 +73,8 @@ export function useVault() {
         } else {
           setCategories([])
           setItems([])
+          setTrashedItems([])
+          setTrashedNotes([])
           setSelectedCategoryId(null)
         }
       },
@@ -150,8 +155,15 @@ export function useVault() {
 
       const nextCategories = ((categoryData as Category[]) ?? []).map(normalizeCategory)
       setCategories(nextCategories)
-      setItems((itemData as VaultItem[]) ?? [])
-      setNotes((noteData as Note[]) ?? [])
+      // Rows are fetched unfiltered and split client-side into live vs trashed so a single
+      // list call doubles as the trash source (and to keep older PostgREST versions, which
+      // reject `.not('deleted_at','is',null)`, working).
+      const rawItems = (itemData as VaultItem[]) ?? []
+      const rawNotes = (noteData as Note[]) ?? []
+      setItems(rawItems.filter((item) => !item.deleted_at))
+      setTrashedItems(sortTrashedByDeletedAt(rawItems.filter((item) => item.deleted_at)))
+      setNotes(rawNotes.filter((note) => !note.deleted_at))
+      setTrashedNotes(sortTrashedByDeletedAt(rawNotes.filter((note) => note.deleted_at)))
 
       if (nextCategories.length > 0) {
         setSelectedCategoryId((current) => current ?? nextCategories[0].id)
@@ -375,6 +387,7 @@ export function useVault() {
 
     setCategories((current) => current.filter((category) => category.id !== categoryId))
     setItems((current) => current.filter((item) => item.category_id !== categoryId))
+    setTrashedItems((current) => current.filter((item) => item.category_id !== categoryId))
     setSelectedCategoryId((current) => {
       if (current !== categoryId) {
         return current
@@ -506,24 +519,73 @@ export function useVault() {
     setItems((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
   }
 
+  /** Soft-delete: moves the item to Recently Deleted, restorable at any time. */
   const deleteItem = async (itemId: string): Promise<boolean> => {
-    const { error } = await supabase.from('items').delete().eq('id', itemId)
+    const { data, error } = await supabase
+      .from('items')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', itemId)
+      .select('*')
+      .single()
+
     if (error) {
       setMessage(error.message)
       return false
     }
 
-    setItems((current) => {
-      const removed = current.find((item) => item.id === itemId)
-      if (removed?.image_url) {
-        const path = storagePathFromUrl(removed.image_url)
-        if (path) {
-          // Best-effort cleanup — a failed storage removal shouldn't block the item delete.
-          void supabase.storage.from(vaultBucket).remove([path])
+    const updated = data as VaultItem
+    setItems((current) => current.filter((item) => item.id !== itemId))
+    setTrashedItems((current) => sortTrashedByDeletedAt([updated, ...current]))
+    return true
+  }
+
+  const restoreItem = async (item: VaultItem): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from('items')
+      .update({ deleted_at: null })
+      .eq('id', item.id)
+      .select('*')
+      .single()
+
+    if (error) {
+      setMessage(error.message)
+      return false
+    }
+
+    const updated = data as VaultItem
+    setTrashedItems((current) => current.filter((entry) => entry.id !== item.id))
+    setItems((current) => [updated, ...current])
+    return true
+  }
+
+  /** Permanently removes the item row AND its photo from storage (not restorable). */
+  const purgeItem = async (item: VaultItem): Promise<boolean> => {
+    // Delete the storage photo FIRST so a failure here aborts while the DB row is still
+    // intact — retryable, and we never delete the row while leaving an orphaned file.
+    if (item.image_url) {
+      const path = storagePathFromUrl(item.image_url)
+      if (path) {
+        const { error: storageError } = await supabase.storage.from(vaultBucket).remove([path])
+        if (storageError) {
+          setMessage(
+            `Could not delete the photo from storage: ${storageError.message}. The item was kept so you can retry.`,
+          )
+          return false
         }
       }
-      return current.filter((item) => item.id !== itemId)
-    })
+    }
+
+    const { error } = await supabase.from('items').delete().eq('id', item.id)
+    if (error) {
+      // Storage is already gone; report that the record couldn't be removed so the user
+      // can retry to clear it (not an orphan, but the row remains).
+      setMessage(
+        `Photo was removed from storage, but deleting the item failed: ${error.message}. Please retry to clear the record.`,
+      )
+      return false
+    }
+
+    setTrashedItems((current) => current.filter((entry) => entry.id !== item.id))
     return true
   }
 
@@ -568,13 +630,53 @@ export function useVault() {
     setNotes((current) => current.map((note) => (note.id === updated.id ? updated : note)))
   }
 
+  /** Soft-delete: moves the note to Recently Deleted, restorable at any time. */
   const deleteNote = async (noteId: string): Promise<boolean> => {
-    const { error } = await supabase.from('notes').delete().eq('id', noteId)
+    const { data, error } = await supabase
+      .from('notes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', noteId)
+      .select('*')
+      .single()
+
     if (error) {
-      setMessage(error.message)
+      setMessage(describeSupabaseError(error))
       return false
     }
+
+    const updated = data as Note
     setNotes((current) => current.filter((note) => note.id !== noteId))
+    setTrashedNotes((current) => sortTrashedByDeletedAt([updated, ...current]))
+    return true
+  }
+
+  const restoreNote = async (note: Note): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from('notes')
+      .update({ deleted_at: null })
+      .eq('id', note.id)
+      .select('*')
+      .single()
+
+    if (error) {
+      setMessage(describeSupabaseError(error))
+      return false
+    }
+
+    const updated = data as Note
+    setTrashedNotes((current) => current.filter((entry) => entry.id !== note.id))
+    setNotes((current) => [updated, ...current])
+    return true
+  }
+
+  /** Permanently removes the note row (not restorable). */
+  const purgeNote = async (note: Note): Promise<boolean> => {
+    const { error } = await supabase.from('notes').delete().eq('id', note.id)
+    if (error) {
+      setMessage(describeSupabaseError(error))
+      return false
+    }
+    setTrashedNotes((current) => current.filter((entry) => entry.id !== note.id))
     return true
   }
 
@@ -616,6 +718,8 @@ export function useVault() {
     categories,
     items,
     notes,
+    trashedItems,
+    trashedNotes,
     selectedCategoryId,
     setSelectedCategoryId,
     itemCountByCategory,
@@ -635,9 +739,13 @@ export function useVault() {
     updateItem,
     toggleItem,
     deleteItem,
+    restoreItem,
+    purgeItem,
     addNote,
     updateNote,
     deleteNote,
+    restoreNote,
+    purgeNote,
     importNote,
   }
 }

@@ -12,9 +12,6 @@ create table if not exists public.categories (
   unique (user_id, name)
 );
 
--- Migration for existing databases created before field_schema existed:
-alter table public.categories add column if not exists field_schema jsonb not null default '[]'::jsonb;
-
 -- Backfill sensible default field schemas for pre-existing default categories
 -- (only fills rows that still have the empty '[]' placeholder, so it never clobbers
 -- fields you've already customized from the app).
@@ -87,7 +84,9 @@ create table if not exists public.items (
   status text not null default 'saved' check (status in ('saved', 'done')),
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
+  updated_at timestamptz not null default timezone('utc', now()),
+  -- Soft-delete: set to a timestamp to move the item into Recently Deleted.
+  deleted_at timestamptz
 );
 
 create index if not exists idx_categories_user_id on public.categories(user_id);
@@ -103,10 +102,19 @@ create table if not exists public.notes (
   body text not null default '',
   checklist jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
+  updated_at timestamptz not null default timezone('utc', now()),
+  -- Soft-delete: set to a timestamp to move the note into Recently Deleted.
+  deleted_at timestamptz
 );
 
 create index if not exists idx_notes_user_id on public.notes(user_id);
+
+create index if not exists idx_items_deleted_at
+  on public.items (user_id, deleted_at)
+  where deleted_at is not null;
+create index if not exists idx_notes_deleted_at
+  on public.notes (user_id, deleted_at)
+  where deleted_at is not null;
 
 create or replace function public.set_updated_at()
 returns trigger

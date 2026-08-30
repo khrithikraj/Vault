@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Camera, Check, Pencil, Trash2, X, Share2, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { CategoryIcon } from '../lib/icons'
 import { VaultSelect } from './VaultSelect'
+import { CopyButton } from './CopyButton'
+import { FieldQuickActions } from './FieldQuickActions'
 import { createSharedItem } from '../lib/share'
 import type { Category, FieldDefinition, VaultItem } from '../types/app'
 
@@ -292,9 +294,12 @@ export function ItemDetailOverlay({
                           {selectedCategory.name}
                         </p>
                       ) : null}
-                      <h2 className="font-display text-xl sm:text-2xl font-semibold uppercase leading-tight text-ink">
-                        {item.title}
-                      </h2>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-display text-xl sm:text-2xl font-semibold uppercase leading-tight text-ink">
+                          {item.title}
+                        </h2>
+                        <CopyButton text={item.title} label="Copy" />
+                      </div>
                     </>
                   )}
                 </div>
@@ -426,11 +431,11 @@ export function ItemDetailOverlay({
               ) : (
                 <>
                   {metadataFields.length > 0 ? (
-                    <dl className="mt-4 grid gap-2.5">
+                    <dl className="mt-4 grid gap-3">
                       {metadataFields
-                        .filter((field) => item.metadata?.[field.key])
+                        .filter((field) => String(item.metadata?.[field.key] ?? '').length > 0)
                         .map((field) => (
-                          <div key={field.key} className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 text-sm">
+                          <div key={field.key} className="flex flex-col gap-1 text-sm">
                             <dt className="w-28 shrink-0 text-xs font-semibold uppercase tracking-widest text-ink-soft">
                               {field.label}
                             </dt>
@@ -454,6 +459,11 @@ export function ItemDetailOverlay({
                                 String(item.metadata[field.key])
                               )}
                             </dd>
+                            <FieldQuickActions
+                              value={String(item.metadata[field.key] ?? '')}
+                              fieldType={field.type}
+                              label={field.label}
+                            />
                           </div>
                         ))}
                     </dl>
