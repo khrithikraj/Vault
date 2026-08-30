@@ -15,6 +15,7 @@
  */
 
 import { supabase } from './supabase'
+import { DOCUMENT_CATEGORIES } from '../types/app'
 import type { DocumentCategory, VaultDocument } from '../types/app'
 
 // ---------------------------------------------------------------------------
@@ -193,6 +194,43 @@ export async function getSignedUrl(
   }
 
   return data.signedUrl
+}
+
+/**
+ * Update ONLY the user-facing metadata of a document (name + category).
+ *
+ * The physical Storage object is deliberately left untouched: the
+ * <user_id>/<document_id>/<filename> object and its `storage_path` never change,
+ * so no file operations happen and the existing signed URL / download / preview
+ * paths keep working unchanged.
+ *
+ * Ownership is enforced server-side by the `documents_update_own` RLS policy
+ * (auth.uid() = user_id on both USING and WITH CHECK). The UI never sends a
+ * user_id — the authenticated session is the only source of authority — so an
+ * update targeting another user's row yields zero rows and fails safely.
+ */
+export async function updateDocumentMetadata(
+  doc: VaultDocument,
+  name: string,
+  category: DocumentCategory,
+): Promise<VaultDocument> {
+  const trimmedName = name.trim()
+  if (!trimmedName) throw new Error('Document name is required.')
+  if (trimmedName.length > 120) throw new Error('Document name must be 120 characters or fewer.')
+  if (!(DOCUMENT_CATEGORIES as readonly string[]).includes(category)) {
+    throw new Error('Please choose a valid category.')
+  }
+
+  const { data, error } = await supabase
+    .from('documents')
+    .update({ name: trimmedName, category })
+    .eq('id', doc.id)
+    .select()
+    .single()
+
+  if (error) throw new Error(`Failed to save changes: ${error.message}`)
+
+  return data as VaultDocument
 }
 
 /**

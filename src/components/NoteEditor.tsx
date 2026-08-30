@@ -3,6 +3,8 @@ import { motion } from 'motion/react'
 import { Check, Link as LinkIcon, Loader2, Plus, Share2, Trash2, X } from 'lucide-react'
 import type { ChecklistItem, Note } from '../types/app'
 import { createSharedNote } from '../lib/share'
+import { formatNoteForClipboard } from '../lib/quickActions'
+import { CopyButton } from './CopyButton'
 
 export function NoteEditor({
   note,
@@ -167,6 +169,7 @@ export function NoteEditor({
           >
             <Check size={12} /> Save
           </button>
+          <CopyButton text={formatNoteForClipboard({ title, body, checklist })} label="Copy" />
           <button
             type="button"
             onClick={onDelete}

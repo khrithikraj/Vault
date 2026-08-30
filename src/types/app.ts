@@ -33,6 +33,8 @@ export type VaultItem = {
   metadata: Record<string, unknown>
   created_at: string
   updated_at: string
+  /** Set to an ISO timestamp when the item is in Recently Deleted; null otherwise. */
+  deleted_at: string | null
 }
 
 export type ChecklistItem = {
@@ -49,6 +51,8 @@ export type Note = {
   checklist: ChecklistItem[]
   created_at: string
   updated_at: string
+  /** Set to an ISO timestamp when the note is in Recently Deleted; null otherwise. */
+  deleted_at: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -76,4 +80,6 @@ export type VaultDocument = {
   file_size: number
   storage_path: string
   created_at: string
+  /** Set to an ISO timestamp when the document is in Recently Deleted; null otherwise. */
+  deleted_at: string | null
 }

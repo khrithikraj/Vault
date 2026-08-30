@@ -19,6 +19,15 @@ import { ProgressiveBlur } from './components/ProgressiveBlur'
 import { ScrollReveal } from './components/ScrollReveal'
 import { ScrollProgress } from './components/ScrollProgress'
 import { SharedItemView } from './components/SharedItemView'
+import { SearchBar } from './components/SearchBar'
+import { SearchResults } from './components/SearchResults'
+import { ConfirmDialog } from './components/ConfirmDialog'
+import { TrashPanel } from './components/TrashPanel'
+import { buildTrashRows } from './lib/trashRows'
+import type { TrashRow } from './lib/trashRows'
+import { searchVault } from './lib/search'
+import type { SearchScope } from './lib/search'
+import type { TrashKind } from './lib/trash'
 import type { VaultDocument, VaultItem } from './types/app'
 import type { SharedSnapshot } from './lib/share'
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
@@ -41,6 +50,9 @@ const DocumentsPanel = lazy(() =>
 )
 const DocumentViewer = lazy(() =>
   import('./components/documents/DocumentViewer').then((mod) => ({ default: mod.DocumentViewer })),
+)
+const DocumentUploader = lazy(() =>
+  import('./components/documents/DocumentUploader').then((mod) => ({ default: mod.DocumentUploader })),
 )
 
 export default function App() {
@@ -73,10 +85,64 @@ export default function App() {
   const [celebration, setCelebration] = useState<{ id: string; token: number } | null>(null)
   const [sharedPhoto, setSharedPhoto] = useState<File | null>(null)
   const [sharedPhotoToken, setSharedPhotoToken] = useState(0)
-  const [mainView, setMainView] = useState<'vault' | 'notes' | 'documents'>('vault')
+  const [mainView, setMainView] = useState<'vault' | 'notes' | 'documents' | 'trash'>('vault')
   const [showLanding, setShowLanding] = useState(true)
   // Track whether documents have been loaded for the current session
   const docsLoadedRef = useRef(false)
+
+  // Doc uploader is lifted to App level so Quick Add (from any section) can open it.
+  const [docUploadOpen, setDocUploadOpen] = useState(false)
+
+  // Permanent-delete confirmation for anything in Recently Deleted.
+  type PurgeTarget = { kind: TrashKind; id: string; name: string }
+  const [purgeTarget, setPurgeTarget] = useState<PurgeTarget | null>(null)
+  const [purgeBusy, setPurgeBusy] = useState(false)
+
+  // ---------------------------------------------------------------------------
+  // Search — client-side, in-memory, scoped automatically by the current section.
+  // The query is cleared whenever the section/category changes so switching tabs
+  // always lands on normal content (never a stale result set).
+  // ---------------------------------------------------------------------------
+  const [searchQuery, setSearchQuery] = useState('')
+  const activeQuery = searchQuery.trim()
+
+  const searchScope = useMemo<SearchScope>(() => {
+    if (mainView === 'notes') return { kind: 'notes' }
+    if (mainView === 'documents') return { kind: 'documents' }
+    if (mainView === 'trash') return { kind: 'trash' }
+    if (vault.selectedCategoryId) return { kind: 'category', categoryId: vault.selectedCategoryId }
+    return { kind: 'everything' }
+  }, [mainView, vault.selectedCategoryId])
+
+  const searchResults = useMemo(
+    () =>
+      searchVault({
+        query: activeQuery,
+        scope: searchScope,
+        items: vault.items,
+        categories: vault.categories,
+        notes: vault.notes,
+        documents: docs.documents,
+        trashedItems: vault.trashedItems,
+        trashedNotes: vault.trashedNotes,
+        trashedDocuments: docs.trashedDocuments,
+      }),
+    [
+      activeQuery,
+      searchScope,
+      vault.items,
+      vault.categories,
+      vault.notes,
+      docs.documents,
+      vault.trashedItems,
+      vault.trashedNotes,
+      docs.trashedDocuments,
+    ],
+  )
+
+  useEffect(() => {
+    setSearchQuery('')
+  }, [mainView, vault.selectedCategoryId])
 
   // ---------------------------------------------------------------------------
   // Share route: /s/:token — a read-only preview of a shared item snapshot.
@@ -119,7 +185,7 @@ export default function App() {
   // Stack of the base (non-overlay) sections we've navigated into. The top entry
   // is the section currently visible underneath any open overlay. Only grows when
   // the user actually switches main section.
-  const sectionStackRef = useRef<('vault' | 'notes' | 'documents')[]>(['vault'])
+  const sectionStackRef = useRef<('vault' | 'notes' | 'documents' | 'trash')[]>(['vault'])
 
   const handleDismissOverlay = useCallback(() => {
     if (window.history.state?.vaultOverlay) {
@@ -166,15 +232,103 @@ export default function App() {
   )
 
   // Switch the base section and record a history entry so Back can return to it.
-  const goToSection = useCallback((next: 'vault' | 'notes' | 'documents') => {
-    const top = sectionStackRef.current[sectionStackRef.current.length - 1]
-    if (top === next) {
-      return
+  const goToSection = useCallback(
+    (next: 'vault' | 'notes' | 'documents' | 'trash') => {
+      const top = sectionStackRef.current[sectionStackRef.current.length - 1]
+      if (top === next) {
+        return
+      }
+      window.history.pushState({ vaultSection: true }, '')
+      sectionStackRef.current = [...sectionStackRef.current, next]
+      setMainView(next)
+    },
+    [],
+  )
+
+  // ---------------------------------------------------------------------------
+  // Smart Quick Add — the Floating Action Button adapts to the current section:
+  //    vault + selected category → directly into that category's item wizard
+  //    vault + Everything         → a chooser (Item / Note / Document)
+  //    notes                      → a fresh note opened in the editor
+  //    documents                  → the document uploader
+  //    trash                      → hidden
+  // ---------------------------------------------------------------------------
+  const quickAdd = useMemo<'choose' | 'item' | 'note' | 'document'>(() => {
+    if (mainView === 'notes') return 'note'
+    if (mainView === 'documents') return 'document'
+    if (vault.selectedCategoryId) return 'item'
+    return 'choose'
+  }, [mainView, vault.selectedCategoryId])
+
+  const handleQuickAddNote = useCallback(() => {
+    goToSection('notes')
+    void vault.addNote().then((note) => {
+      if (note) {
+        handleOpenNote(note.id)
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goToSection, vault])
+
+  const handleQuickAddDocument = useCallback(() => {
+    goToSection('documents')
+    setDocUploadOpen(true)
+  }, [goToSection])
+
+  // Recently Deleted: merged rows for the trash tab + row-level restore/purge.
+  const trashRows = useMemo(
+    () =>
+      buildTrashRows({
+        items: vault.trashedItems,
+        notes: vault.trashedNotes,
+        documents: docs.trashedDocuments,
+        categories: vault.categories,
+      }),
+    [vault.trashedItems, vault.trashedNotes, docs.trashedDocuments, vault.categories],
+  )
+
+  // When searching within the Trash tab, narrow the merged rows to the query hits —
+  // searchVault already matched against the trashed arrays, so filter by result id.
+  const filteredTrashRows = useMemo(() => {
+    if (searchScope.kind !== 'trash') return []
+    const hitIds = new Set([
+      ...searchResults.items.map((hit) => hit.item.id),
+      ...searchResults.notes.map((hit) => hit.note.id),
+      ...searchResults.documents.map((doc) => doc.id),
+    ])
+    return trashRows.filter((row) => hitIds.has(row.id))
+  }, [searchScope.kind, searchResults, trashRows])
+
+  const handleRestoreTrashRow = useCallback(
+    (row: TrashRow) => {
+      if (row.kind === 'item') {
+        const item = vault.trashedItems.find((i) => i.id === row.id)
+        if (item) void vault.restoreItem(item)
+      } else if (row.kind === 'note') {
+        const note = vault.trashedNotes.find((n) => n.id === row.id)
+        if (note) void vault.restoreNote(note)
+      } else {
+        const doc = docs.trashedDocuments.find((d) => d.id === row.id)
+        if (doc) void docs.restoreDocument(doc)
+      }
+    },
+    [vault, docs],
+  )
+
+  const handlePurgeTarget = useCallback(async (): Promise<boolean> => {
+    const target = purgeTarget
+    if (!target) return false
+    if (target.kind === 'item') {
+      const item = vault.trashedItems.find((i) => i.id === target.id)
+      return item ? vault.purgeItem(item) : false
     }
-    window.history.pushState({ vaultSection: true }, '')
-    sectionStackRef.current = [...sectionStackRef.current, next]
-    setMainView(next)
-  }, [])
+    if (target.kind === 'note') {
+      const note = vault.trashedNotes.find((n) => n.id === target.id)
+      return note ? vault.purgeNote(note) : false
+    }
+    const doc = docs.trashedDocuments.find((d) => d.id === target.id)
+    return doc ? docs.purgeDocument(doc) : false
+  }, [purgeTarget, vault, docs])
 
   // "Add to My Vault" from a shared link: for a shared ITEM, resolve a target
   // category by name (falling back to the default), map the snapshot fields back by
@@ -266,15 +420,21 @@ export default function App() {
     })
   }, [])
 
-  // Load documents when the user navigates to the Documents tab (lazy — only once per session).
-  // If already loaded (docsLoadedRef.current), skip to avoid redundant fetches.
+  // Load documents lazily — once per session — when the user opens the Documents tab,
+  // the Trash tab (trashed documents can be restored there), or when a vault-wide search
+  // is active so Everything results can include documents even if that tab hasn't been
+  // visited yet. Already-loaded (docsLoadedRef) is skipped.
   useEffect(() => {
-    if (mainView !== 'documents') return
     if (docsLoadedRef.current) return
     if (!vault.session?.user?.id || devPreview) return
+    const needsDocuments =
+      mainView === 'documents' ||
+      mainView === 'trash' ||
+      (searchScope.kind === 'everything' && activeQuery.length > 0)
+    if (!needsDocuments) return
     docsLoadedRef.current = true
     void docs.load()
-  }, [mainView, vault.session?.user?.id, devPreview, docs])
+  }, [mainView, activeQuery, searchScope, vault.session?.user?.id, devPreview, docs])
 
   // Reset docs state on sign-out so a new sign-in gets fresh data.
   useEffect(() => {
@@ -346,6 +506,20 @@ export default function App() {
     (category) => category.id === vault.selectedCategoryId,
   )
 
+  const searchPlaceholder =
+    mainView === 'notes'
+      ? 'Search notes…'
+      : mainView === 'documents'
+        ? 'Search documents…'
+        : mainView === 'trash'
+          ? 'Search trash…'
+          : activeCategory
+            ? `Search ${activeCategory.name}…`
+            : 'Search your vault…'
+
+  const searchMode: 'everything' | 'category' | 'notes' | 'documents' | 'trash' =
+    mainView === 'vault' ? (vault.selectedCategoryId ? 'category' : 'everything') : mainView
+
   return (
     <main className="relative min-h-screen pb-32">
       <Atmosphere activeCategory={activeCategory} />
@@ -399,7 +573,34 @@ export default function App() {
           </div>
         ) : null}
 
-        {mainView === 'vault' ? (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: 'easeOut', delay: 0.1 }}
+        >
+          <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder={searchPlaceholder} />
+        </motion.div>
+
+        {activeQuery ? (
+          <SearchResults
+            query={activeQuery}
+            mode={searchMode}
+            results={searchResults}
+            categories={vault.categories}
+            onOpenItem={(item) => handleOpenItem(item.id)}
+            onToggleItem={(item) => void vault.toggleItem(item)}
+            onDeleteItem={(item) => void vault.deleteItem(item.id)}
+            onOpenNote={handleOpenNote}
+            onDeleteNote={(id) => void vault.deleteNote(id)}
+            onOpenDoc={handleOpenDoc}
+            onDeleteDoc={docs.removeDocument}
+            trashRows={filteredTrashRows}
+            onRestoreTrashRow={handleRestoreTrashRow}
+            onPurgeTrashRow={(row) =>
+              setPurgeTarget({ kind: row.kind, id: row.id, name: row.name })
+            }
+          />
+        ) : mainView === 'vault' ? (
           <>
             <ScrollReveal className="mt-10">
               <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
@@ -455,6 +656,29 @@ export default function App() {
               )}
             </ScrollReveal>
           </>
+        ) : mainView === 'trash' ? (
+          <TrashPanel
+            items={vault.trashedItems}
+            notes={vault.trashedNotes}
+            documents={docs.trashedDocuments}
+            categories={vault.categories}
+            onRestoreItem={(item) => void vault.restoreItem(item)}
+            onPurgeItem={(item) =>
+              setPurgeTarget({ kind: 'item', id: item.id, name: item.title })
+            }
+            onRestoreNote={(note) => void vault.restoreNote(note)}
+            onPurgeNote={(note) =>
+              setPurgeTarget({
+                kind: 'note',
+                id: note.id,
+                name: note.title.trim() || 'Untitled note',
+              })
+            }
+            onRestoreDoc={(doc) => void docs.restoreDocument(doc)}
+            onPurgeDoc={(doc) =>
+              setPurgeTarget({ kind: 'document', id: doc.id, name: doc.name })
+            }
+          />
         ) : mainView === 'notes' ? (
           <Suspense fallback={null}>
             <NotesPanel
@@ -469,10 +693,9 @@ export default function App() {
             <DocumentsPanel
               documents={docs.documents}
               loading={docs.loading}
-              uploading={docs.uploading}
               message={docs.message}
               onOpenDoc={handleOpenDoc}
-              onUpload={async (file, name, category) => docs.addDocument(file, name, category)}
+              onOpenUploader={() => setDocUploadOpen(true)}
               onDelete={docs.removeDocument}
               onDismissMessage={() => docs.setMessage('')}
             />
@@ -493,18 +716,73 @@ export default function App() {
         onSelectNotes={() => goToSection('notes')}
         docsActive={mainView === 'documents'}
         onSelectDocs={() => goToSection('documents')}
+        trashActive={mainView === 'trash'}
+        onSelectTrash={() => goToSection('trash')}
       />
 
-      {mainView === 'vault' ? (
+      {mainView !== 'trash' ? (
         <CaptureFab
           categories={vault.categories}
           defaultCategoryId={vault.selectedCategoryId}
+          quickAdd={quickAdd}
           onSubmit={(input) => void vault.addItem(input)}
           onSaved={(categoryId) => setCelebration({ id: categoryId, token: Date.now() })}
           initialPhotoFile={sharedPhoto}
           openToken={sharedPhotoToken}
+          onQuickAddNote={handleQuickAddNote}
+          onQuickAddDocument={handleQuickAddDocument}
+          existingItems={vault.items}
+          onViewExistingItem={(id) => handleOpenItem(id)}
         />
       ) : null}
+
+      <Suspense fallback={null}>
+        <DocumentUploader
+          open={docUploadOpen}
+          uploading={docs.uploading}
+          onClose={() => setDocUploadOpen(false)}
+          onUpload={async (file, name, category) => {
+            const result = await docs.addDocument(file, name, category)
+            if (result) {
+              setDocUploadOpen(false)
+            }
+          }}
+        />
+      </Suspense>
+
+      <ConfirmDialog
+        open={!!purgeTarget}
+        title="Delete forever?"
+        message={
+          purgeTarget ? (
+            <>
+              <span className="font-semibold text-ink">{purgeTarget.name}</span> will be
+              permanently removed from Raj&apos;s Vault — its record and (if any) its private
+              storage file. This cannot be undone.
+            </>
+          ) : (
+            ''
+          )
+        }
+        confirmLabel="Delete forever"
+        busy={purgeBusy}
+        busyLabel="Deleting…"
+        onCancel={() => {
+          if (!purgeBusy) {
+            setPurgeTarget(null)
+          }
+        }}
+        onConfirm={() =>
+          void (async () => {
+            setPurgeBusy(true)
+            const ok = await handlePurgeTarget()
+            setPurgeBusy(false)
+            if (ok) {
+              setPurgeTarget(null)
+            }
+          })()
+        }
+      />
 
       <Suspense fallback={null}>
         <ItemDetailOverlay
@@ -552,6 +830,8 @@ export default function App() {
         <DocumentViewer
           doc={openDoc}
           onClose={handleDismissOverlay}
+          onDelete={docs.removeDocument}
+          onUpdate={docs.updateDocument}
         />
       </Suspense>
     </main>

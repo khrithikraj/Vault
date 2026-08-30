@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'motion/react'
-import { Camera, CheckCircle2 } from 'lucide-react'
+import { Camera, CheckCircle2, CopyX, Eye } from 'lucide-react'
 import { fallbackFieldSchema, getErrorMessage } from '../lib/fields'
 import { buildScreenshotAutofill, extractScreenshotText, type ScreenshotExtraction } from '../lib/screenshotAutofill'
+import { findItemDuplicates } from '../lib/duplicates'
 import { BrandIcon, CategoryIcon } from '../lib/icons'
 import { BorderTrail } from './BorderTrail'
+import { AddMenu } from './AddMenu'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
-import type { Category, FieldDefinition } from '../types/app'
+import type { Category, FieldDefinition, VaultItem } from '../types/app'
+
+type CapturQuickAdd = 'choose' | 'item' | 'note' | 'document'
 
 type CaptureFabProps = {
   categories: Category[]
@@ -21,6 +25,15 @@ type CaptureFabProps = {
   initialPhotoFile?: File | null
   /** Bump this to force the wizard open programmatically (e.g. after a share-target photo arrives). */
   openToken?: number
+  /** Smart Quick Add context: which action the FAB tap should perform. */
+  quickAdd?: CapturQuickAdd
+  /** Note/document quick-add shortcuts (used when quickAdd is note/document). */
+  onQuickAddNote?: () => void
+  onQuickAddDocument?: () => void
+  /** Live items used to warn about probable duplicates while creating an item. */
+  existingItems?: VaultItem[]
+  /** Jump straight to a matched existing item from the duplicate warning. */
+  onViewExistingItem?: (itemId: string) => void
 }
 
 type Stage = 'category' | 'photo' | 'fields' | 'review'
@@ -60,8 +73,14 @@ export function CaptureFab({
   onSaved,
   initialPhotoFile,
   openToken,
+  quickAdd = 'item',
+  onQuickAddNote,
+  onQuickAddDocument,
+  existingItems,
+  onViewExistingItem,
 }: CaptureFabProps) {
   const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [stage, setStage] = useState<Stage>('category')
   const [categoryId, setCategoryId] = useState('')
   const [stepIndex, setStepIndex] = useState(0)
@@ -70,6 +89,7 @@ export function CaptureFab({
   const [shakeToken, setShakeToken] = useState(0)
   const [cameFromReview, setCameFromReview] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState<string | null>(null)
@@ -92,6 +112,9 @@ export function CaptureFab({
   const fabRef = useRef<HTMLButtonElement>(null)
   const saveButtonRef = useRef<HTMLButtonElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
+  /** When the FAB is tapped for a known category, skip the category picker stage.
+   *  Share-target launches reset it so the user still confirms the target. */
+  const skipCategoryLaunchRef = useRef(false)
   const magnetX = useMotionValue(0)
   const magnetY = useMotionValue(0)
   const springX = useSpring(magnetX, { stiffness: 200, damping: 14 })
@@ -116,7 +139,9 @@ export function CaptureFab({
       }
     }
     setCategoryId(defaultCategoryId ?? '')
-    setStage('category')
+    const skipCategory = skipCategoryLaunchRef.current && !!defaultCategoryId
+    setStage(skipCategory ? 'photo' : 'category')
+    skipCategoryLaunchRef.current = false
     setOcrStatus('idle')
     setOcrError(null)
     setOcrExtraction(null)
@@ -142,6 +167,7 @@ export function CaptureFab({
   // A fresh share-target photo forces the wizard open, even if it's currently closed.
   useEffect(() => {
     if (openToken) {
+      skipCategoryLaunchRef.current = false
       setOpen(true)
     }
   }, [openToken])
@@ -204,6 +230,16 @@ export function CaptureFab({
     }
     return buildScreenshotAutofill(ocrExtraction, fields)
   }, [categoryId, fields, ocrExtraction])
+
+  const duplicates = useMemo(
+    () => findItemDuplicates(existingItems ?? [], categories, { categoryId, values }),
+    [existingItems, categories, categoryId, values],
+  )
+
+  // An edit to any value re-evaluates the duplicate match — require a fresh decision.
+  useEffect(() => {
+    setDuplicateAcknowledged(false)
+  }, [categoryId, values])
 
   const handleMagnetMove = (event: React.MouseEvent<HTMLButtonElement>) => {
     const bounds = fabRef.current?.getBoundingClientRect()
@@ -356,6 +392,10 @@ export function CaptureFab({
     if (!categoryId || !values.title?.trim()) {
       return
     }
+    // Non-blocking duplicate warning: [Create anyway] explicitly acknowledges this.
+    if (duplicates.length > 0 && !duplicateAcknowledged) {
+      return
+    }
 
     onSubmit({ categoryId, values, imageFile: photoFile })
 
@@ -438,7 +478,7 @@ export function CaptureFab({
                       <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
                         Quick capture
                       </p>
-                      <h2 className="mt-1 text-xl font-bold uppercase tracking-tight">
+                      <h2 className="font-display mt-1 text-xl font-bold uppercase tracking-tight">
                         Where does this belong?
                       </h2>
 
@@ -497,11 +537,11 @@ export function CaptureFab({
                       <button
                         type="button"
                         onClick={goBack}
-                        className="text-sm font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
+                        className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
                       >
                         [ ← Back ]
                       </button>
-                      <h2 className="mt-2 text-xl font-bold uppercase tracking-tight">Add a photo?</h2>
+                      <h2 className="font-display mt-2 text-xl font-bold uppercase tracking-tight">Add a photo?</h2>
                       <p className="mt-1 text-sm text-ink-soft">Totally optional — you can skip this.</p>
 
                       <input
@@ -518,7 +558,7 @@ export function CaptureFab({
                           <button
                             type="button"
                             onClick={clearPhoto}
-                            className="bg-cloud/80 text-ink absolute right-3 top-3 rounded px-3 py-1 text-xs font-medium uppercase tracking-wide backdrop-blur-sm"
+                            className="bg-cloud/80 text-ink absolute right-3 top-3 rounded px-3 py-1 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm"
                           >
                             Remove
                           </button>
@@ -532,9 +572,9 @@ export function CaptureFab({
                           className="term-panel-soft border-ink/30 mt-5 flex h-48 w-full flex-col items-center justify-center gap-2 rounded border-dashed"
                         >
                           <BrandIcon icon={Camera} size={30} />
-                          <span className="text-sm font-medium uppercase tracking-wide text-ink-soft">
-                            Tap to add a photo
-                          </span>
+<span className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
+                              Tap to add a photo
+                            </span>
                         </motion.button>
                       )}
 
@@ -623,7 +663,7 @@ export function CaptureFab({
                         <button
                           type="button"
                           onClick={goBack}
-                          className="text-sm font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
+                          className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
                         >
                           [ ← Back ]
                         </button>
@@ -664,7 +704,7 @@ export function CaptureFab({
                               ) : null}
                               {activeCategory?.name}
                             </p>
-                            <h3 className="mt-2 text-2xl font-bold uppercase leading-snug tracking-tight">
+                            <h3 className="font-display mt-2 text-2xl font-bold uppercase leading-snug tracking-tight">
                               &gt; {fields[stepIndex].label}
                               {fields[stepIndex].required ? (
                                 <span className="text-ink"> *</span>
@@ -729,14 +769,19 @@ export function CaptureFab({
                       <button
                         type="button"
                         onClick={goBack}
-                        className="text-sm font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
+                        className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
                       >
                         [ ← Back ]
                       </button>
-                      <h2 className="mt-2 flex items-center gap-2 text-xl font-bold uppercase tracking-tight">
-                        {activeCategory ? (
-                          <CategoryIcon icon={activeCategory.icon} color={activeCategory.color} size={20} />
-                        ) : null}
+                      <h2 className="font-display mt-2 flex items-center gap-2 text-xl font-bold uppercase tracking-tight text-ink">
+                        <span
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-ink/20"
+                          style={activeCategory ? { backgroundColor: `${activeCategory.color}18` } : undefined}
+                        >
+                          {activeCategory ? (
+                            <CategoryIcon icon={activeCategory.icon} color={activeCategory.color} size={18} />
+                          ) : null}
+                        </span>
                         Ready to save?
                       </h2>
 
@@ -805,7 +850,7 @@ export function CaptureFab({
                                   <button
                                     type="button"
                                     onClick={() => setShowFullExtraction((current) => !current)}
-                                    className="text-xs font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
+                                    className="text-xs font-semibold uppercase tracking-wide text-ink-soft hover:text-ink"
                                   >
                                     {showFullExtraction ? 'Show less' : `Show full text (${ocrExtraction.lines.length})`}
                                   </button>
@@ -831,24 +876,63 @@ export function CaptureFab({
                       </div>
                     ) : null}
 
-                      <div className="mt-4 grid gap-2">
-                        {fields.map((field, index) => (
-                          <button
-                            key={field.key}
-                            type="button"
-                            onClick={() => jumpToStep(index)}
-                            className="term-panel-soft flex flex-col gap-1 rounded p-3 text-left hover:border-ink/30"
-                          >
-                            <span className="text-xs font-medium uppercase tracking-wide text-ink-soft">
-                              {field.label}
-                            </span>
-                            <span className="w-full break-words text-sm font-medium text-ink">
-                              {values[field.key]?.trim() || '—'}
-                            </span>
-                          </button>
-                        ))}
+                      <div className="mt-4 overflow-hidden rounded border border-ink/15 bg-ink/5">
+                        <div className="divide-y divide-ink/10">
+                          {fields.map((field, index) => (
+                            <button
+                              key={field.key}
+                              type="button"
+                              onClick={() => jumpToStep(index)}
+                              className="flex w-full min-w-0 flex-col gap-1 px-3.5 py-3 text-left transition-colors hover:bg-ink/5"
+                            >
+                              <span className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                                {field.label}
+                              </span>
+                              <span className="min-w-0 break-words text-sm font-medium text-ink">
+                                {values[field.key]?.trim() || '—'}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
+                      {duplicates.length > 0 && !duplicateAcknowledged ? (
+                        <div className="mt-4 rounded border border-amber-500/40 bg-amber-950/20 p-4">
+                          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-amber-300">
+                            <CopyX size={14} /> This looks like a duplicate
+                          </p>
+                          <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
+                            An item titled{' '}
+                            <span className="font-semibold text-ink">
+                              “{duplicates[0].item.title}”
+                            </span>{' '}
+                            already exists in {duplicates[0].category.name}.
+                            {duplicates[0].matchedFields.length > 0 ? (
+                              <> It matches on {duplicates[0].matchedFields.join(', ')}.</>
+                            ) : null}{' '}
+                            This is just a heads-up — you decide.
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpen(false)
+                                onViewExistingItem?.(duplicates[0].item.id)
+                              }}
+                              className="term-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink"
+                            >
+                              <Eye size={12} /> View existing
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDuplicateAcknowledged(true)}
+                              className="term-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent"
+                            >
+                              Create anyway
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
 
                       <motion.button
                         ref={saveButtonRef}
@@ -856,7 +940,8 @@ export function CaptureFab({
                         whileTap={{ scale: 0.98 }}
                         type="button"
                         onClick={handleSave}
-                        className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
+                        disabled={duplicates.length > 0 && !duplicateAcknowledged}
+                        className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Save to vault
                       </motion.button>
@@ -885,13 +970,46 @@ export function CaptureFab({
         ) : null}
       </AnimatePresence>
 
+      <AddMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onPickItem={() => {
+          setMenuOpen(false)
+          skipCategoryLaunchRef.current = true
+          setOpen(true)
+        }}
+        onPickNote={() => {
+          setMenuOpen(false)
+          onQuickAddNote?.()
+        }}
+        onPickDocument={() => {
+          setMenuOpen(false)
+          onQuickAddDocument?.()
+        }}
+      />
+
       <div className="fixed bottom-28 right-4 z-30 sm:right-8">
         <motion.button
           ref={fabRef}
           type="button"
           onMouseMove={handleMagnetMove}
           onMouseLeave={resetMagnet}
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            if (quickAdd === 'note') {
+              onQuickAddNote?.()
+              return
+            }
+            if (quickAdd === 'document') {
+              onQuickAddDocument?.()
+              return
+            }
+            if (quickAdd === 'choose') {
+              setMenuOpen(true)
+              return
+            }
+            skipCategoryLaunchRef.current = true
+            setOpen(true)
+          }}
           style={{ x: springX, y: springY }}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}

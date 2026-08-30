@@ -25,13 +25,23 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Download, X, FileText, Image, AlertTriangle, Loader2 } from 'lucide-react'
+import { Download, X, FileText, Image, AlertTriangle, Loader2, Trash2, Pencil } from 'lucide-react'
 import { getSignedUrl } from '../../lib/documents'
-import type { VaultDocument } from '../../types/app'
+import { CopyButton } from '../CopyButton'
+import { DocumentDeleteDialog } from './DocumentDeleteDialog'
+import { DocumentEditDialog } from './DocumentEditDialog'
+import type { DocumentCategory, VaultDocument } from '../../types/app'
 
 type DocumentViewerProps = {
   doc: VaultDocument | null
   onClose: () => void
+  onDelete: (doc: VaultDocument) => Promise<boolean>
+  /** Persist metadata edits (name + category) — resolves only after Supabase confirms. */
+  onUpdate: (
+    doc: VaultDocument,
+    name: string,
+    category: DocumentCategory,
+  ) => Promise<{ ok: boolean; error?: string }>
 }
 
 function formatBytes(bytes: number): string {
@@ -39,13 +49,39 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export function DocumentViewer({ doc, onClose }: DocumentViewerProps) {
+export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentViewerProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [loadingUrl, setLoadingUrl] = useState(false)
   const [urlError, setUrlError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const prevDocId = useRef<string | null>(null)
+
+  // Reset the delete/edit flows when the viewer re-opens / switches document.
+  useEffect(() => {
+    setDeleteConfirmOpen(false)
+    setDeleting(false)
+    setEditOpen(false)
+  }, [doc?.id])
+
+  const handleDeleteConfirm = async () => {
+    if (!doc || deleting) return
+    setDeleting(true)
+    const ok = await onDelete(doc)
+    setDeleting(false)
+    if (ok) {
+      setDeleteConfirmOpen(false)
+      onClose()
+    }
+  }
+
+  const handleEditSave = async (name: string, category: DocumentCategory) => {
+    if (!doc) return { ok: false as const, error: 'Document not found.' }
+    return onUpdate(doc, name, category)
+  }
 
   // ---------------------------------------------------------------------------
   // Fetch signed URL when the viewer opens (or doc changes).
@@ -89,12 +125,12 @@ export function DocumentViewer({ doc, onClose }: DocumentViewerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.id, doc?.storage_path])
 
-  // Escape key closes viewer
+  // Escape key closes viewer (unless the edit dialog is open — it owns Escape then)
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !editOpen) onClose() }
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
-  }, [onClose])
+  }, [onClose, editOpen])
 
   // Prevent background scroll while viewer is open
   useEffect(() => {
@@ -158,7 +194,7 @@ export function DocumentViewer({ doc, onClose }: DocumentViewerProps) {
 
   return (
     <AnimatePresence>
-      {doc && (
+      {doc && (<>
         <motion.div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm"
           style={{ height: '100dvh' }}
@@ -198,6 +234,27 @@ export function DocumentViewer({ doc, onClose }: DocumentViewerProps) {
 
               {/* Action buttons */}
               <div className="flex shrink-0 items-center gap-2">
+                <CopyButton text={doc.name} label="Copy" copiedLabel="Copied" />
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(true)}
+                  className="term-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft hover:text-ink"
+                  aria-label="Edit document"
+                  title="Edit document"
+                >
+                  <Pencil size={13} />
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  className="term-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-red-400 hover:text-red-300"
+                  aria-label="Delete document"
+                  title="Delete document"
+                >
+                  <Trash2 size={13} />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleDownload}
@@ -316,6 +373,20 @@ export function DocumentViewer({ doc, onClose }: DocumentViewerProps) {
             </div>
           </motion.div>
         </motion.div>
+
+        <DocumentDeleteDialog
+          doc={deleteConfirmOpen ? doc : null}
+          deleting={deleting}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteConfirmOpen(false)}
+        />
+
+        <DocumentEditDialog
+          doc={editOpen ? doc : null}
+          onSave={handleEditSave}
+          onCancel={() => setEditOpen(false)}
+        />
+      </>
       )}
     </AnimatePresence>
   )

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { normalizeCategory } from '../lib/fields'
+import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { Category, ChecklistItem, FieldDefinition, Note, VaultItem } from '../types/app'
 
 const DEV_USER_ID = 'dev-preview-user'
@@ -34,6 +35,8 @@ export function useMockVault() {
   const [categories, setCategories] = useState<Category[]>(seedCategories)
   const [items, setItems] = useState<VaultItem[]>([])
   const [notes, setNotes] = useState<Note[]>([])
+  const [trashedItems, setTrashedItems] = useState<VaultItem[]>([])
+  const [trashedNotes, setTrashedNotes] = useState<Note[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
 
@@ -81,6 +84,7 @@ export function useMockVault() {
   const deleteCategory = async (categoryId: string) => {
     setCategories((current) => current.filter((category) => category.id !== categoryId))
     setItems((current) => current.filter((item) => item.category_id !== categoryId))
+    setTrashedItems((current) => current.filter((item) => item.category_id !== categoryId))
     setSelectedCategoryId((current) => (current === categoryId ? null : current))
   }
 
@@ -148,6 +152,7 @@ export function useMockVault() {
       metadata,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      deleted_at: null,
     }
     setItems((current) => [item, ...current])
   }
@@ -199,14 +204,34 @@ export function useMockVault() {
     )
   }
 
-  const deleteItem = async (itemId: string) => {
+  const deleteItem = async (itemId: string): Promise<boolean> => {
     setItems((current) => {
-      const removed = current.find((item) => item.id === itemId)
-      if (removed?.image_url?.startsWith('blob:')) {
-        URL.revokeObjectURL(removed.image_url)
+      const target = current.find((item) => item.id === itemId)
+      if (target) {
+        setTrashedItems((trash) =>
+          sortTrashedByDeletedAt([{ ...target, deleted_at: new Date().toISOString() }, ...trash]),
+        )
       }
       return current.filter((item) => item.id !== itemId)
     })
+    return true
+  }
+
+  const restoreItem = async (item: VaultItem): Promise<boolean> => {
+    setTrashedItems((current) => current.filter((entry) => entry.id !== item.id))
+    setItems((current) => [{ ...item, deleted_at: null }, ...current])
+    return true
+  }
+
+  const purgeItem = async (item: VaultItem): Promise<boolean> => {
+    setTrashedItems((current) => {
+      const target = current.find((entry) => entry.id === item.id)
+      if (target?.image_url?.startsWith('blob:')) {
+        URL.revokeObjectURL(target.image_url)
+      }
+      return current.filter((entry) => entry.id !== item.id)
+    })
+    return true
   }
 
   const addNote = async () => {
@@ -218,6 +243,7 @@ export function useMockVault() {
       checklist: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      deleted_at: null,
     }
     setNotes((current) => [note, ...current])
     return note
@@ -236,8 +262,28 @@ export function useMockVault() {
     )
   }
 
-  const deleteNote = async (noteId: string) => {
-    setNotes((current) => current.filter((note) => note.id !== noteId))
+  const deleteNote = async (noteId: string): Promise<boolean> => {
+    setNotes((current) => {
+      const target = current.find((note) => note.id === noteId)
+      if (target) {
+        setTrashedNotes((trash) =>
+          sortTrashedByDeletedAt([{ ...target, deleted_at: new Date().toISOString() }, ...trash]),
+        )
+      }
+      return current.filter((note) => note.id !== noteId)
+    })
+    return true
+  }
+
+  const restoreNote = async (note: Note): Promise<boolean> => {
+    setTrashedNotes((current) => current.filter((entry) => entry.id !== note.id))
+    setNotes((current) => [{ ...note, deleted_at: null }, ...current])
+    return true
+  }
+
+  const purgeNote = async (note: Note): Promise<boolean> => {
+    setTrashedNotes((current) => current.filter((entry) => entry.id !== note.id))
+    return true
   }
 
   const importNote = async (input: {
@@ -253,6 +299,7 @@ export function useMockVault() {
       checklist: input.checklist,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      deleted_at: null,
     }
     setNotes((current) => [note, ...current])
     return true
@@ -267,6 +314,8 @@ export function useMockVault() {
     categories,
     items,
     notes,
+    trashedItems,
+    trashedNotes,
     selectedCategoryId,
     setSelectedCategoryId,
     itemCountByCategory,
@@ -283,6 +332,8 @@ export function useMockVault() {
       setCategories(seedCategories())
       setItems([])
       setNotes([])
+      setTrashedItems([])
+      setTrashedNotes([])
       setSelectedCategoryId(null)
       setMessage('')
     },
@@ -294,9 +345,13 @@ export function useMockVault() {
     updateItem,
     toggleItem,
     deleteItem,
+    restoreItem,
+    purgeItem,
     addNote,
     updateNote,
     deleteNote,
+    restoreNote,
+    purgeNote,
     importNote,
   }
 }

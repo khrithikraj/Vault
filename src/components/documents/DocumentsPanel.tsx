@@ -2,13 +2,10 @@
  * DocumentsPanel — the main Documents section.
  *
  * Structure mirrors NotesPanel exactly:
- *   - Header with section title + "Add Document" button
+ *   - Header with section title + "Add Document" button (opens the uploader lifted to App)
  *   - Category filter pills
  *   - Grid of DocumentCard components
  *   - Empty state matching Vault's dashed-border aesthetic
- *
- * State for upload/view/delete/confirm is managed here to keep the panel
- * self-contained. App.tsx only provides the hook values and callbacks.
  */
 
 import { useState } from 'react'
@@ -16,7 +13,6 @@ import { motion } from 'motion/react'
 import { FolderLock, Plus } from 'lucide-react'
 import { BrandIcon } from '../../lib/icons'
 import { DocumentCard } from './DocumentCard'
-import { DocumentUploader } from './DocumentUploader'
 import { DocumentDeleteDialog } from './DocumentDeleteDialog'
 import { DOCUMENT_CATEGORIES } from '../../types/app'
 import type { DocumentCategory, VaultDocument } from '../../types/app'
@@ -24,10 +20,10 @@ import type { DocumentCategory, VaultDocument } from '../../types/app'
 type DocumentsPanelProps = {
   documents: VaultDocument[]
   loading: boolean
-  uploading: boolean
   message: string
   onOpenDoc: (doc: VaultDocument) => void
-  onUpload: (file: File, name: string, category: DocumentCategory) => Promise<VaultDocument | null>
+  /** Opens the app-level DocumentUploader (lifted so Quick Add can open it from anywhere). */
+  onOpenUploader: () => void
   onDelete: (doc: VaultDocument) => Promise<boolean>
   onDismissMessage: () => void
 }
@@ -35,14 +31,12 @@ type DocumentsPanelProps = {
 export function DocumentsPanel({
   documents,
   loading,
-  uploading,
   message,
   onOpenDoc,
-  onUpload,
+  onOpenUploader,
   onDelete,
   onDismissMessage,
 }: DocumentsPanelProps) {
-  const [showUploader, setShowUploader] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<VaultDocument | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [filterCategory, setFilterCategory] = useState<DocumentCategory | 'All'>('All')
@@ -50,13 +44,6 @@ export function DocumentsPanel({
   const filteredDocs = filterCategory === 'All'
     ? documents
     : documents.filter((d) => d.category === filterCategory)
-
-  const handleUpload = async (file: File, name: string, category: DocumentCategory) => {
-    const result = await onUpload(file, name, category)
-    if (result) {
-      setShowUploader(false)
-    }
-  }
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return
@@ -80,7 +67,7 @@ export function DocumentsPanel({
         </h2>
         <button
           type="button"
-          onClick={() => setShowUploader(true)}
+          onClick={onOpenUploader}
           className="term-btn-primary flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide sm:text-sm"
         >
           <Plus size={15} /> Add Document
@@ -183,13 +170,6 @@ export function DocumentsPanel({
       {/* ------------------------------------------------------------------ */}
       {/* Modals / Overlays                                                     */}
       {/* ------------------------------------------------------------------ */}
-      <DocumentUploader
-        open={showUploader}
-        uploading={uploading}
-        onClose={() => setShowUploader(false)}
-        onUpload={handleUpload}
-      />
-
       <DocumentDeleteDialog
         doc={deleteTarget}
         deleting={deleting}

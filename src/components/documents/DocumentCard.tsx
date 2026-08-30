@@ -91,7 +91,7 @@ export function DocumentCard({ doc, index, onClick, onDelete }: DocumentCardProp
             e.stopPropagation()
             onDelete()
           }}
-          className="term-chip rounded-full p-1 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="term-chip reveal-on-hover rounded-full p-1 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
           title="Delete document"
           aria-label={`Delete ${doc.name}`}
         >
