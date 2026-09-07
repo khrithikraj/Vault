@@ -3,6 +3,8 @@ import { TiltCard } from './TiltCard'
 import { ScrollReveal } from './ScrollReveal'
 import { Trash2 } from 'lucide-react'
 import { CategoryIcon } from '../lib/icons'
+import { motionTokens } from '../design/motion'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import type { Category, VaultItem } from '../types/app'
 import type { ItemFieldHit } from '../lib/search'
 
@@ -32,6 +34,8 @@ export function ItemGrid({
   searchHits,
   showCategory = false,
 }: ItemGridProps) {
+  const reducedMotion = usePrefersReducedMotion()
+
   if (items.length === 0) {
     return (
       <div className="term-panel-soft border-ink/30 mt-4 rounded border-dashed p-10 text-center text-sm text-ink-soft">
@@ -52,12 +56,12 @@ export function ItemGrid({
 
         return (
           <ScrollReveal key={item.id} className="h-full">
-            {/* Stable hover elevation: the card lifts a touch with a soft emphasis. No 3D
-                rotation / scale oscillation so neighboring cards never shift or flicker. */}
+            {/* Stable hover elevation: the card lifts a touch with the shared card physics.
+                No aggressive 3D rotation / scale oscillation so neighbors never shift. */}
             <motion.div
               className="h-full"
-              whileHover={{ y: -4 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+              whileHover={reducedMotion ? {} : { y: -4 }}
+              transition={reducedMotion ? { duration: 0 } : motionTokens.card}
             >
               <TiltCard
                 layoutId={`item-card-${item.id}`}
@@ -71,14 +75,8 @@ export function ItemGrid({
                       alt=""
                       className="h-28 sm:h-32 w-full object-cover"
                     />
-                    {/* Inner bevel: a whisper of light along the top edge, warm falloff below. */}
-                    <div
-                      className="pointer-events-none absolute inset-0"
-                      style={{
-                        boxShadow:
-                          'inset 0 1px 0 rgba(255,237,215,0.1), inset 0 -18px 28px -22px rgba(16,9,4,0.85)',
-                      }}
-                    />
+                    {/* Inner bevel — shared vault utility (cream top edge, warm falloff below). */}
+                    <div className="vault-bevel pointer-events-none absolute inset-0" />
                   </div>
                 ) : null}
 

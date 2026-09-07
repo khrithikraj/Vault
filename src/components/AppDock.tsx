@@ -4,6 +4,7 @@ import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
 import type { MotionValue } from 'motion/react'
 import { FolderLock, Home, NotebookPen, Trash2 } from 'lucide-react'
 import { BrandIcon, CategoryIcon } from '../lib/icons'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import type { Category } from '../types/app'
 
 type AppDockProps = {
@@ -38,11 +39,15 @@ export function AppDock({
   const mouseX = useMotionValue(Infinity)
 
   return (
-    <nav className="fixed inset-x-0 bottom-4 z-30 flex justify-center px-3">
+    <nav
+      aria-label="Primary navigation"
+      className="fixed inset-x-0 z-30 flex justify-center px-3"
+      style={{ bottom: 'max(env(safe-area-inset-bottom, 0px), 1rem)' }}
+    >
       <div
         onMouseMove={(event) => mouseX.set(event.clientX)}
         onMouseLeave={() => mouseX.set(Infinity)}
-        className="term-panel flex max-w-full items-end gap-0.5 sm:gap-1 overflow-x-auto rounded-full px-2 py-2"
+        className="term-panel flex max-w-full items-end gap-0.5 sm:gap-1 overflow-x-auto rounded-full px-2 py-2 shadow-glass"
         style={{
           scrollbarWidth: 'none',
           WebkitOverflowScrolling: 'touch',
@@ -128,6 +133,7 @@ function DockButton({
   mouseX: MotionValue<number>
 }) {
   const ref = useRef<HTMLButtonElement>(null)
+  const reducedMotion = usePrefersReducedMotion()
 
   const distance = useTransform(mouseX, (value) => {
     const bounds = ref.current?.getBoundingClientRect()
@@ -147,7 +153,7 @@ function DockButton({
       type="button"
       data-dock-item={dockKey}
       onClick={onClick}
-      whileTap={{ scale: 0.9 }}
+      whileTap={{ scale: reducedMotion ? 1 : 0.9 }}
       className={`relative flex shrink-0 flex-col items-center gap-0.5 rounded-full px-2 sm:px-3 py-1.5 text-xs font-medium uppercase tracking-wide ${
         active ? 'text-ink' : 'text-ink-soft'
       }`}
@@ -171,7 +177,7 @@ function DockButton({
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="relative z-10 block"
       >
-        <motion.span style={{ scale, y: lift }} className="block leading-none">
+        <motion.span style={{ scale: reducedMotion ? 1 : scale, y: reducedMotion ? 0 : lift }} className="block leading-none">
           {renderIcon(20, active)}
         </motion.span>
       </motion.span>

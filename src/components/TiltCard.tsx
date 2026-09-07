@@ -1,7 +1,8 @@
 import { useRef } from 'react'
 import type { ReactNode } from 'react'
-import { motion, useMotionTemplate, useMotionValue } from 'motion/react'
+import { motion, useMotionTemplate, useMotionValue, useSpring, useTransform } from 'motion/react'
 import { BorderTrail } from './BorderTrail'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 
 type TiltCardProps = {
   children: ReactNode
@@ -15,10 +16,14 @@ type TiltCardProps = {
   onClick?: () => void
 }
 
-/** The "tactile" card used everywhere. On hover the card gains a cursor-following spotlight
- * and a soft grounding shadow. The card's physical lift is driven by its parent (a simple
- * stable translateY), NOT by per-frame 3D spring transforms — those caused hover flicker and
- * neighboring-card jitter. The surface stays flat at rest and gains depth only when reached for. */
+/** The "tactile" card used everywhere. On hover the card gains:
+ *   - a cursor-following spotlight,
+ *   - a soft grounding shadow,
+ *   - a very subtle pointer-driven 3D tilt (±3°) for depth.
+ *
+ * Motion is transform/opacity only (never affects layout, so neighbors never shift or jump)
+ * and everything is gated behind prefers-reduced-motion. The tilt limits are small and polite:
+ * the surface reads as having depth, not as a rotating billboard. */
 export function TiltCard({
   children,
   className = '',
@@ -29,12 +34,25 @@ export function TiltCard({
   onClick,
 }: TiltCardProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const reducedMotion = usePrefersReducedMotion()
 
   const shadowOpacity = useMotionValue(0)
   const spotlightX = useMotionValue(50)
   const spotlightY = useMotionValue(50)
   const background = useMotionTemplate`radial-gradient(280px circle at ${spotlightX}% ${spotlightY}%, ${glowColor}, transparent 70%)`
   const shadow = useMotionTemplate`0 18px 40px -16px rgba(16, 9, 4, ${shadowOpacity})`
+
+  // Pointer-driven tilt: normalized -1..1 on each axis, spring-smoothed.
+  const rawX = useMotionValue(0)
+  const rawY = useMotionValue(0)
+  const rotateY = useSpring(useTransform(rawX, [-0.5, 0.5], [2.6, -2.6]), {
+    stiffness: 260,
+    damping: 22,
+  })
+  const rotateX = useSpring(useTransform(rawY, [-0.5, 0.5], [-2.2, 2.2]), {
+    stiffness: 260,
+    damping: 22,
+  })
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const bounds = ref.current?.getBoundingClientRect()
@@ -45,6 +63,9 @@ export function TiltCard({
     const py = (event.clientY - bounds.top) / bounds.height
     spotlightX.set(px * 100)
     spotlightY.set(py * 100)
+    if (reducedMotion) return
+    rawX.set(px - 0.5)
+    rawY.set(py - 0.5)
   }
 
   const handleMouseEnter = () => {
@@ -53,6 +74,9 @@ export function TiltCard({
 
   const handleMouseLeave = () => {
     shadowOpacity.set(0)
+    if (reducedMotion) return
+    rawX.set(0)
+    rawY.set(0)
   }
 
   return (
@@ -63,7 +87,7 @@ export function TiltCard({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={onClick}
-      style={{ boxShadow: shadow }}
+      style={{ boxShadow: shadow, rotateX, rotateY, transformPerspective: 760 }}
       className={`term-panel term-brackets group relative overflow-hidden rounded will-change-transform ${className}`}
     >
       <motion.div

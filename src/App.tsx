@@ -1,34 +1,33 @@
 import { motion } from 'motion/react'
-import { Sparkles } from 'lucide-react'
 import { useVault } from './hooks/useVault'
 import { useMockVault } from './hooks/useMockVault'
 import { useDocuments } from './hooks/useDocuments'
+import type { VaultDocument, VaultItem } from './types/app'
 import { consumeSharedPhoto } from './lib/shareTarget'
-import { CategoryIcon } from './lib/icons'
 import { Atmosphere } from './components/Atmosphere'
 import { AuthScreen } from './components/AuthScreen'
 import { LandingPage } from './components/LandingPage'
 import { UpdatePasswordScreen } from './components/UpdatePasswordScreen'
-import { AppDock } from './components/AppDock'
-import { CategoryRail } from './components/CategoryRail'
-import { ItemGrid } from './components/ItemGrid'
 import { CaptureFab } from './components/CaptureFab'
-import { ShimmerText } from './components/ShimmerText'
-import { AnimatedNumber } from './components/AnimatedNumber'
+import { FilmGrain } from './components/FilmGrain'
 import { ProgressiveBlur } from './components/ProgressiveBlur'
-import { ScrollReveal } from './components/ScrollReveal'
 import { ScrollProgress } from './components/ScrollProgress'
 import { SharedItemView } from './components/SharedItemView'
-import { SearchBar } from './components/SearchBar'
 import { SearchResults } from './components/SearchResults'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { TrashPanel } from './components/TrashPanel'
 import { buildTrashRows } from './lib/trashRows'
 import type { TrashRow } from './lib/trashRows'
+import { HomeCanvas } from './components/home/HomeCanvas'
+import { ArchiveIdentity } from './components/home/ArchiveIdentity'
+import { CommandSearch } from './components/home/CommandSearch'
+import { ArchiveObjects } from './components/home/ArchiveObjects'
+import { CategoryIndex } from './components/home/CategoryIndex'
+import { FloatingNav } from './components/home/FloatingNav'
+import { DynamicIsland } from './components/home/DynamicIsland'
 import { searchVault } from './lib/search'
 import type { SearchScope } from './lib/search'
 import type { TrashKind } from './lib/trash'
-import type { VaultDocument, VaultItem } from './types/app'
 import type { SharedSnapshot } from './lib/share'
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 
@@ -82,7 +81,6 @@ export default function App() {
   const editingCategory = editingCategoryId
     ? (vault.categories.find((c) => c.id === editingCategoryId) ?? null)
     : null
-  const [celebration, setCelebration] = useState<{ id: string; token: number } | null>(null)
   const [sharedPhoto, setSharedPhoto] = useState<File | null>(null)
   const [sharedPhotoToken, setSharedPhotoToken] = useState(0)
   const [mainView, setMainView] = useState<'vault' | 'notes' | 'documents' | 'trash'>('vault')
@@ -521,64 +519,46 @@ export default function App() {
     mainView === 'vault' ? (vault.selectedCategoryId ? 'category' : 'everything') : mainView
 
   return (
-    <main className="relative min-h-screen pb-32">
-      <Atmosphere activeCategory={activeCategory} />
+    <main className="relative min-h-screen pb-36">
+      {/* Quiet atmospheric archive canvas — content always dominant. */}
+      <HomeCanvas activeCategory={activeCategory} />
+      <FilmGrain />
       <ScrollProgress />
-      <ProgressiveBlur side="bottom" height={120} />
+      <ProgressiveBlur side="bottom" height={140} />
 
-      <div className="mx-auto max-w-5xl px-4 pt-12 sm:px-6">
+      <div className="mx-auto max-w-5xl px-5 pt-10 sm:px-10">
+        {/* -- ARCHIVE IDENTITY (compact editorial brandmark) ------------------- */}
         <motion.header
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="term-panel term-brackets rim-light relative flex flex-col gap-4 overflow-hidden rounded p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8"
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="relative"
         >
-          <div>
-            <p className="text-micro text-ink-soft">Raj&apos;s — personal vault</p>
-            <div style={{ '--text-display': 'clamp(1.5rem, 4.5vw, 2.75rem)' } as React.CSSProperties}>
-              <ShimmerText
-                as="h1"
-                text="Capture it once. Find it when it matters."
-                className="text-display mt-3 block"
-              />
-            </div>
-            <p className="mt-4 text-sm text-ink-soft">
-              <AnimatedNumber value={vault.items.length} className="font-semibold text-ink" />{' '}
-              saved · <AnimatedNumber value={vault.doneCount} className="font-semibold text-ink" />{' '}
-              done
-            </p>
-          </div>
-          <div className="flex items-center gap-3 sm:pb-1">
-            <span className="folio hidden text-xs text-ink-soft/60 sm:inline">Vol. I — RAJ&apos;S</span>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="term-chip rounded-full px-4 py-2 text-sm font-medium uppercase tracking-wide"
-            >
-              {devPreview ? 'Exit preview' : 'Sign out'}
-            </button>
-          </div>
+          <ArchiveIdentity
+            savedCount={vault.items.length}
+            doneCount={vault.doneCount}
+            onSignOut={handleSignOut}
+            preview={devPreview}
+          />
         </motion.header>
 
-        {vault.message ? (
-          <div className="border-ink/30 mt-4 flex items-start justify-between gap-3 rounded border border-dashed bg-transparent p-4 text-sm text-ink">
-            <p>{vault.message}</p>
-            <button
-              type="button"
-              onClick={() => vault.setMessage('')}
-              className="term-chip shrink-0 rounded-full px-2 py-1 text-xs font-medium uppercase tracking-wide"
-            >
-              Dismiss
-            </button>
-          </div>
-        ) : null}
+        <DynamicIsland
+          note={vault.message || null}
+          onDismiss={() => vault.setMessage('')}
+        />
 
+        {/* -- PRIMARY SEARCH (command surface) -------------------------------- */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: 'easeOut', delay: 0.1 }}
+          transition={{ duration: 0.45, ease: 'easeOut', delay: 0.06 }}
+          className="mt-8 sm:mt-10"
         >
-          <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder={searchPlaceholder} />
+          <CommandSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder={searchPlaceholder}
+          />
         </motion.div>
 
         {activeQuery ? (
@@ -602,49 +582,61 @@ export default function App() {
           />
         ) : mainView === 'vault' ? (
           <>
-            <ScrollReveal className="mt-10">
-              <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
-                <span className="folio text-xs text-ink-soft/50">01</span>
-                {activeCategory ? (
-                  <>
-                    <CategoryIcon icon={activeCategory.icon} color={activeCategory.color} size={18} />
-                    {activeCategory.name}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={18} className="text-ink-soft" />
-                    Everything
-                  </>
-                )}
-              </h2>
-              <ItemGrid
+            {/* -- ARCHIVE OBJECTS (editorial asymmetric collection) ------------ */}
+            <section className="mt-10" aria-label={activeCategory ? activeCategory.name : 'Everything'}>
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-3 w-0.5 shrink-0"
+                    style={{ background: activeCategory?.color ?? 'var(--color-accent)', opacity: 0.5 }}
+                    aria-hidden="true"
+                  />
+                  <h2 className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-ink/70">
+                    {activeCategory ? activeCategory.name : 'Everything'}
+                  </h2>
+                </div>
+                <span className="vault-meta text-ink-soft/35">
+                  {vault.selectedItems.length} {vault.selectedItems.length === 1 ? 'object' : 'objects'}
+                </span>
+              </div>
+              <ArchiveObjects
                 items={vault.selectedItems}
                 categories={vault.categories}
+                showCategory={!vault.selectedCategoryId}
                 onOpen={(item) => handleOpenItem(item.id)}
                 onToggle={(item) => void vault.toggleItem(item)}
-              onDelete={(item) => void vault.deleteItem(item.id)}
+                onDelete={(item) => void vault.deleteItem(item.id)}
               />
-            </ScrollReveal>
+            </section>
 
-            <div className="divider-dash mt-12" />
-
-            <ScrollReveal className="mt-12">
-              <div className="mb-4 flex items-baseline justify-between">
-                <h2 className="font-display flex items-baseline gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
-                  <span className="folio text-xs text-ink-soft/50">02</span> Categories
-                </h2>
-                {vault.loadingData && vault.categories.length > 0 ? (
-                  <span className="text-xs uppercase tracking-widest text-ink-soft">Syncing…</span>
-                ) : null}
+            {/* -- ARCHIVE DIRECTORY (numbered index) --------------------------- */}
+            <section className="mt-12" aria-label="Archive directory">
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-3 w-0.5 shrink-0 bg-ink/15"
+                    aria-hidden="true"
+                  />
+                  <h2 className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-ink/70">
+                    Archive Directory
+                  </h2>
+                </div>
+                <span className="vault-meta text-ink-soft/35">
+                  {vault.loadingData && vault.categories.length === 0 ? 'Syncing…' : `${vault.categories.length} sections`}
+                </span>
               </div>
               {vault.loadingData && vault.categories.length === 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-0 pt-1" aria-hidden="true">
                   {[0, 1, 2].map((key) => (
-                    <div key={key} className="term-panel h-32 animate-pulse rounded" />
+                    <div
+                      key={key}
+                      className="h-12 animate-pulse border-b border-ink/[0.06]"
+                      style={{ opacity: 1 - key * 0.25 }}
+                    />
                   ))}
                 </div>
               ) : (
-                <CategoryRail
+                <CategoryIndex
                   categories={vault.categories}
                   selectedCategoryId={vault.selectedCategoryId}
                   itemCountByCategory={vault.itemCountByCategory}
@@ -654,7 +646,7 @@ export default function App() {
                   onEdit={(category) => setEditingCategoryId(category.id)}
                 />
               )}
-            </ScrollReveal>
+            </section>
           </>
         ) : mainView === 'trash' ? (
           <TrashPanel
@@ -703,15 +695,13 @@ export default function App() {
         )}
       </div>
 
-      <AppDock
+      <FloatingNav
         categories={vault.categories}
         selectedCategoryId={vault.selectedCategoryId}
         onSelect={(id) => {
           goToSection('vault')
           vault.setSelectedCategoryId(id)
         }}
-        celebrateCategoryId={celebration?.id ?? null}
-        celebrateToken={celebration?.token}
         notesActive={mainView === 'notes'}
         onSelectNotes={() => goToSection('notes')}
         docsActive={mainView === 'documents'}
@@ -726,7 +716,6 @@ export default function App() {
           defaultCategoryId={vault.selectedCategoryId}
           quickAdd={quickAdd}
           onSubmit={(input) => void vault.addItem(input)}
-          onSaved={(categoryId) => setCelebration({ id: categoryId, token: Date.now() })}
           initialPhotoFile={sharedPhoto}
           openToken={sharedPhotoToken}
           onQuickAddNote={handleQuickAddNote}

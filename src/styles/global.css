@@ -1,30 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
+@import './tokens.css';
 
-@theme {
-  /* Darkroom editorial palette (Oryzo-inspired): warm near-black canvas, cream ink, one
-   * working ember accent. Category icons still tint themselves with the category's own
-   * `.color` — only the "branded" accent below moved from mint to ember. */
-  --color-ink: #ffedd7;
-  --color-ink-soft: #6c5f51;
-  --color-cloud: #100904;
-  --color-cloud-alt: #382416;
-  --color-border-dash: #40372e;
+/* ----------------------------------------------------------------------
+   RAJ'S VAULT — GLOBAL STYLES (V2 FOUNDATION)
+   Design tokens + theme live in ./tokens.css (the single source of truth).
+   This file owns base reset, component classes, and utility classes.
 
-  --color-accent: #dc5000;
-  --color-warn: #f2b134;
-
-  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
-  --font-body: 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
-
-  /* Radius vocabulary: 12px cards (bare `rounded`), 22.5px outlined/ghost controls
-   * (`rounded-outline`), full pill for the primary CTA (`rounded-full`). */
-  --radius: 12px;
-  --radius-outline: 22.5px;
-
-  --shadow-glass: 4px 4px 0 rgba(0, 0, 0, 0.7);
-  --shadow-glass-lg: 6px 6px 0 rgba(0, 0, 0, 0.8);
-}
+   The legacy `term-*` classes are preserved 1:1 so existing screens keep
+   working. New synonyms/intents are added as semantic aliases that later
+   phases + the shared primitives will consume.
+   ---------------------------------------------------------------------- */
 
 @layer base {
   * {
@@ -42,12 +28,21 @@
     font-family: var(--font-body);
     color: var(--color-ink);
     background: var(--color-cloud);
+    /* Mobile foundation: allow dynamic viewport height + safe-area padding. */
+    min-height: 100dvh;
   }
 
-  /* Ember focus ring everywhere, keyboard-only — visible focus states per the design checklist. */
+  /* Keyboard-only focus ring everywhere — ember, clearly visible. */
   :where(a, button, input, textarea, select, summary):focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+  }
+
+  /* Touch-friendly interaction intent: no tap highlight, no delayed hover. */
+  @media (hover: none) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
   }
 
   ::selection {
@@ -102,28 +97,64 @@
   .term-scrollbar::-webkit-scrollbar:horizontal {
     height: 0;
   }
+
+  /* Respect reduced motion at the document level for non-essential CSS
+     animations. The Motion presets in src/design/motion.ts additionally
+     guard JS-driven motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
-  /* Elevated surface — the base card used everywhere: flat Bark Brown, hairline Cork
-     border, no blur or drop shadow. Depth comes from the canvas/surface step, not glass. */
-  .term-panel {
+  /* ----------------------------------------------------------------------
+     SUPPORTED-SURFACE CLASSES
+     ---------------------------------------------------------------------- */
+  /* Elevated surface — the base card used everywhere: flat Bark Brown,
+     hairline Cork border, no glass. Depth from the canvas/surface step. */
+  .term-panel,
+  .vault-surface {
     background: var(--color-cloud-alt);
     border: 1px solid var(--color-border-dash);
   }
 
-  .term-panel-soft {
+  .term-panel-soft,
+  .vault-surface-soft {
     background: #2a1c11;
     border: 1px solid var(--color-border-dash);
   }
 
-  /* Corner-bracket reticle marks, like a viewfinder/terminal selection cursor. */
-  .term-brackets {
+  /* Semantic surface roles (new vocabulary for primitives). */
+  .vault-surface-overlay {
+    background: var(--color-cloud);
+    border: 1px solid var(--color-border-dash);
+  }
+
+  /* inline depth bevel — the cream-top / dark-sepia inner shadow that was
+     previously hard-coded inline in several cards. Reusable via a utility. */
+  .vault-bevel {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 237, 215, 0.1),
+      inset 0 -18px 28px -22px rgba(16, 9, 4, 0.85);
+  }
+
+  /* Corner-bracket reticle marks, like a viewfinder/terminal cursor. */
+  .term-brackets,
+  .vault-brackets {
     position: relative;
   }
 
   .term-brackets::before,
-  .term-brackets::after {
+  .term-brackets::after,
+  .vault-brackets::before,
+  .vault-brackets::after {
     content: '';
     position: absolute;
     width: 12px;
@@ -134,14 +165,16 @@
     pointer-events: none;
   }
 
-  .term-brackets::before {
+  .term-brackets::before,
+  .vault-brackets::before {
     top: -1px;
     left: -1px;
     border-top: 2px solid;
     border-left: 2px solid;
   }
 
-  .term-brackets::after {
+  .term-brackets::after,
+  .vault-brackets::after {
     bottom: -1px;
     right: -1px;
     border-bottom: 2px solid;
@@ -149,64 +182,116 @@
   }
 
   .term-brackets:hover::before,
-  .term-brackets:hover::after {
+  .term-brackets:hover::after,
+  .vault-brackets:hover::before,
+  .vault-brackets:hover::after {
     opacity: 1;
   }
 
-  .term-input {
+  /* Inputs */
+  .term-input,
+  .vault-input {
     background: var(--color-cloud);
     border: 1px solid var(--color-border-dash);
     color: var(--color-ink);
     font-family: var(--font-body);
   }
 
-  .term-input:focus {
+  .term-input:focus,
+  .vault-input:focus {
     outline: none;
     border-color: var(--color-accent);
   }
 
-  .term-input::placeholder {
+  .term-input::placeholder,
+  .vault-input::placeholder {
     color: rgba(108, 95, 81, 0.8);
   }
 
-  /* Outlined ghost control — the ember fill only shows up on hover/active, never idle. */
-  .term-btn {
+  /* Input on an overlay/modal surface (slightly lifted over the dark backdrop). */
+  .vault-input-overlay {
+    background: var(--surface-overlay);
+    border: 1px solid var(--color-border-dash);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+  }
+
+  .vault-input-overlay:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  .vault-input-overlay::placeholder {
+    color: rgba(108, 95, 81, 0.8);
+  }
+
+  /* Buttons */
+  /* Outlined ghost control — ember fill only on hover/active. */
+  .term-btn,
+  .vault-btn-outline {
     border: 1px solid var(--color-border-dash);
     background: transparent;
     color: var(--color-ink);
-    transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease,
+      border-color 0.12s ease;
   }
 
-  .term-btn:hover:not(:disabled) {
+  .term-btn:hover:not(:disabled),
+  .vault-btn-outline:hover:not(:disabled) {
     background: var(--color-accent);
     border-color: var(--color-accent);
     color: var(--color-ink);
   }
 
-  /* The single filled CTA per section — ember pill, per the design system's "one solid
-     button earns its rarity" rule. */
-  .term-btn-primary {
+  /* The single filled CTA per section — ember pill. */
+  .term-btn-primary,
+  .vault-btn-solid {
     border: 1px solid var(--color-accent);
     background: var(--color-accent);
     color: var(--color-ink);
-    transition: background-color 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease,
+      opacity 0.12s ease;
   }
 
-  .term-btn-primary:hover:not(:disabled) {
+  .term-btn-primary:hover:not(:disabled),
+  .vault-btn-solid:hover:not(:disabled) {
     background: #f05c00;
     border-color: #f05c00;
   }
 
-  .term-btn-primary:disabled {
+  .term-btn-primary:disabled,
+  .vault-btn-solid:disabled {
     opacity: 0.4;
   }
 
-  /* Small pill tag, e.g. [ Food Spots ] — used for dock items/category chips. */
-  .term-chip {
+  .term-btn-soft {
+    border: 1px solid var(--color-border-dash);
+    background: var(--color-accent-soft);
+    color: var(--color-ink);
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease;
+  }
+
+  .term-btn-soft:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    background: rgba(220, 80, 0, 0.2);
+  }
+
+  /* Small pill tag — dock items / category chips. */
+  .term-chip,
+  .vault-chip {
     border: 1px solid var(--color-border-dash);
     background: transparent;
     color: var(--color-ink-soft);
-    transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease,
+      border-color 0.12s ease;
   }
 
   .term-chip[data-active='true'] {
@@ -215,7 +300,7 @@
     border-color: var(--color-accent);
   }
 
-  /* Blinking terminal cursor block, dropped after headings. */
+  /* Blinking terminal cursor block. */
   .term-cursor {
     display: inline-block;
     width: 0.5em;
@@ -236,9 +321,37 @@
       opacity: 0;
     }
   }
+
+  /* ----------------------------------------------------------------------
+     SEMANTIC FEEDBACK SURFACES
+     New roles replacing repeated raw Tailwind danger/warning usage.
+     Backed by the semantic tokens in tokens.css.
+     ---------------------------------------------------------------------- */
+  .vault-danger {
+    color: var(--danger);
+    border-color: var(--danger-soft);
+    background: var(--danger-surface);
+  }
+
+  .vault-danger-soft {
+    color: var(--danger);
+  }
+
+  .vault-warning {
+    color: var(--warning);
+  }
+
+  .vault-warning-soft {
+    color: var(--warning);
+    background: var(--warning-soft);
+  }
+
+  .vault-success {
+    color: var(--success);
+  }
 }
 
-/* Hairline dashed section divider — separates page "beats" instead of a solid rule. */
+/* Hairline dashed section divider. */
 .divider-dash {
   border-top: 1px dashed var(--color-border-dash);
 }
@@ -250,26 +363,37 @@ button {
 }
 
 /* ---------------------------------------------------------------------------
- * Touch-aware reveal helper.
- *
- * Several cards hide their delete control behind `opacity-0 group-hover:opacity-100`
- * (hover-reveal). On touch devices there is no hover, so that control becomes an
- * invisible-but-tappable region — bad UX. Whenever the device cannot hover, force
- * those controls to stay visible so they are discoverable, while desktop (which has
- * hover) keeps the subtle reveal behaviour unchanged.
- *
- * Scoped to the specific reveal control (never applied app-wide), so it cannot cause
- * layout shifts or make anything permanently intrusive on hover-capable screens.
- * --------------------------------------------------------------------------- */
+ * Touch-aware reveal helper (preserved from V1).
+ * Cards that hide delete controls behind opacity-0 group-hover:opacity-100
+ * force them visible on touch devices so they stay discoverable.
+ * ------------------------------------------------------------------------- */
 @media (hover: none) {
   .reveal-on-hover {
     opacity: 1 !important;
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * Mobile foundation — safe-area helpers.
+ * Consume env(safe-area-inset-*) directly. Apply where fixed elements sit at
+ * the device edges (e.g. the bottom dock / FAB in later phases).
+ * ------------------------------------------------------------------------- */
+.vault-pad-safe-b {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
+}
+
+.vault-pad-safe-t {
+  padding-top: max(env(safe-area-inset-top, 0px), 1rem);
+}
+
+.vault-pad-safe-x {
+  padding-left: max(env(safe-area-inset-left, 0px), 1rem);
+  padding-right: max(env(safe-area-inset-right, 0px), 1rem);
+}
+
 @layer utilities {
-  /* Giant editorial display heading — the Oryzo signature: uppercase, weight 500,
-   * line-height 0.9 so the letterforms overlap into a sculptural block. */
+  /* Giant editorial display heading — the Oryzo signature: uppercase,
+     weight 500, line-height 0.9 so the letterforms overlap into a block. */
   .text-display {
     font-family: var(--font-display);
     font-weight: 500;
@@ -296,8 +420,67 @@ button {
     text-transform: uppercase;
   }
 
-  /* Fixed film-grain overlay — rendered as inline SVG by <FilmGrain/>; this class handles
-   * positioning/opacity. Gives the warm dark a photographic, non-digital texture. */
+  /* ----------------------------------------------------------------------
+     TYPOGRAPHY ROLES (V2)
+     Semantic type roles for primitives + future screens.
+     ---------------------------------------------------------------------- */
+  /* Hero/editorial heading — large display face. */
+  .vault-display {
+    font-family: var(--font-display);
+    font-weight: 500;
+    text-transform: uppercase;
+    line-height: var(--leading-display);
+    letter-spacing: 0;
+    font-size: var(--text-display);
+    text-wrap: balance;
+  }
+
+  /* Section heading — small caps display. */
+  .vault-heading {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+
+  /* Body text — Inter. */
+  .vault-body {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--color-ink);
+  }
+
+  /* Label — small semibold body for inputs/forms. */
+  .vault-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--color-ink);
+  }
+
+  /* Meta — compact muted secondary text. */
+  .vault-meta {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-ink-soft);
+  }
+
+  /* Action — uppercase button label. */
+  .vault-action {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Fixed film-grain overlay — positioning/opacity only. */
   .film-grain {
     position: fixed;
     inset: 0;
@@ -307,8 +490,7 @@ button {
     mix-blend-mode: overlay;
   }
 
-  /* Subtle inner rim light — reads as a lit artifact edge without a drop shadow
-   * (keeps the "depth from the surface stack" rule). */
+  /* Subtle inner rim light — reads as a lit artifact edge without shadow. */
   .rim-light {
     box-shadow:
       inset 0 1px 0 rgba(255, 237, 215, 0.08),
@@ -322,16 +504,13 @@ button {
       0 0 28px rgba(220, 80, 0, 0.35);
   }
 
-  /* Under-surface reflection — Chromium/Safari only, graceful everywhere else.
-   * Use sparingly on hero artifacts; never on scroll-heavy surfaces. */
+  /* Under-surface reflection — Chromium/Safari only. */
   .reflect-below {
     -webkit-box-reflect: below 10px linear-gradient(transparent 70%, rgba(255, 255, 255, 0.1));
   }
 }
 
-/* Isometric vault room backdrop (rendered by <VaultRoom/> inside Atmosphere's -z-10
- * canvas). Faint blueprint line-art + a huge editorial watermark + an edge vignette.
- * All pure decoration (aria-hidden); motion is gated on reduced motion in the component. */
+/* Isometric vault room backdrop — rendered by <VaultRoom/>. */
 .vault-room {
   position: absolute;
   inset: 0;
@@ -403,32 +582,25 @@ button {
   background: radial-gradient(130% 115% at 50% 42%, transparent 52%, rgba(10, 6, 3, 0.55) 100%);
 }
 
-/* The breathing light pooled behind the door — opacity pulses, so keep it compositor-only. */
 .vault-door-glow {
   will-change: opacity;
 }
 
-/* The turning combination dial on the door. */
 .vault-dial {
   will-change: transform;
 }
 
-/* Objects resting on the shelf edges — a touch brighter than the grid so they read as
- * things, while the room itself stays a whisper. */
 .vault-shelf-item {
   opacity: 0.85;
 }
 
-/* The dial's index marks echo the room's accent (active category color). */
 .vault-room-lines .vault-dial-index {
   stroke: var(--vault-accent, var(--color-accent));
   stroke-width: 1.5;
 }
 
 /* ------------------------------------------------------------------ */
-/* The Door — the background's hero. A massive tilted vault door in    */
-/* the bottom-right corner. Positioned in the fixed Atmosphere         */
-/* container; negative offsets crop it as it rises from the void.      */
+/* The Door — the background's hero. A massive tilted vault door.      */
 /* ------------------------------------------------------------------ */
 .vault-door {
   position: absolute;
@@ -496,7 +668,6 @@ button {
   opacity: 0.55;
 }
 
-/* Index ticks echo the active category color, like the room's dial. */
 .vault-door-index {
   fill: none;
   stroke: var(--vault-accent, var(--color-accent));
@@ -523,4 +694,131 @@ button {
   stroke: var(--color-ink);
   stroke-width: 2;
   opacity: 0.9;
+}
+
+/* ------------------------------------------------------------------ */
+/* V2 — PREMIUM DIGITAL ARCHIVE CANVAS                                */
+/* Quiet atmospheric depth: content always dominant.                   */
+/* ------------------------------------------------------------------ */
+.home-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background: radial-gradient(145% 90% at 50% 0%, #120c07 0%, #0a0604 55%, #060402 100%);
+  pointer-events: none;
+}
+
+.home-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(245, 234, 216, 0.016) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 234, 216, 0.016) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(120% 80% at 50% 0%, #000 0%, transparent 60%);
+  -webkit-mask-image: radial-gradient(120% 80% at 50% 0%, #000 0%, transparent 60%);
+}
+
+.home-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: clamp(3.5rem, 14vmin, 11rem);
+  letter-spacing: 0.14em;
+  line-height: 1;
+  color: var(--color-ink);
+  opacity: 0.018;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+.home-ember-depth {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(42% 34% at 50% -6%, rgba(196, 72, 0, 0.1), transparent 70%);
+}
+
+/* V2 — Command search surface */
+.cmd-surface {
+  background: var(--color-cloud);
+  border: 1px solid var(--color-border-dash);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 234, 216, 0.05),
+    0 0 0 0 rgba(196, 72, 0, 0);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.cmd-surface:focus-within {
+  border-color: var(--color-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 234, 216, 0.05),
+    0 0 0 3px rgba(196, 72, 0, 0.12),
+    0 8px 32px -8px rgba(196, 72, 0, 0.2);
+}
+
+/* V2 — Archive object surface */
+.archive-object {
+  position: relative;
+  background: var(--color-cloud-alt);
+  border: 1px solid var(--color-border-dash);
+  box-shadow:
+    0 1px 0 rgba(245, 234, 216, 0.04) inset,
+    0 2px 12px -4px rgba(0, 0, 0, 0.5);
+  transition:
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.22s ease;
+}
+
+.archive-object:hover {
+  border-color: rgba(245, 234, 216, 0.12);
+  box-shadow:
+    0 1px 0 rgba(245, 234, 216, 0.06) inset,
+    0 8px 28px -8px rgba(0, 0, 0, 0.7),
+    0 0 0 0.5px rgba(245, 234, 216, 0.06);
+}
+
+
+/* V2 — Category index row */
+.index-row {
+  border-bottom: 1px solid rgba(46, 37, 29, 0.8);
+  transition: background 0.15s ease;
+}
+
+.index-row:hover {
+  background: rgba(245, 234, 216, 0.02);
+}
+
+/* V2 — Compact floating nav */
+.float-nav {
+  background: rgba(10, 6, 3, 0.92);
+  border: 1px solid rgba(46, 37, 29, 0.9);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow:
+    0 10px 36px -8px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(245, 234, 216, 0.045),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Vault hairline — ultra-fine spanning rule used for archive index rows. */
+.vault-hairline {
+  background: linear-gradient(90deg, rgba(255, 237, 215, 0.14), transparent 86%);
+  height: 1px;
+}
+
+/* Dynamic-island — transient status surface (SAVED / RESTORED / ...). */
+.island {
+  background: #140e09;
+  border: 1px solid rgba(245, 234, 216, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(196, 72, 0, 0.15),
+    0 12px 34px -10px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(245, 234, 216, 0.05);
 }

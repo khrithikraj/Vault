@@ -7,14 +7,16 @@ type SearchBarProps = {
   placeholder: string
 }
 
-/** Vault-wide search input — styled natively for Raj's Vault (term-panel card, cream ink,
- * ember focus). Sits below the hero, above the current section content. The clear button is
- * always mounted so layout never jumps while typing; it's just inert until there is text. */
+/** Vault-wide search input — the premium Raj's Vault search field.
+ * Presents as a quiet term-panel strip that, on focus, gains a crisp ember ring and a
+ * faint ambient glow. The clear button is always mounted so layout never jumps while
+ * typing; it's inert until there is text. Behaviour is unchanged from the original
+ * (Escape clears, native search styling removed). */
 export function SearchBar({ value, onChange, placeholder }: SearchBarProps) {
   const hasText = value.length > 0
 
   return (
-    <div className="term-panel term-brackets rim-light mt-4 flex items-center gap-2.5 rounded px-3 py-2.5 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25 transition-colors sm:px-4 sm:py-3">
+    <div className="term-panel term-brackets rim-light mt-4 flex items-center gap-2.5 rounded px-3 py-2.5 transition-all duration-200 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25 focus-within:shadow-[0_0_0_1px_rgba(220,80,0,0.25),0_0_24px_-8px_rgba(220,80,0,0.35)] sm:px-4 sm:py-3">
       <BrandIcon icon={Search} size={18} className="shrink-0" />
       <input
         type="search"
