@@ -1,40 +1,167 @@
+/* ======================================================================
+   RAJ'S VAULT — DESIGN TOKENS (V2 — PREMIUM DIGITAL ARCHIVE)
+   ----------------------------------------------------------------------
+   Single authoritative source of truth for the entire frontend.
+
+   V2 palette shift: deeper backgrounds, warmer ivory text, refined
+   copper accent. The same emotional register — darkroom, warmth,
+   quiet authority — expressed with more precision and restraint.
+   ====================================================================== */
+
+@theme {
+  /* ----------------------------------------------------------------------
+     BRAND PALETTE (Tailwind v4 theme extension)
+     Variable names preserved for backward compatibility; values refined.
+     ---------------------------------------------------------------------- */
+  --color-ink: #f5ead8;
+  --color-ink-soft: #7a6e60;
+  --color-cloud: #0c0704;
+  --color-cloud-alt: #1a120c;
+  --color-border-dash: #2e251d;
+
+  --color-accent: #c44800;
+  --color-warn: #e5a62a;
+
+  /* Semantic aliases */
+  --color-surface: var(--color-cloud-alt);
+  --color-surface-soft: #1e150e;
+  --color-surface-overlay: var(--color-cloud);
+  --color-background: var(--color-cloud);
+  --color-background-alt: #080503;
+  --color-text: var(--color-ink);
+  --color-text-muted: var(--color-ink-soft);
+  --color-border: var(--color-border-dash);
+
+  /* Radius vocabulary — tightened */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius: 10px;
+  --radius-lg: 20px;
+  --radius-pill: 9999px;
+
+  /* Shadow vocabulary — deeper, more grounded */
+  --shadow-glass: 3px 3px 0 rgba(0, 0, 0, 0.6);
+  --shadow-glass-lg: 5px 5px 0 rgba(0, 0, 0, 0.7);
+  --shadow-overlay: 0 24px 56px -16px rgba(0, 0, 0, 0.85);
+
+  /* Typography faces */
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
+}
+
 :root {
-  --bg-base: #0a0a0a;
-  --bg-alt: #121212;
-  --surface: #141414;
-  --surface-strong: #1a1a1a;
-  --surface-border: rgba(245, 245, 240, 0.18);
-  --text-strong: #f2f0e8;
-  --text-muted: #8a8a82;
-  --shadow-soft: 4px 4px 0 rgba(0, 0, 0, 0.6);
-  --radius-xl: 4px;
-  --radius-lg: 2px;
+  /* ----------------------------------------------------------------------
+     FONT FACES
+     ---------------------------------------------------------------------- */
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
 
-  --tint-peach: #f2f0e8;
-  --tint-sky: #cfcfc7;
-  --tint-lime: #f2f0e8;
-  --tint-lilac: #8a8a82;
-  --tint-sun: #cfcfc7;
-  --tint-mint: #f2f0e8;
-  --tint-coral: #f2f0e8;
+  /* ----------------------------------------------------------------------
+     SEMANTIC COLOR ROLES
+     ---------------------------------------------------------------------- */
+  --background: var(--color-cloud);
+  --background-alt: #080503;
+  --surface: var(--color-cloud-alt);
+  --surface-elevated: var(--color-cloud-alt);
+  --surface-soft: #1e150e;
+  --surface-overlay: var(--color-cloud);
 
-  /* Oryzo editorial type — Space Grotesk display (grotesque analogue of Halyard) over Inter
-   * body. Display headings: uppercase, weight 500, line-height 0.9 (overlapping blocks). */
-  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --text: var(--color-ink);
+  --text-muted: var(--color-ink-soft);
+  --text-subtle: rgba(122, 110, 96, 0.55);
 
-  /* Minor-Third (1.2) type scale from 16px — see /styles/DESIGN.md */
+  --accent: var(--color-accent);
+  --accent-soft: rgba(196, 72, 0, 0.1);
+
+  --success: var(--color-warn);
+  --success-soft: rgba(229, 166, 42, 0.1);
+
+  --warning: var(--color-warn);
+  --warning-soft: rgba(229, 166, 42, 0.14);
+
+  --danger: #f87171;
+  --danger-soft: rgba(153, 27, 27, 0.5);
+  --danger-surface: #450a0a;
+
+  --border: var(--color-border-dash);
+  --border-strong: var(--color-ink);
+
+  /* ----------------------------------------------------------------------
+     TYPOGRAPHY ROLES
+     ---------------------------------------------------------------------- */
+  --text-scale: 1.2;
+  --text-2xs: 0.6875rem;
   --text-micro: 0.75rem;
-  --text-body: 1rem;
-  --text-lead: 1.375rem; /* 29px mixed-case body — the Oryzo signature paragraph */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
   --text-heading: 2.5625rem;
   --text-display: clamp(2.5rem, 7vw, 5rem);
   --leading-display: 0.9;
+  --leading-tight: 1.15;
+  --leading-normal: 1.5;
 
-  /* Motion language */
+  /* ----------------------------------------------------------------------
+     SPACING VOCABULARY
+     ---------------------------------------------------------------------- */
+  --space-0: 0px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* ----------------------------------------------------------------------
+     RADIUS VOCABULARY
+     ---------------------------------------------------------------------- */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 10px;
+  --radius-xl: 20px;
+  --radius-pill: 9999px;
+
+  /* ----------------------------------------------------------------------
+     LAYER / Z-INDEX VOCABULARY
+     ---------------------------------------------------------------------- */
+  --z-base: 0;
+  --z-content: 10;
+  --z-floating: 20;
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-toast: 80;
+
+  /* ----------------------------------------------------------------------
+     MOTION SYSTEM
+     ---------------------------------------------------------------------- */
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
   --duration-fast: 150ms;
   --duration-base: 250ms;
   --duration-slow: 500ms;
+
+  --spring-card-tension: 300;
+  --spring-card-friction: 26;
+  --spring-panel-tension: 340;
+  --spring-panel-friction: 30;
+  --spring-nav-tension: 380;
+  --spring-nav-friction: 30;
+
+  /* ----------------------------------------------------------------------
+     SAFE AREA / VIEWPORT
+     ---------------------------------------------------------------------- */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --view-height: 100dvh;
+  --dock-bottom-offset: 7.5rem;
 }

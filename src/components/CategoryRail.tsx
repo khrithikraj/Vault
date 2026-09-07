@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, Plus } from 'lucide-react'
 import { TiltCard } from './TiltCard'
 import { ScrollReveal } from './ScrollReveal'
 import { AnimatedNumber } from './AnimatedNumber'
 import { CategoryIcon } from '../lib/icons'
+import { motionTokens } from '../design/motion'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import type { Category } from '../types/app'
 
@@ -31,7 +32,6 @@ export function CategoryRail({
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('✨')
   const [color, setColor] = useState('#dbe9ff')
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const reducedMotion = usePrefersReducedMotion()
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -56,32 +56,19 @@ export function CategoryRail({
     >
       {categories.map((category, index) => {
         const count = itemCountByCategory.get(category.id) ?? 0
-        const isHovered = hoveredId === category.id
         return (
           <ScrollReveal
             key={category.id}
             className={index === 0 ? 'sm:col-span-2' : ''}
             style={{ overflowX: 'clip' }}
           >
-            {/* Use a plain div wrapper whose pointer events trigger the hover state.
-                The inner TiltCard and buttons inherit pointer events normally but we
-                guard against child boundaries causing flicker by using onPointerEnter
-                which fires once per entry into the entire subtree. */}
-            <div
-              className="h-full"
-              onPointerEnter={() => setHoveredId(category.id)}
-              onPointerLeave={() => setHoveredId(null)}
-            >
-              {/* Stable card: a gentle vertical breathing only — no 3D rotateY/z projection,
-                  which overhung the grid and produced an unwanted horizontal scrollbar. */}
+            <div className="h-full">
+              {/* Calm category tile: a polite hover lift — no idle breathing/infinite
+                  decorative motion. Active state (via TiltCard) carries the emphasis. */}
               <motion.div
                 className="h-full"
-                animate={reducedMotion ? { y: 0 } : isHovered ? { y: -3 } : { y: [0, -4, 0] }}
-                transition={
-                  isHovered
-                    ? { duration: 0.2, ease: 'easeOut' }
-                    : { duration: 7 + (index % 3), repeat: Infinity, ease: 'easeInOut', delay: index * 0.5 }
-                }
+                whileHover={reducedMotion ? {} : { y: -3 }}
+                transition={reducedMotion ? { duration: 0 } : motionTokens.card}
               >
                   <TiltCard
                     active={selectedCategoryId === category.id}
@@ -146,9 +133,21 @@ export function CategoryRail({
                     </div>
 
                     <div className="mt-3 flex items-end justify-between gap-2">
-                      <p className="text-xs uppercase tracking-widest text-ink-soft/70 truncate">
-                        {selectedCategoryId === category.id ? '[ viewing ]' : '—'}
-                      </p>
+                      <span
+                        className={`flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest ${
+                          selectedCategoryId === category.id ? 'text-accent' : 'text-ink-soft/60'
+                        }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                            selectedCategoryId === category.id ? 'bg-accent' : 'bg-ink-soft/40'
+                          }`}
+                        />
+                        <span className="truncate">
+                          {selectedCategoryId === category.id ? 'Viewing' : 'Archive'}
+                        </span>
+                      </span>
                       <p className="font-display text-2xl sm:text-3xl font-medium leading-none text-ink/85 shrink-0">
                         <AnimatedNumber value={count} />
                       </p>
@@ -219,9 +218,12 @@ export function CategoryRail({
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="w-full py-4 text-center text-xs sm:text-sm font-semibold uppercase tracking-widest text-ink-soft hover:text-ink transition-colors"
+            className="flex w-full flex-col items-center justify-center gap-2 py-4 text-center text-xs sm:text-sm font-semibold uppercase tracking-widest text-ink-soft transition-colors hover:text-ink"
           >
-            [ + New category ]
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-ink/30 bg-ink/5">
+              <Plus size={16} />
+            </span>
+            New category
           </button>
         )}
       </motion.div>

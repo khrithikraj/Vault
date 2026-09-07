@@ -988,7 +988,10 @@ export function CaptureFab({
         }}
       />
 
-      <div className="fixed bottom-28 right-4 z-30 sm:right-8">
+      <div
+        className="fixed right-4 z-30 sm:right-8"
+        style={{ bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 1rem) + 4.5rem)' }}
+      >
         <motion.button
           ref={fabRef}
           type="button"
@@ -1017,31 +1020,33 @@ export function CaptureFab({
           aria-label="Add a new memory"
         >
           {!reducedMotion ? (
-            <motion.span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-[-16px] rounded-full"
-              style={{
-                background: 'radial-gradient(circle, rgba(220,80,0,0.45), transparent 70%)',
-                filter: 'blur(10px)',
-              }}
-              animate={{ opacity: [0.35, 0.75, 0.35], scale: [0.94, 1.08, 0.94] }}
-              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-            />
+            <>
+              <motion.span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-[-16px] rounded-full"
+                style={{
+                  background: 'radial-gradient(circle, rgba(220,80,0,0.45), transparent 70%)',
+                  filter: 'blur(10px)',
+                }}
+                animate={{ opacity: [0.25, 0.55, 0.25], scale: [0.96, 1.04, 0.96] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <motion.span
+                aria-hidden="true"
+                className="absolute inset-[-3px] rounded-full opacity-80"
+                style={{
+                  background: 'conic-gradient(from 0deg, #dc5000, #382416, #100904, #dc5000)',
+                }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
+              />
+            </>
           ) : null}
-          <motion.span
-            aria-hidden="true"
-            className="absolute inset-[-3px] rounded-full opacity-90"
-            style={{
-              background: 'conic-gradient(from 0deg, #dc5000, #382416, #100904, #dc5000)',
-            }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-          />
           <span className="bg-cloud group-hover:bg-cloud-alt absolute inset-[3px] rounded-full transition-colors" />
           <motion.span
             className="relative text-2xl font-semibold text-ink"
             animate={{ rotate: open ? 45 : 0 }}
-            transition={{ duration: 0.2 }}
+            transition={reducedMotion ? { duration: 0 } : { duration: 0.2 }}
           >
             +
           </motion.span>
