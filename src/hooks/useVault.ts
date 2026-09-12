@@ -198,8 +198,21 @@ export function useVault() {
   }
 
   const ensureDefaultCategories = async (userId: string) => {
-    // Upsert + ignoreDuplicates makes this safe to call concurrently
-    // (getSession and onAuthStateChange can both trigger it on first load).
+    const { data: existingCategories, error: existingError } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1)
+
+    if (existingError) {
+      throw existingError
+    }
+    if (existingCategories && existingCategories.length > 0) {
+      return
+    }
+
+    // Only seed an empty account. This lets users delete default categories without
+    // having them recreated during the next load.
     const { error: seedError } = await supabase.from('categories').upsert(
       defaultCategorySeeds.map((category) => ({
         ...category,

@@ -4,6 +4,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { AnimatedNumber } from '../AnimatedNumber'
 import { CategoryIcon } from '../../lib/icons'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { ConfirmDialog } from '../ConfirmDialog'
 import type { Category } from '../../types/app'
 
 type CategoryIndexProps = {
@@ -40,6 +41,7 @@ export function CategoryIndex({
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('✨')
   const [color, setColor] = useState('#c44800')
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
   const reducedMotion = usePrefersReducedMotion()
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -182,17 +184,15 @@ export function CategoryIndex({
                   >
                     <Pencil size={12} />
                   </button>
-                  {!category.is_default ? (
-                    <button
-                      type="button"
-                      onClick={() => onDelete(category.id)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded text-ink-soft/55 transition-colors hover:text-red-400"
-                      aria-label={`Delete ${category.name}`}
-                      title="Remove category"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(category)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded text-ink-soft/55 transition-colors hover:text-red-400"
+                    aria-label={`Delete ${category.name}`}
+                    title="Remove category"
+                  >
+                    <Trash2 size={12} />
+                  </button>
                 </span>
               </div>
             </motion.div>
@@ -247,6 +247,22 @@ export function CategoryIndex({
           </motion.form>
         ) : null}
       </motion.div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete category?"
+        message={
+          <>
+            This will permanently delete <strong>{deleteTarget?.name}</strong> and all items stored in it.
+          </>
+        }
+        confirmLabel="Delete category"
+        onConfirm={() => {
+          if (deleteTarget) onDelete(deleteTarget.id)
+          setDeleteTarget(null)
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </motion.div>
   )
 }
