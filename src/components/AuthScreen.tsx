@@ -1,192 +1,327 @@
-import { useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { Atmosphere } from './Atmosphere'
-import { BorderTrail } from './BorderTrail'
-import { ShimmerText } from './ShimmerText'
-import { VerticalSerial } from './VerticalSerial'
-import { VaultArtifact } from './VaultArtifact'
-import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
-import { supabaseConfigured } from '../lib/supabase'
+import { useEffect, useRef, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
+import type { AuthPresentationState } from '../types/auth'
+import { AccessionDocument } from './accession/AccessionDocument'
+
+type AuthMode = 'sign-in' | 'sign-up' | 'recovery' | 'verification'
 
 type AuthScreenProps = {
-  message: string
+  authState: AuthPresentationState
+  configured: boolean
   onSignIn: (email: string, password: string) => Promise<void>
   onSignUp: (email: string, password: string) => Promise<void>
   onForgotPassword: (email: string) => Promise<void>
-  /** Dev-only escape hatch into a local mock vault — never rendered in production builds. */
+  onResendVerification: (email: string) => Promise<void>
+  onResetState: () => void
+  onReturnToCatalogue: () => void
   onPreview?: () => void
 }
 
 export function AuthScreen({
-  message,
+  authState,
+  configured,
   onSignIn,
   onSignUp,
   onForgotPassword,
+  onResendVerification,
+  onResetState,
+  onReturnToCatalogue,
   onPreview,
 }: AuthScreenProps) {
-  const [mode, setMode] = useState<'in' | 'up'>('in')
+  const [mode, setMode] = useState<AuthMode>('sign-in')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [resetting, setResetting] = useState(false)
-  const reducedMotion = usePrefersReducedMotion()
+  const [passwordVisible, setPasswordVisible] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [verificationEmail, setVerificationEmail] = useState('')
+  const [verificationActive, setVerificationActive] = useState(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const errorRef = useRef<HTMLParagraphElement>(null)
 
-  const handleForgotPassword = async () => {
-    setResetting(true)
-    try {
-      await onForgotPassword(email)
-    } finally {
-      setResetting(false)
-    }
+  const busy = authState.kind === 'submitting'
+  const error = authState.kind === 'error' ? authState.message : ''
+
+  useEffect(() => {
+    titleRef.current?.focus()
+  }, [mode, authState.kind])
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus()
+  }, [error])
+
+  useEffect(() => {
+    if (authState.kind !== 'verification-pending') return
+    setVerificationEmail(authState.email)
+    setVerificationActive(true)
+  }, [authState])
+
+  useEffect(() => {
+    if (!resendCooldown) return
+    const timer = window.setInterval(() => {
+      setResendCooldown((current) => Math.max(0, current - 1))
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [resendCooldown])
+
+  const changeMode = (nextMode: AuthMode) => {
+    onResetState()
+    setVerificationActive(false)
+    setMode(nextMode)
+    setPassword('')
+    setPasswordVisible(false)
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setLoading(true)
     try {
-      if (mode === 'up') {
-        await onSignUp(email, password)
-      } else {
-        await onSignIn(email, password)
-      }
+      if (mode === 'sign-up') await onSignUp(email.trim(), password)
+      else if (mode === 'recovery') await onForgotPassword(email.trim())
+      else if (mode === 'verification') await onResendVerification(email.trim())
+      else await onSignIn(email.trim(), password)
     } catch {
-      // message already surfaced by the hook
-    } finally {
-      setLoading(false)
+      // The typed auth state owns the accessible error summary.
     }
   }
 
-  return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center gap-12 px-4 py-16">
-      <Atmosphere variant="full" />
-      <VerticalSerial label="RAJ'S — SECURE ENTRY" />
-
-      {/* A lone artifact suspended in warm darkness — the void-mode hero moment. */}
-      <motion.div
-        {...(reducedMotion
-          ? {}
-          : {
-              animate: { y: [0, -10, 0] },
-              transition: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
-            })}
+  if (!configured) {
+    return (
+      <AccessionDocument
+        frame="Sign in · 13"
+        status="Unavailable"
+        folio="Service status"
+        title="Sign-in is unavailable."
+        titleRef={titleRef}
       >
-        <VaultArtifact size={92} />
-      </motion.div>
-
-      <div className="text-center">
-        <p className="text-micro text-ink-soft">Raj&apos;s — secure entry</p>
-        <div style={{ '--text-display': 'clamp(2rem, 6vw, 4.5rem)' } as React.CSSProperties}>
-          <ShimmerText
-            as="h1"
-            text="Your life, saved beautifully."
-            className="text-display mt-2 block text-center"
-          />
-        </div>
-        <p className="mx-auto mt-4 max-w-sm text-base leading-relaxed text-ink-soft">
-          Sign in to sync every screenshot, wishlist, and idea across your devices.
+        <p className="accession-auth-copy">
+          Try again later. Your email and password were not sent.
         </p>
-      </div>
-
-      <motion.section
-        initial={{ opacity: 0, y: 40, rotateX: 14, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 220, damping: 24, delay: 0.15 }}
-        style={{ transformPerspective: 900 }}
-        className="term-panel term-brackets rim-light relative w-full max-w-md overflow-hidden rounded p-8"
-      >
-        <BorderTrail color="rgba(220,80,0,0.55)" size={84} duration={8} />
-
-        <div className="border-ink/30 relative grid grid-cols-2 rounded border">
-          {(['in', 'up'] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setMode(tab)}
-              className="relative z-10 py-2 text-sm font-medium uppercase tracking-wide text-ink"
-            >
-              {mode === tab ? (
-                <motion.span
-                  layoutId="auth-tab-pill"
-                  className="bg-ink absolute inset-0 -z-10 rounded-[1px]"
-                  transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                />
-              ) : null}
-              <span className={mode === tab ? 'relative text-cloud' : 'relative'}>
-                [ {tab === 'in' ? 'Sign in' : 'Sign up'} ]
-              </span>
-            </button>
-          ))}
+        <div className="accession-auth-actions">
+          <button type="button" className="accession-auth-secondary" onClick={onReturnToCatalogue}>
+            Return home
+          </button>
         </div>
+        {(import.meta.env.DEV || !configured) && onPreview ? (
+          <div className="accession-auth-utility">
+            <button type="button" className="accession-auth-secondary" onClick={onPreview}>
+              Open demo
+            </button>
+          </div>
+        ) : null}
+      </AccessionDocument>
+    )
+  }
 
-        <form className="mt-6 grid gap-3" onSubmit={handleSubmit}>
-          <label className="grid gap-1 text-xs uppercase tracking-widest text-ink-soft">
-            Email
+  if (authState.kind === 'verified') {
+    return (
+      <AccessionDocument
+        frame="Verify email · 11"
+        status="Verified"
+        folio="Email verification"
+        title="Email verified."
+        titleRef={titleRef}
+        ruleState="solid"
+      >
+        <p className="accession-auth-copy">Your email is confirmed. You can now sign in.</p>
+        <div className="accession-auth-actions">
+          <button type="button" className="accession-auth-primary" onClick={() => changeMode('sign-in')}>
+            Sign in
+          </button>
+        </div>
+      </AccessionDocument>
+    )
+  }
+
+  if (authState.kind === 'verification-pending' || verificationActive) {
+    const pendingEmail = authState.kind === 'verification-pending' ? authState.email : verificationEmail
+    const resendBusy = authState.kind === 'submitting' && authState.action === 'resend-verification'
+    return (
+      <AccessionDocument
+        frame="Verify email · 11"
+        status="Waiting"
+        folio="Email verification"
+        title="Check your email."
+        titleRef={titleRef}
+      >
+        <p className="accession-auth-copy">We sent you a verification link. Open it to continue.</p>
+        {error ? <p ref={errorRef} tabIndex={-1} className="accession-auth-error" role="alert">{error}</p> : null}
+        <p className="accession-auth-receipt">{pendingEmail}</p>
+        <div className="accession-auth-actions">
+          <button
+            type="button"
+            className="accession-auth-primary"
+            disabled={resendBusy || resendCooldown > 0}
+            onClick={() => {
+              setResendCooldown(30)
+              void onResendVerification(pendingEmail).catch(() => undefined)
+            }}
+          >
+            {resendBusy ? 'Sending…' : resendCooldown > 0 ? `Send again in ${resendCooldown}s` : 'Send again'}
+          </button>
+          <button
+            type="button"
+            className="accession-auth-secondary"
+            onClick={() => {
+              setEmail(pendingEmail)
+              changeMode('sign-up')
+            }}
+          >
+            Use a different email
+          </button>
+        </div>
+        <p role="status" aria-live="polite" className="sr-only">
+          {resendBusy ? 'Sending email.' : 'Waiting for email verification.'}
+        </p>
+      </AccessionDocument>
+    )
+  }
+
+  if (authState.kind === 'recovery-sent') {
+    return (
+      <AccessionDocument
+        frame="Reset password · 12"
+        status="Email sent"
+        folio="Password reset"
+        title="Check your email."
+        titleRef={titleRef}
+      >
+        <p className="accession-auth-copy">
+          If an account exists for this email, we&apos;ll send a password reset link.
+        </p>
+        <p className="accession-auth-receipt">{authState.email}</p>
+        <div className="accession-auth-actions">
+          <button type="button" className="accession-auth-secondary" onClick={() => changeMode('sign-in')}>
+            Back to sign in
+          </button>
+        </div>
+      </AccessionDocument>
+    )
+  }
+
+  if (authState.kind === 'link-error') {
+    const recovery = authState.flow === 'recovery'
+    return (
+      <AccessionDocument
+        frame={`${recovery ? 'Reset password' : 'Verify email'} · ${recovery ? '12' : '11'}`}
+        status="Link invalid"
+        folio={recovery ? 'Password reset' : 'Email verification'}
+        title={`This ${recovery ? 'password reset' : 'verification'} link has expired or is invalid.`}
+        titleRef={titleRef}
+      >
+        <p className="accession-auth-error" role="alert">{authState.message}</p>
+        <div className="accession-auth-actions">
+          <button
+            type="button"
+            className="accession-auth-primary"
+            onClick={() => changeMode(recovery ? 'recovery' : 'verification')}
+          >
+            Send another link
+          </button>
+        </div>
+      </AccessionDocument>
+    )
+  }
+
+  const signingUp = mode === 'sign-up'
+  const recovering = mode === 'recovery'
+  const reverifying = mode === 'verification'
+  const title = recovering
+    ? 'Reset your password.'
+    : reverifying
+      ? 'Resend verification email.'
+    : signingUp
+      ? 'Create an account.'
+      : 'Sign in.'
+
+  return (
+    <AccessionDocument
+      frame={`${recovering ? 'Reset password' : reverifying ? 'Verify email' : signingUp ? 'Create account' : 'Sign in'} · ${recovering ? '12' : reverifying ? '11' : '10'}`}
+      status={recovering || reverifying ? 'Email required' : 'Email and password'}
+      folio={recovering ? 'Password reset' : reverifying ? 'Email verification' : signingUp ? 'Create account' : 'Sign in'}
+      title={title}
+      titleRef={titleRef}
+      plate={!recovering && !reverifying}
+      footer={(import.meta.env.DEV && onPreview) ? (
+        <button type="button" onClick={onPreview}>Open demo</button>
+      ) : null}
+    >
+      {error ? <p ref={errorRef} tabIndex={-1} className="accession-auth-error" role="alert">{error}</p> : null}
+      <form className="accession-auth-form" onSubmit={handleSubmit} aria-busy={busy}>
+        <div className="accession-auth-field">
+          <label htmlFor="auth-email">Email</label>
+          <span className="accession-auth-input">
             <input
+              id="auth-email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               type="email"
+              autoComplete="email"
               required
-              className="term-input rounded-none px-3 py-2.5 text-sm text-ink"
+              aria-invalid={error ? true : undefined}
             />
-          </label>
-          <label className="grid gap-1 text-xs uppercase tracking-widest text-ink-soft">
-            Password
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              minLength={6}
-              required
-              className="term-input rounded-none px-3 py-2.5 text-sm text-ink"
-            />
-          </label>
-          {mode === 'in' ? (
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              disabled={resetting}
-              className="-mt-1 justify-self-end text-xs font-medium text-ink-soft hover:text-ink disabled:opacity-60"
-            >
-              {resetting ? 'Sending…' : 'Forgot password?'}
+          </span>
+        </div>
+
+        {!recovering && !reverifying ? (
+          <div className="accession-auth-field">
+            <label htmlFor="auth-password">Password</label>
+            <span className="accession-auth-input">
+              <input
+                id="auth-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type={passwordVisible ? 'text' : 'password'}
+                autoComplete={signingUp ? 'new-password' : 'current-password'}
+                minLength={6}
+                required
+                aria-describedby={signingUp ? 'password-requirement' : undefined}
+                aria-invalid={error ? true : undefined}
+              />
+              <button
+                type="button"
+                className="accession-auth-reveal"
+                aria-label={passwordVisible ? 'Hide password' : 'Show password'}
+                onClick={() => setPasswordVisible((visible) => !visible)}
+              >
+                {passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </span>
+            {signingUp ? <span id="password-requirement" className="accession-auth-help">At least 6 characters.</span> : null}
+          </div>
+        ) : null}
+
+        <div className="accession-auth-actions">
+          <button type="submit" className="accession-auth-primary" disabled={busy}>
+            {busy
+              ? recovering || reverifying ? 'Sending…' : signingUp ? 'Creating account…' : 'Signing in…'
+              : recovering ? 'Send reset link' : reverifying ? 'Send verification email' : signingUp ? 'Create account' : 'Sign in'}
+          </button>
+          {recovering || reverifying ? (
+            <button type="button" className="accession-auth-secondary" onClick={() => changeMode('sign-in')}>
+              Back to sign in
             </button>
           ) : null}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={loading}
-            className="term-btn-primary mt-2 rounded-full px-4 py-3 text-sm font-semibold uppercase tracking-widest disabled:opacity-60"
-          >
-            {loading ? 'Please wait…' : mode === 'up' ? 'Create account' : 'Sign in'}
-            <span className="term-cursor" />
-          </motion.button>
-        </form>
+        </div>
+      </form>
 
-        <AnimatePresence>
-          {message ? (
-            <motion.p
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-4 text-sm text-ink-soft"
-            >
-              {message}
-            </motion.p>
-          ) : null}
-        </AnimatePresence>
-
-        {(import.meta.env.DEV || !supabaseConfigured) && onPreview ? (
+      {!recovering && !reverifying ? (
+        <div className="accession-auth-utilities">
           <button
             type="button"
-            onClick={onPreview}
-            className="border-ink/30 rounded-outline mt-5 w-full border border-dashed py-2 text-xs font-medium uppercase tracking-widest text-ink-soft/70 hover:text-ink-soft"
+            className="accession-auth-secondary"
+            onClick={() => changeMode(signingUp ? 'sign-in' : 'sign-up')}
           >
-            {import.meta.env.DEV
-              ? 'Dev only: preview without signing in'
-              : 'Preview the vault without a database'}
+            {signingUp ? 'Sign in' : 'Create account'}
           </button>
-        ) : null}
-      </motion.section>
-    </main>
+          {!signingUp ? (
+            <button type="button" className="accession-auth-secondary" onClick={() => changeMode('recovery')}>
+              Forgot password?
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      <p role="status" aria-live="polite" className="sr-only">
+        {busy ? 'Please wait.' : ''}
+      </p>
+    </AccessionDocument>
   )
 }

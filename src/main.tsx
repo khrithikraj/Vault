@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import { AppBootstrap } from './AppBootstrap'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './styles/global.css'
 
@@ -13,7 +13,7 @@ if ('serviceWorker' in navigator) {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <AppBootstrap />
     </ErrorBoundary>
   </React.StrictMode>,
 )

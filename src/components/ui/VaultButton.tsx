@@ -6,11 +6,7 @@ import { cn } from '../../design/cn'
 /**
  * VaultButton — the button system.
  *
- * Variants map to the existing term-* button vocabulary:
- *   - ghost   → term-btn: outlined, fills ember on hover
- *   - solid   → term-btn-primary: the single filled ember pill
- *   - soft    → term-btn-soft: subtle ember-tinted fill
- *   - chip    → term-chip: small pill (dock items / category chips)
+ * Variants map to the canonical vault button vocabulary.
  *   - danger  → outlined danger (semantic)
  *
  * `size` accepts a compact set; default balances touch-friendliness.
@@ -23,10 +19,10 @@ type VaultButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const variantClasses: Record<NonNullable<VaultButtonProps['variant']>, string> = {
-  ghost: 'term-btn rounded',
-  solid: 'term-btn-primary rounded-full',
-  soft: 'term-btn-soft rounded',
-  chip: 'term-chip rounded-full',
+  ghost: 'vault-btn-outline rounded',
+  solid: 'vault-btn-solid rounded-full',
+  soft: 'vault-btn-soft rounded',
+  chip: 'vault-chip rounded-full',
   danger: 'vault-danger rounded border',
 }
 

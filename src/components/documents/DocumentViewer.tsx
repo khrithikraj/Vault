@@ -10,26 +10,28 @@
  *     immediately revokes the object URL.
  *
  * PDF RENDERING:
- *   - Native PDF preview rendered via <object data={signedUrl} type="application/pdf">.
- *   - Graceful inline fallback displayed if browser or environment cannot display inline PDFs.
+ *   - Rendered page-by-page to `<canvas>` via pdfjs-dist (see PdfCanvasViewer),
+ *     continuous vertical scroll. Avoids the native `<object>`/`<iframe>` embed,
+ *     which many mobile browsers refuse to render inline.
  *
  * BACK NAVIGATION:
  *   - Managed via App-level unified overlay history architecture in App.tsx.
  *   - Closing via X / backdrop / Escape triggers unified history pop/dismiss.
  *
  * LAYOUT:
- *   - Uses `height: 100dvh` for the outer container.
- *   - The viewer panel itself is `max-h-[100dvh] h-full` filling viewport on mobile.
- *   - `overflow-y: auto` is applied only to the content area below the header.
+ *   - Uses the shared `VaultDialog` sheet contract at `100dvh`.
+ *   - The preview content owns scrolling below the fixed title and action regions.
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { Download, X, FileText, Image, AlertTriangle, Loader2, Trash2, Pencil } from 'lucide-react'
+import { Download, FileText, Image, AlertTriangle, Loader2, Trash2, Pencil } from 'lucide-react'
 import { getSignedUrl } from '../../lib/documents'
 import { CopyButton } from '../CopyButton'
-import { DocumentDeleteDialog } from './DocumentDeleteDialog'
+import { ConfirmDialog } from '../ConfirmDialog'
+import { VaultButton } from '../ui/VaultButton'
+import { VaultDialog } from '../ui/VaultDialog'
 import { DocumentEditDialog } from './DocumentEditDialog'
+import { PdfCanvasViewer } from './PdfCanvasViewer'
 import type { DocumentCategory, VaultDocument } from '../../types/app'
 
 type DocumentViewerProps = {
@@ -125,21 +127,6 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.id, doc?.storage_path])
 
-  // Escape key closes viewer (unless the edit dialog is open — it owns Escape then)
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !editOpen) onClose() }
-    window.addEventListener('keydown', esc)
-    return () => window.removeEventListener('keydown', esc)
-  }, [onClose, editOpen])
-
-  // Prevent background scroll while viewer is open
-  useEffect(() => {
-    if (!doc) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [doc])
-
   // ---------------------------------------------------------------------------
   // Download: fresh 60-second signed URL → fetch blob → trigger download.
   // Signed URL is never logged; object URL revoked immediately after trigger.
@@ -193,25 +180,21 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
   const isImage = doc?.mime_type.startsWith('image/')
 
   return (
-    <AnimatePresence>
-      {doc && (<>
-        <motion.div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm"
-          style={{ height: '100dvh' }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
-          <motion.div
-            className="term-panel term-brackets relative flex w-full flex-col overflow-hidden rounded sm:rounded sm:max-w-3xl"
-            style={{ maxHeight: '100dvh', height: '100dvh' }}
-            initial={{ opacity: 0, y: 32, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+    <>
+      <VaultDialog
+        open={doc !== null}
+        onClose={onClose}
+        title={doc?.name}
+        showClose
+        closeLabel="Close viewer"
+        variant="sheet"
+        backdropOpacity={0.8}
+        className="my-0 h-[100dvh] max-w-3xl !p-0 sm:my-auto sm:!p-4"
+        surfaceClassName="flex h-full flex-col overflow-hidden"
+        bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
+      >
+        {doc ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {/* ----------------------------------------------------------------
                 Header — fixed height, always visible
             ---------------------------------------------------------------- */}
@@ -222,12 +205,9 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
                 : <Image size={18} className="shrink-0 text-warn" style={{ filter: 'drop-shadow(0 0 5px rgba(242,177,52,0.5))' }} aria-hidden="true" />
               }
 
-              {/* Title */}
+              {/* Metadata */}
               <div className="min-w-0 flex-1">
-                <h2 className="font-display truncate text-sm font-bold uppercase tracking-tight text-ink sm:text-base">
-                  {doc.name}
-                </h2>
-                <p className="mt-0.5 text-[10px] text-ink-soft uppercase tracking-widest">
+                <p className="text-[10px] text-ink-soft uppercase tracking-widest">
                   {doc.category} · {formatBytes(doc.file_size)}
                 </p>
               </div>
@@ -235,47 +215,42 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
               {/* Action buttons */}
               <div className="flex shrink-0 items-center gap-2">
                 <CopyButton text={doc.name} label="Copy" copiedLabel="Copied" />
-                <button
+                <VaultButton
                   type="button"
                   onClick={() => setEditOpen(true)}
-                  className="term-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft hover:text-ink"
+                  variant="chip"
+                  size="sm"
+                  icon={Pencil}
+                  className="uppercase tracking-wide text-ink-soft hover:text-ink"
                   aria-label="Edit document"
                   title="Edit document"
                 >
-                  <Pencil size={13} />
                   <span className="hidden sm:inline">Edit</span>
-                </button>
-                <button
+                </VaultButton>
+                <VaultButton
                   type="button"
                   onClick={() => setDeleteConfirmOpen(true)}
-                  className="term-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-red-400 hover:text-red-300"
+                  variant="danger"
+                  size="sm"
+                  icon={Trash2}
+                  className="uppercase tracking-wide"
                   aria-label="Delete document"
                   title="Delete document"
                 >
-                  <Trash2 size={13} />
                   <span className="hidden sm:inline">Delete</span>
-                </button>
-                <button
+                </VaultButton>
+                <VaultButton
                   type="button"
                   onClick={handleDownload}
                   disabled={downloading}
-                  className="term-btn-primary flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide disabled:opacity-50"
+                  variant="solid"
+                  size="sm"
+                  icon={downloading ? Loader2 : Download}
+                  className={`uppercase tracking-wide disabled:opacity-50 ${downloading ? '[&>svg]:animate-spin' : ''}`}
                   aria-label="Download document"
                 >
-                  {downloading
-                    ? <Loader2 size={13} className="animate-spin" />
-                    : <Download size={13} />
-                  }
                   <span className="hidden sm:inline">{downloading ? 'Downloading…' : 'Download'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="term-chip rounded-full p-1.5 text-ink-soft hover:text-ink"
-                  aria-label="Close viewer"
-                >
-                  <X size={16} />
-                </button>
+                </VaultButton>
               </div>
             </div>
 
@@ -299,7 +274,7 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
             {/* ----------------------------------------------------------------
                 Content area — fills remaining height, scrollable
             ---------------------------------------------------------------- */}
-            <div className="term-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="vault-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
               {/* Loading state */}
               {loadingUrl && (
                 <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 text-ink-soft">
@@ -313,49 +288,27 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
                 <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 p-8 text-center text-ink-soft">
                   <AlertTriangle size={28} className="text-red-400" />
                   <p className="text-sm">{urlError}</p>
-                  <button
+                  <VaultButton
                     type="button"
                     onClick={() => {
                       prevDocId.current = null
                       setSignedUrl(null)
                       setUrlError(null)
                     }}
-                    className="term-btn-primary mt-2 rounded-full px-4 py-2 text-xs font-semibold uppercase"
+                    variant="solid"
+                    size="sm"
+                    className="mt-2 uppercase"
                   >
                     Retry
-                  </button>
+                  </VaultButton>
                 </div>
               )}
 
-              {/* PDF — Native browser preview with graceful fallback */}
+              {/* PDF — rendered to canvas via pdfjs-dist, continuous vertical scroll.
+                  Works identically on every browser/platform, including mobile
+                  Safari/WebViews that refuse inline <object>/<iframe> PDF embeds. */}
               {!loadingUrl && !urlError && signedUrl && isPdf && (
-                <object
-                  data={signedUrl}
-                  type="application/pdf"
-                  className="h-full w-full border-0"
-                  style={{ minHeight: 'calc(100dvh - 56px)' }}
-                  aria-label={doc.name}
-                >
-                  {/* Fallback if browser/platform cannot render PDF inline */}
-                  <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 p-8 text-center text-ink-soft">
-                    <FileText size={44} className="text-accent opacity-70" style={{ filter: 'drop-shadow(0 0 10px rgba(220,80,0,0.4))' }} />
-                    <div>
-                      <p className="text-sm font-semibold text-ink">{doc.name}</p>
-                      <p className="mt-1 text-xs text-ink-soft">
-                        Inline PDF preview is not available in this view.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleDownload}
-                      disabled={downloading}
-                      className="term-btn-primary flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-wide disabled:opacity-50"
-                    >
-                      {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                      {downloading ? 'Downloading…' : 'Download PDF'}
-                    </button>
-                  </div>
-                </object>
+                <PdfCanvasViewer url={signedUrl} fileName={doc.name} />
               )}
 
               {/* Image preview */}
@@ -371,12 +324,24 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
                 </div>
               )}
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        ) : null}
+      </VaultDialog>
 
-        <DocumentDeleteDialog
-          doc={deleteConfirmOpen ? doc : null}
-          deleting={deleting}
+      {doc ? (
+        <>
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          title="Move to trash?"
+          message={
+            <>
+              <span className="font-semibold text-ink">{doc.name}</span> will be moved to Trash.
+              The file stays private and can be restored.
+            </>
+          }
+          confirmLabel="Move to trash"
+          busy={deleting}
+          busyLabel="Moving…"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setDeleteConfirmOpen(false)}
         />
@@ -386,8 +351,8 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
           onSave={handleEditSave}
           onCancel={() => setEditOpen(false)}
         />
-      </>
-      )}
-    </AnimatePresence>
+        </>
+      ) : null}
+    </>
   )
 }

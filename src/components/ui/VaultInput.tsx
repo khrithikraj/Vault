@@ -8,7 +8,7 @@ type VaultInputProps = InputHTMLAttributes<HTMLInputElement> & {
 
 /**
  * VaultInput — text field matching the terminal/vault input vocabulary.
- * Backed by the `.term-input` / `.vault-input` class.
+ * Backed by the canonical `.vault-input` class.
  */
 export const VaultInput = forwardRef<HTMLInputElement, VaultInputProps>(function VaultInput(
   { variant = 'default', className, ...rest },
@@ -19,7 +19,7 @@ export const VaultInput = forwardRef<HTMLInputElement, VaultInputProps>(function
       ref={ref}
       className={cn(
         'w-full rounded px-3 py-2.5 text-sm transition-colors placeholder:text-ink-soft/80',
-        variant === 'overlay' ? 'vault-input-overlay' : 'term-input',
+        variant === 'overlay' ? 'vault-input-overlay' : 'vault-input',
         className,
       )}
       {...rest}
@@ -41,7 +41,7 @@ export const VaultTextarea = forwardRef<HTMLTextAreaElement, VaultTextareaProps>
         ref={ref}
         className={cn(
           'w-full rounded px-3 py-2.5 text-sm transition-colors placeholder:text-ink-soft/80',
-          variant === 'overlay' ? 'vault-input-overlay' : 'term-input',
+          variant === 'overlay' ? 'vault-input-overlay' : 'vault-input',
           className,
         )}
         {...rest}

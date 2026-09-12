@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, ChevronDown } from 'lucide-react'
+import { layers } from '../design/layers'
 
 /**
  * VaultSelect — a custom dropdown that replaces the browser's native <select>
  * with one that matches the terminal/vault design language: a bordered trigger
- * and a floating "term-panel" options list.
+ * and a floating "vault-surface" options list.
  *
  * The options list is rendered through a portal attached to document.body and
  * positioned with fixed coordinates taken from the trigger's real viewport
@@ -66,11 +67,15 @@ export function VaultSelect<T extends string = string>({
 }: VaultSelectProps<T>) {
   const [open, setOpen] = useState(false)
   const [placement, setPlacement] = useState<Placement | null>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const listboxId = useId()
 
   const current = options.find((option) => option.value === value)
+  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value))
 
   const measure = useCallback(() => {
     const trigger = triggerRef.current
@@ -90,6 +95,17 @@ export function VaultSelect<T extends string = string>({
     })
   }, [up])
 
+  const openMenu = useCallback((index = selectedIndex) => {
+    measure()
+    setActiveIndex(index)
+    setOpen(true)
+  }, [measure, selectedIndex])
+
+  const closeMenu = useCallback((restoreFocus = false) => {
+    setOpen(false)
+    if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus())
+  }, [])
+
   useEffect(() => {
     if (!open) return
     const onDocClick = (e: MouseEvent) => {
@@ -99,28 +115,63 @@ export function VaultSelect<T extends string = string>({
       if (!insideRoot && !insideList) setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Tab') {
+        setOpen(false)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        closeMenu(true)
+        return
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+        e.preventDefault()
+        e.stopPropagation()
+        setActiveIndex((currentIndex) => {
+          if (e.key === 'Home') return 0
+          if (e.key === 'End') return options.length - 1
+          const offset = e.key === 'ArrowDown' ? 1 : -1
+          return (currentIndex + offset + options.length) % options.length
+        })
+        return
+      }
+      if ((e.key === 'Enter' || e.key === ' ') && document.activeElement !== triggerRef.current) {
+        e.preventDefault()
+        e.stopPropagation()
+        const option = options[activeIndex]
+        if (option) {
+          onSelect(option.value)
+          closeMenu(true)
+        }
+      }
     }
     const recompute = () => {
       if (open) measure()
     }
     document.addEventListener('mousedown', onDocClick)
-    document.addEventListener('keydown', onKey)
+    document.addEventListener('keydown', onKey, true)
     window.addEventListener('resize', recompute)
     window.addEventListener('scroll', recompute, true)
     window.addEventListener('orientationchange', recompute)
     return () => {
       document.removeEventListener('mousedown', onDocClick)
-      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('keydown', onKey, true)
       window.removeEventListener('resize', recompute)
       window.removeEventListener('scroll', recompute, true)
       window.removeEventListener('orientationchange', recompute)
     }
-  }, [open, measure])
+  }, [activeIndex, closeMenu, onSelect, open, options, measure])
+
+  useEffect(() => {
+    if (!open) return
+    const frame = window.requestAnimationFrame(() => optionRefs.current[activeIndex]?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [activeIndex, open])
 
   const toggle = () => {
-    if (!open) measure()
-    setOpen((currentlyOpen) => !currentlyOpen)
+    if (open) closeMenu()
+    else openMenu()
   }
 
   return (
@@ -130,10 +181,17 @@ export function VaultSelect<T extends string = string>({
         type="button"
         disabled={disabled}
         onClick={toggle}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault()
+            openMenu(event.key === 'ArrowDown' ? selectedIndex : Math.max(0, options.length - 1))
+          }
+        }}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
         aria-label={ariaLabel}
-        className="term-input flex w-full items-center justify-between gap-2 rounded-none px-2.5 py-2 text-left text-sm font-medium text-ink disabled:opacity-60"
+        className="vault-input flex w-full items-center justify-between gap-2 rounded-none px-2.5 py-2 text-left text-sm font-medium text-ink disabled:opacity-60"
       >
         <span className="truncate capitalize">{current?.label ?? 'Select…'}</span>
         <ChevronDown
@@ -147,6 +205,7 @@ export function VaultSelect<T extends string = string>({
           {open && placement ? (
             <motion.div
               key="listbox"
+              id={listboxId}
               ref={listRef}
               role="listbox"
               initial={{ opacity: 0, y: placement.place === 'up' ? 4 : -4, scale: 0.99 }}
@@ -160,21 +219,24 @@ export function VaultSelect<T extends string = string>({
                 maxHeight: placement.maxHeight,
                 top: placement.top,
                 bottom: placement.bottom,
+                zIndex: layers.popover,
               }}
-              className="term-panel term-scrollbar z-[70] overflow-y-auto rounded border bg-cloud p-1 shadow-xl"
+              className="vault-surface vault-scrollbar overflow-y-auto rounded border bg-cloud p-1 shadow-xl"
             >
-              {options.map((option) => {
+              {options.map((option, index) => {
                 const selected = option.value === value
                 return (
                   <button
+                    ref={(element) => { optionRefs.current[index] = element }}
                     key={option.value}
                     type="button"
                     role="option"
                     aria-selected={selected}
                     onClick={() => {
                       onSelect(option.value)
-                      setOpen(false)
+                      closeMenu(true)
                     }}
+                    tabIndex={index === activeIndex ? 0 : -1}
                     className={`flex w-full items-center justify-between gap-2 rounded px-2.5 py-2 text-left text-sm transition-colors ${
                       selected ? 'bg-ink/10 text-ink' : 'text-ink-soft hover:bg-ink/5 hover:text-ink'
                     }`}

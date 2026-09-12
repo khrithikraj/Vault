@@ -4,6 +4,7 @@ import { defaultCategorySeeds } from '../lib/defaults'
 import { normalizeCategory } from '../lib/fields'
 import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { Category, ChecklistItem, FieldDefinition, Note, VaultItem } from '../types/app'
+import type { AuthPresentationState } from '../types/auth'
 
 const DEV_USER_ID = 'dev-preview-user'
 
@@ -32,6 +33,9 @@ function seedCategories(): Category[] {
  * and QAed without depending on a live, confirmed Supabase session. Never touches the network.
  */
 export function useMockVault() {
+  const [session, setSession] = useState<Session>(
+    { user: { id: DEV_USER_ID, email: 'preview@raj.local', user_metadata: {} } } as unknown as Session,
+  )
   const [categories, setCategories] = useState<Category[]>(seedCategories)
   const [items, setItems] = useState<VaultItem[]>([])
   const [notes, setNotes] = useState<Note[]>([])
@@ -39,6 +43,7 @@ export function useMockVault() {
   const [trashedNotes, setTrashedNotes] = useState<Note[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
+  const [authState, setAuthState] = useState<AuthPresentationState>({ kind: 'idle' })
 
   const itemCountByCategory = useMemo(() => {
     const map = new Map<string, number>()
@@ -306,11 +311,13 @@ export function useMockVault() {
   }
 
   return {
-    session: { user: { id: DEV_USER_ID } } as unknown as Session,
+    session,
     checkingSession: false,
     loadingData: false,
     message,
     setMessage,
+    authState,
+    setAuthState,
     categories,
     items,
     notes,
@@ -323,10 +330,18 @@ export function useMockVault() {
     doneCount,
     signIn: async () => {},
     signUp: async () => {},
+    resendVerificationEmail: async () => {},
     resetPassword: async () => {
       setMessage('Preview mode has no real account — nothing to reset.')
     },
     updatePassword: async () => {},
+    updateDisplayName: async (name: string) => {
+      setSession((current) => ({
+        ...current,
+        user: { ...current.user, user_metadata: { ...current.user.user_metadata, full_name: name.trim() } },
+      }) as unknown as Session)
+      setMessage('Profile updated (preview only — not saved to a real account).')
+    },
     passwordRecovery: false,
     signOut: async () => {
       setCategories(seedCategories())

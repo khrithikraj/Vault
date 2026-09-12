@@ -17,7 +17,7 @@ import {
   deleteDocument,
   validateDocumentFile,
 } from '../lib/documents'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../supabase'
 import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { DocumentCategory, VaultDocument } from '../types/app'
 

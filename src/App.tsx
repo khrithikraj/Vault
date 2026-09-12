@@ -1,24 +1,21 @@
-import { motion } from 'motion/react'
 import { useVault } from './hooks/useVault'
 import { useMockVault } from './hooks/useMockVault'
 import { useDocuments } from './hooks/useDocuments'
-import type { VaultDocument, VaultItem } from './types/app'
+import type { Note, VaultDocument, VaultItem } from './types/app'
 import { consumeSharedPhoto } from './lib/shareTarget'
-import { Atmosphere } from './components/Atmosphere'
 import { AuthScreen } from './components/AuthScreen'
-import { LandingPage } from './components/LandingPage'
 import { UpdatePasswordScreen } from './components/UpdatePasswordScreen'
 import { CaptureFab } from './components/CaptureFab'
-import { FilmGrain } from './components/FilmGrain'
-import { ProgressiveBlur } from './components/ProgressiveBlur'
-import { ScrollProgress } from './components/ScrollProgress'
 import { SharedItemView } from './components/SharedItemView'
 import { SearchResults } from './components/SearchResults'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { TrashPanel } from './components/TrashPanel'
 import { buildTrashRows } from './lib/trashRows'
 import type { TrashRow } from './lib/trashRows'
-import { HomeCanvas } from './components/home/HomeCanvas'
+import {
+  AuthenticatedPublication,
+  AuthenticatedShell,
+} from './components/home/AuthenticatedShell'
 import { ArchiveIdentity } from './components/home/ArchiveIdentity'
 import { CommandSearch } from './components/home/CommandSearch'
 import { ArchiveObjects } from './components/home/ArchiveObjects'
@@ -29,8 +26,18 @@ import { searchVault } from './lib/search'
 import type { SearchScope } from './lib/search'
 import type { TrashKind } from './lib/trash'
 import type { SharedSnapshot } from './lib/share'
+import { withFavoriteToggled, isFavorite } from './lib/ratings'
+import { sortItems, ITEM_SORT_OPTIONS } from './lib/sort'
+import type { ItemSortKey } from './lib/sort'
+import { supabaseConfigured } from './lib/supabase'
+import { SortMenu } from './components/ui/SortMenu'
+import { VaultSection } from './components/ui/VaultSection'
+import { VaultSkeleton } from './components/ui/VaultSkeleton'
+import { OnboardingTour } from './components/OnboardingTour'
+import { useOnboardingTour } from './hooks/useOnboardingTour'
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
-
+import { AccessionDocument } from './components/accession/AccessionDocument'
+ 
 // Modals opened on demand only — lazy-loaded to keep the initial bundle lean.
 const ItemDetailOverlay = lazy(() =>
   import('./components/ItemDetailOverlay').then((mod) => ({ default: mod.ItemDetailOverlay })),
@@ -53,28 +60,39 @@ const DocumentViewer = lazy(() =>
 const DocumentUploader = lazy(() =>
   import('./components/documents/DocumentUploader').then((mod) => ({ default: mod.DocumentUploader })),
 )
-
-export default function App() {
+const AccountPanel = lazy(() =>
+  import('./components/AccountPanel').then((mod) => ({ default: mod.AccountPanel })),
+)
+ 
+type AppProps = {
+  onReturnToLanding?: () => void
+}
+ 
+export default function App({ onReturnToLanding = () => window.location.assign('/') }: AppProps) {
   const realVault = useVault()
   const mockVault = useMockVault()
   const [devPreview, setDevPreview] = useState(false)
   const vault = devPreview ? mockVault : realVault
+ 
+  const onboardingTour = useOnboardingTour(
+    !vault.checkingSession && !vault.passwordRecovery && !!vault.session,
+  )
   const docs = useDocuments()
-
+ 
   // Overlay state: item, note, document
   const [openItemId, setOpenItemId] = useState<string | null>(null)
   const openItem: VaultItem | null = openItemId
     ? vault.items.find((item) => item.id === openItemId) ?? null
     : null
-
+ 
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
   const openNote = openNoteId ? vault.notes.find((note) => note.id === openNoteId) ?? null : null
-
+ 
   const [openDocId, setOpenDocId] = useState<string | null>(null)
   const openDoc: VaultDocument | null = openDocId
     ? docs.documents.find((doc) => doc.id === openDocId) ?? null
     : null
-
+ 
   // Store only the ID of the category being edited — always resolve to the live category object
   // so CategoryEditor gets fresh field_schema even after a Supabase reload.
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
@@ -83,19 +101,44 @@ export default function App() {
     : null
   const [sharedPhoto, setSharedPhoto] = useState<File | null>(null)
   const [sharedPhotoToken, setSharedPhotoToken] = useState(0)
-  const [mainView, setMainView] = useState<'vault' | 'notes' | 'documents' | 'trash'>('vault')
-  const [showLanding, setShowLanding] = useState(true)
+  const [mainView, setMainView] = useState<'vault' | 'notes' | 'documents' | 'trash' | 'favorites'>(
+    'vault',
+  )
   // Track whether documents have been loaded for the current session
   const docsLoadedRef = useRef(false)
-
+ 
+  // Items toolbar sort order — persisted per-device so it survives reloads.
+  const [itemSortKey, setItemSortKey] = useState<ItemSortKey>(() => {
+    if (typeof window === 'undefined') return 'newest'
+    return (window.localStorage.getItem('vault:itemSort') as ItemSortKey | null) ?? 'newest'
+  })
+  useEffect(() => {
+    window.localStorage.setItem('vault:itemSort', itemSortKey)
+  }, [itemSortKey])
+ 
+  const handleToggleFavorite = useCallback(
+    (item: VaultItem) => {
+      void vault.updateItem(item.id, { metadata: withFavoriteToggled(item) })
+    },
+    [vault],
+  )
+ 
   // Doc uploader is lifted to App level so Quick Add (from any section) can open it.
   const [docUploadOpen, setDocUploadOpen] = useState(false)
-
+ 
+  // Account/profile panel.
+  const [accountPanelOpen, setAccountPanelOpen] = useState(false)
+ 
   // Permanent-delete confirmation for anything in Recently Deleted.
   type PurgeTarget = { kind: TrashKind; id: string; name: string }
   const [purgeTarget, setPurgeTarget] = useState<PurgeTarget | null>(null)
   const [purgeBusy, setPurgeBusy] = useState(false)
-
+  type UndoTarget =
+    | { kind: 'item'; record: VaultItem; name: string }
+    | { kind: 'note'; record: Note; name: string }
+    | { kind: 'document'; record: VaultDocument; name: string }
+  const [undoTarget, setUndoTarget] = useState<UndoTarget | null>(null)
+ 
   // ---------------------------------------------------------------------------
   // Search — client-side, in-memory, scoped automatically by the current section.
   // The query is cleared whenever the section/category changes so switching tabs
@@ -103,15 +146,16 @@ export default function App() {
   // ---------------------------------------------------------------------------
   const [searchQuery, setSearchQuery] = useState('')
   const activeQuery = searchQuery.trim()
-
+ 
   const searchScope = useMemo<SearchScope>(() => {
     if (mainView === 'notes') return { kind: 'notes' }
     if (mainView === 'documents') return { kind: 'documents' }
     if (mainView === 'trash') return { kind: 'trash' }
+    if (mainView === 'favorites') return { kind: 'favorites' }
     if (vault.selectedCategoryId) return { kind: 'category', categoryId: vault.selectedCategoryId }
     return { kind: 'everything' }
   }, [mainView, vault.selectedCategoryId])
-
+ 
   const searchResults = useMemo(
     () =>
       searchVault({
@@ -137,11 +181,11 @@ export default function App() {
       docs.trashedDocuments,
     ],
   )
-
+ 
   useEffect(() => {
     setSearchQuery('')
   }, [mainView, vault.selectedCategoryId])
-
+ 
   // ---------------------------------------------------------------------------
   // Share route: /s/:token — a read-only preview of a shared item snapshot.
   // Parsed directly from the URL so it coexists with the overlay/section history
@@ -153,7 +197,7 @@ export default function App() {
     const match = window.location.pathname.match(/\/s\/([A-Za-z0-9]+)\/?$/)
     return match ? match[1] : null
   }, [dismissedShare])
-
+ 
   const leaveShareView = useCallback(() => {
     setDismissedShare(true)
     window.history.replaceState(
@@ -162,7 +206,7 @@ export default function App() {
       window.location.pathname.replace(/\/s\/.*$/, '') || '/',
     )
   }, [])
-
+ 
   // ---------------------------------------------------------------------------
   // Unified Overlay + Section History Architecture
   // Ensures hardware/browser Back closes open overlays first, then walks back
@@ -174,31 +218,36 @@ export default function App() {
     setOpenNoteId(null)
     setOpenDocId(null)
   }, [])
-
+ 
   // Live mirror of whether any overlay is open, so the single popstate listener
   // always sees current state without stale closures.
   const overlayOpenRef = useRef(false)
   overlayOpenRef.current = !!(openItemId || openNoteId || openDocId)
-
+  const overlayDismissPendingRef = useRef(false)
+ 
   // Stack of the base (non-overlay) sections we've navigated into. The top entry
   // is the section currently visible underneath any open overlay. Only grows when
   // the user actually switches main section.
-  const sectionStackRef = useRef<('vault' | 'notes' | 'documents' | 'trash')[]>(['vault'])
-
+  const sectionStackRef = useRef<('vault' | 'notes' | 'documents' | 'trash' | 'favorites')[]>([
+    'vault',
+  ])
+ 
   const handleDismissOverlay = useCallback(() => {
     if (window.history.state?.vaultOverlay) {
+      if (overlayDismissPendingRef.current) return
+      overlayDismissPendingRef.current = true
       window.history.back()
     } else {
       closeAllOverlays()
     }
   }, [closeAllOverlays])
-
+ 
   const pushOverlay = useCallback(() => {
     if (!window.history.state?.vaultOverlay) {
       window.history.pushState({ vaultOverlay: true }, '')
     }
   }, [])
-
+ 
   const handleOpenItem = useCallback(
     (id: string) => {
       pushOverlay()
@@ -208,7 +257,7 @@ export default function App() {
     },
     [pushOverlay],
   )
-
+ 
   const handleOpenNote = useCallback(
     (id: string) => {
       pushOverlay()
@@ -218,7 +267,7 @@ export default function App() {
     },
     [pushOverlay],
   )
-
+ 
   const handleOpenDoc = useCallback(
     (doc: VaultDocument) => {
       pushOverlay()
@@ -228,10 +277,10 @@ export default function App() {
     },
     [pushOverlay],
   )
-
+ 
   // Switch the base section and record a history entry so Back can return to it.
   const goToSection = useCallback(
-    (next: 'vault' | 'notes' | 'documents' | 'trash') => {
+    (next: 'vault' | 'notes' | 'documents' | 'trash' | 'favorites') => {
       const top = sectionStackRef.current[sectionStackRef.current.length - 1]
       if (top === next) {
         return
@@ -242,7 +291,7 @@ export default function App() {
     },
     [],
   )
-
+ 
   // ---------------------------------------------------------------------------
   // Smart Quick Add — the Floating Action Button adapts to the current section:
   //    vault + selected category → directly into that category's item wizard
@@ -254,10 +303,11 @@ export default function App() {
   const quickAdd = useMemo<'choose' | 'item' | 'note' | 'document'>(() => {
     if (mainView === 'notes') return 'note'
     if (mainView === 'documents') return 'document'
+    if (mainView === 'favorites') return 'choose'
     if (vault.selectedCategoryId) return 'item'
     return 'choose'
   }, [mainView, vault.selectedCategoryId])
-
+ 
   const handleQuickAddNote = useCallback(() => {
     goToSection('notes')
     void vault.addNote().then((note) => {
@@ -267,12 +317,12 @@ export default function App() {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goToSection, vault])
-
+ 
   const handleQuickAddDocument = useCallback(() => {
     goToSection('documents')
     setDocUploadOpen(true)
   }, [goToSection])
-
+ 
   // Recently Deleted: merged rows for the trash tab + row-level restore/purge.
   const trashRows = useMemo(
     () =>
@@ -284,7 +334,7 @@ export default function App() {
       }),
     [vault.trashedItems, vault.trashedNotes, docs.trashedDocuments, vault.categories],
   )
-
+ 
   // When searching within the Trash tab, narrow the merged rows to the query hits —
   // searchVault already matched against the trashed arrays, so filter by result id.
   const filteredTrashRows = useMemo(() => {
@@ -296,7 +346,7 @@ export default function App() {
     ])
     return trashRows.filter((row) => hitIds.has(row.id))
   }, [searchScope.kind, searchResults, trashRows])
-
+ 
   const handleRestoreTrashRow = useCallback(
     (row: TrashRow) => {
       if (row.kind === 'item') {
@@ -312,7 +362,62 @@ export default function App() {
     },
     [vault, docs],
   )
-
+ 
+  const handleDeleteItem = useCallback(
+    async (item: VaultItem): Promise<boolean> => {
+      const ok = await vault.deleteItem(item.id)
+      if (ok) setUndoTarget({ kind: 'item', record: item, name: item.title })
+      return ok
+    },
+    [vault],
+  )
+ 
+  const handleDeleteItemById = useCallback(
+    async (itemId: string): Promise<boolean> => {
+      const item = vault.items.find((entry) => entry.id === itemId)
+      return item ? handleDeleteItem(item) : false
+    },
+    [handleDeleteItem, vault.items],
+  )
+ 
+  const handleDeleteNote = useCallback(
+    async (noteId: string): Promise<boolean> => {
+      const note = vault.notes.find((entry) => entry.id === noteId)
+      if (!note) return false
+      const ok = await vault.deleteNote(noteId)
+      if (ok) {
+        setUndoTarget({
+          kind: 'note',
+          record: note,
+          name: note.title.trim() || 'Untitled note',
+        })
+      }
+      return ok
+    },
+    [vault],
+  )
+ 
+  const handleDeleteDocument = useCallback(
+    async (document: VaultDocument): Promise<boolean> => {
+      const ok = await docs.removeDocument(document)
+      if (ok) setUndoTarget({ kind: 'document', record: document, name: document.name })
+      return ok
+    },
+    [docs],
+  )
+ 
+  const handleUndoDelete = useCallback(async () => {
+    const target = undoTarget
+    if (!target) return
+    const ok =
+      target.kind === 'item'
+        ? await vault.restoreItem(target.record)
+        : target.kind === 'note'
+          ? await vault.restoreNote(target.record)
+          : await docs.restoreDocument(target.record)
+    if (ok) setUndoTarget(null)
+  }, [docs, undoTarget, vault])
+ 
   const handlePurgeTarget = useCallback(async (): Promise<boolean> => {
     const target = purgeTarget
     if (!target) return false
@@ -327,7 +432,7 @@ export default function App() {
     const doc = docs.trashedDocuments.find((d) => d.id === target.id)
     return doc ? docs.purgeDocument(doc) : false
   }, [purgeTarget, vault, docs])
-
+ 
   // "Add to My Vault" from a shared link: for a shared ITEM, resolve a target
   // category by name (falling back to the default), map the snapshot fields back by
   // label, then save a new item in the recipient's vault. For a shared NOTE, copy the
@@ -336,7 +441,6 @@ export default function App() {
   const handleAddSharedToVault = useCallback(
     async (shared: SharedSnapshot): Promise<boolean> => {
       if (!vault.session) {
-        setShowLanding(false)
         setDismissedShare(true)
         window.history.replaceState(
           null,
@@ -366,7 +470,7 @@ export default function App() {
           vault.categories[0]
       }
       if (!category || !vault.addItem) return false
-
+ 
       const values: Record<string, string> = { title: shared.title, notes: shared.notes ?? '' }
       const schema = category.field_schema ?? []
       for (const field of shared.fields) {
@@ -382,12 +486,13 @@ export default function App() {
     },
     [vault],
   )
-
+ 
   useEffect(() => {
     const handlePopState = () => {
       // An overlay is open → this Back closed the overlay entry. Close it and stay
       // put in the current section.
-      if (overlayOpenRef.current) {
+      if (overlayDismissPendingRef.current || overlayOpenRef.current) {
+        overlayDismissPendingRef.current = false
         closeAllOverlays()
         return
       }
@@ -404,7 +509,7 @@ export default function App() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [closeAllOverlays])
-
+ 
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has('shared')) {
       return
@@ -417,7 +522,7 @@ export default function App() {
       }
     })
   }, [])
-
+ 
   // Load documents lazily — once per session — when the user opens the Documents tab,
   // the Trash tab (trashed documents can be restored there), or when a vault-wide search
   // is active so Everything results can include documents even if that tab hasn't been
@@ -433,21 +538,68 @@ export default function App() {
     docsLoadedRef.current = true
     void docs.load()
   }, [mainView, activeQuery, searchScope, vault.session?.user?.id, devPreview, docs])
-
+ 
   // Reset docs state on sign-out so a new sign-in gets fresh data.
   useEffect(() => {
     if (!vault.session) {
       docsLoadedRef.current = false
     }
   }, [vault.session])
-
+ 
+  const activeCategory = vault.categories.find(
+    (category) => category.id === vault.selectedCategoryId,
+  )
+ 
+  useEffect(() => {
+    if (!vault.session || vault.passwordRecovery || shareToken) return
+ 
+    const sectionTitle =
+      mainView === 'notes'
+        ? 'Notes'
+        : mainView === 'documents'
+          ? 'Documents'
+          : mainView === 'trash'
+            ? 'Recently Deleted'
+            : mainView === 'favorites'
+              ? 'Favorites'
+              : activeCategory?.name ?? 'All items'
+    const overlayTitle = accountPanelOpen
+      ? 'Account'
+      : editingCategory
+        ? `Edit ${editingCategory.name}`
+        : docUploadOpen
+          ? 'Add document'
+          : purgeTarget
+            ? 'Delete forever'
+            : openItem?.title
+              ? openItem.title
+              : openNote
+                ? openNote.title.trim() || 'Untitled note'
+                : openDoc?.name
+ 
+    document.title = `${overlayTitle ?? sectionTitle} · Raj's Vault`
+  }, [
+    accountPanelOpen,
+    activeCategory?.name,
+    docUploadOpen,
+    editingCategory,
+    mainView,
+    openDoc?.name,
+    openItem?.title,
+    openNote,
+    purgeTarget,
+    shareToken,
+    vault.passwordRecovery,
+    vault.session,
+  ])
+ 
   const handleSignOut = () => {
     if (devPreview) {
       setDevPreview(false)
     }
     void vault.signOut()
   }
-
+ 
   // Shared link route — a self-contained read-only preview renderered ahead of the
   // normal session flow so unauthenticated visitors can view shared items.
   if (shareToken) {
@@ -460,50 +612,44 @@ export default function App() {
       />
     )
   }
-
+ 
   if (vault.checkingSession) {
+    const recoveryCallback = window.location.hash.includes('type=recovery')
+    const verificationCallback = new URLSearchParams(window.location.search).has('code')
     return (
-      <main className="relative flex min-h-screen items-center justify-center">
-        <Atmosphere variant="full" />
-        <div className="term-panel flex items-center gap-3 rounded px-5 py-3">
-          <span className="bg-ink/40 h-2 w-2 animate-pulse rounded-full" />
-          <span
-            className="bg-ink/40 h-2 w-2 animate-pulse rounded-full"
-            style={{ animationDelay: '0.15s' }}
-          />
-          <span
-            className="bg-ink/40 h-2 w-2 animate-pulse rounded-full"
-            style={{ animationDelay: '0.3s' }}
-          />
-          <p className="text-sm uppercase tracking-widest text-ink-soft">Preparing Raj&apos;s...</p>
-        </div>
-      </main>
+      <AccessionDocument
+        frame={`${recoveryCallback ? 'Reset password · 12' : verificationCallback ? 'Verify email · 11' : 'Sign in · 10'}`}
+        status="Loading"
+        folio={recoveryCallback ? 'Password reset' : verificationCallback ? 'Email verification' : 'Sign in'}
+        title={recoveryCallback ? 'Checking your reset link…' : verificationCallback ? 'Verifying your email…' : 'Checking your session…'}
+      >
+        <p className="accession-auth-copy" role="status" aria-live="polite">
+          Please wait.
+        </p>
+      </AccessionDocument>
     )
   }
-
+ 
   if (vault.passwordRecovery) {
-    return <UpdatePasswordScreen message={vault.message} onUpdatePassword={vault.updatePassword} />
+    return <UpdatePasswordScreen authState={vault.authState} onUpdatePassword={vault.updatePassword} />
   }
-
+ 
   if (!vault.session) {
-    if (showLanding) {
-      return <LandingPage onGetStarted={() => setShowLanding(false)} />
-    }
     return (
       <AuthScreen
-        message={vault.message}
+        authState={vault.authState}
+        configured={supabaseConfigured}
         onSignIn={vault.signIn}
         onSignUp={vault.signUp}
         onForgotPassword={vault.resetPassword}
+        onResendVerification={vault.resendVerificationEmail}
+        onResetState={() => vault.setAuthState({ kind: 'idle' })}
+        onReturnToCatalogue={onReturnToLanding}
         onPreview={() => setDevPreview(true)}
       />
     )
   }
-
-  const activeCategory = vault.categories.find(
-    (category) => category.id === vault.selectedCategoryId,
-  )
-
+ 
   const searchPlaceholder =
     mainView === 'notes'
       ? 'Search notes…'
@@ -511,120 +657,118 @@ export default function App() {
         ? 'Search documents…'
         : mainView === 'trash'
           ? 'Search trash…'
-          : activeCategory
-            ? `Search ${activeCategory.name}…`
-            : 'Search your vault…'
-
-  const searchMode: 'everything' | 'category' | 'notes' | 'documents' | 'trash' =
+          : mainView === 'favorites'
+            ? 'Search favorites…'
+            : activeCategory
+              ? `Search ${activeCategory.name}…`
+              : 'Search your vault…'
+ 
+  const searchMode: 'everything' | 'category' | 'favorites' | 'notes' | 'documents' | 'trash' =
     mainView === 'vault' ? (vault.selectedCategoryId ? 'category' : 'everything') : mainView
-
+  const searchScopeLabel = activeCategory?.name
+    ?? (searchMode === 'everything' ? 'All items' : `${searchMode[0].toUpperCase()}${searchMode.slice(1)}`)
+ 
   return (
-    <main className="relative min-h-screen pb-36">
-      {/* Quiet atmospheric archive canvas — content always dominant. */}
-      <HomeCanvas activeCategory={activeCategory} />
-      <FilmGrain />
-      <ScrollProgress />
-      <ProgressiveBlur side="bottom" height={140} />
-
-      <div className="mx-auto max-w-5xl px-5 pt-10 sm:px-10">
-        {/* -- ARCHIVE IDENTITY (compact editorial brandmark) ------------------- */}
-        <motion.header
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="relative"
-        >
+    <AuthenticatedShell activeCategory={activeCategory}>
+      <AuthenticatedPublication
+        identity={
           <ArchiveIdentity
             savedCount={vault.items.length}
             doneCount={vault.doneCount}
-            onSignOut={handleSignOut}
+            onOpenAccount={() => setAccountPanelOpen(true)}
             preview={devPreview}
           />
-        </motion.header>
-
-        <DynamicIsland
-          note={vault.message || null}
-          onDismiss={() => vault.setMessage('')}
-        />
-
-        {/* -- PRIMARY SEARCH (command surface) -------------------------------- */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: 'easeOut', delay: 0.06 }}
-          className="mt-8 sm:mt-10"
-        >
+        }
+        status={
+          <DynamicIsland
+            note={undoTarget ? `${undoTarget.name} moved to Recently Deleted.` : vault.message || null}
+            autoDismissMs={undoTarget ? 6000 : 2600}
+            onDismiss={() => {
+              if (undoTarget) setUndoTarget(null)
+              else vault.setMessage('')
+            }}
+            action={
+              undoTarget ? (
+                <button
+                  type="button"
+                  onClick={() => void handleUndoDelete()}
+                  className="border-l border-ink/15 pl-3 text-xs font-semibold text-accent hover:text-ink"
+                >
+                  Undo
+                </button>
+              ) : undefined
+            }
+          />
+        }
+        search={
           <CommandSearch
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder={searchPlaceholder}
           />
-        </motion.div>
-
+        }
+      >
         {activeQuery ? (
           <SearchResults
             query={activeQuery}
             mode={searchMode}
+            scopeLabel={searchScopeLabel}
             results={searchResults}
             categories={vault.categories}
             onOpenItem={(item) => handleOpenItem(item.id)}
             onToggleItem={(item) => void vault.toggleItem(item)}
-            onDeleteItem={(item) => void vault.deleteItem(item.id)}
+            onDeleteItem={(item) => void handleDeleteItem(item)}
+            onToggleFavoriteItem={handleToggleFavorite}
             onOpenNote={handleOpenNote}
-            onDeleteNote={(id) => void vault.deleteNote(id)}
+            onDeleteNote={(id) => void handleDeleteNote(id)}
             onOpenDoc={handleOpenDoc}
-            onDeleteDoc={docs.removeDocument}
+            onDeleteDoc={handleDeleteDocument}
             trashRows={filteredTrashRows}
             onRestoreTrashRow={handleRestoreTrashRow}
             onPurgeTrashRow={(row) =>
               setPurgeTarget({ kind: row.kind, id: row.id, name: row.name })
             }
+            onClear={() => setSearchQuery('')}
           />
         ) : mainView === 'vault' ? (
           <>
             {/* -- ARCHIVE OBJECTS (editorial asymmetric collection) ------------ */}
-            <section className="mt-10" aria-label={activeCategory ? activeCategory.name : 'Everything'}>
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="h-3 w-0.5 shrink-0"
-                    style={{ background: activeCategory?.color ?? 'var(--color-accent)', opacity: 0.5 }}
-                    aria-hidden="true"
-                  />
-                  <h2 className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-ink/70">
-                    {activeCategory ? activeCategory.name : 'Everything'}
-                  </h2>
+            <VaultSection
+              className="mt-10"
+              label={activeCategory ? activeCategory.name : 'All items'}
+              folio="01"
+              title={activeCategory ? activeCategory.name : 'All items'}
+              right={
+                <div className="flex items-center gap-2" data-tour="sort">
+                  <span className="vault-meta text-ink-soft/35">
+                    {vault.selectedItems.length} {vault.selectedItems.length === 1 ? 'item' : 'items'}
+                  </span>
+                  <SortMenu value={itemSortKey} options={ITEM_SORT_OPTIONS} onChange={setItemSortKey} />
                 </div>
-                <span className="vault-meta text-ink-soft/35">
-                  {vault.selectedItems.length} {vault.selectedItems.length === 1 ? 'object' : 'objects'}
-                </span>
-              </div>
+              }
+            >
               <ArchiveObjects
-                items={vault.selectedItems}
+                items={sortItems(vault.selectedItems, itemSortKey)}
                 categories={vault.categories}
                 showCategory={!vault.selectedCategoryId}
                 onOpen={(item) => handleOpenItem(item.id)}
                 onToggle={(item) => void vault.toggleItem(item)}
-                onDelete={(item) => void vault.deleteItem(item.id)}
+                onDelete={(item) => void handleDeleteItem(item)}
+                onToggleFavorite={handleToggleFavorite}
               />
-            </section>
-
+            </VaultSection>
+ 
             {/* -- ARCHIVE DIRECTORY (numbered index) --------------------------- */}
-            <section className="mt-12" aria-label="Archive directory">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="h-3 w-0.5 shrink-0 bg-ink/15"
-                    aria-hidden="true"
-                  />
-                  <h2 className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-ink/70">
-                    Archive Directory
-                  </h2>
-                </div>
+            <VaultSection
+              label="Categories"
+              folio="02"
+              title="Categories"
+              right={
                 <span className="vault-meta text-ink-soft/35">
-                  {vault.loadingData && vault.categories.length === 0 ? 'Syncing…' : `${vault.categories.length} sections`}
+                  {vault.loadingData && vault.categories.length === 0 ? 'Syncing…' : `${vault.categories.length} categories`}
                 </span>
-              </div>
+              }
+            >
               {vault.loadingData && vault.categories.length === 0 ? (
                 <div className="space-y-0 pt-1" aria-hidden="true">
                   {[0, 1, 2].map((key) => (
@@ -646,8 +790,28 @@ export default function App() {
                   onEdit={(category) => setEditingCategoryId(category.id)}
                 />
               )}
-            </section>
+            </VaultSection>
           </>
+        ) : mainView === 'favorites' ? (
+          <VaultSection
+            className="mt-10"
+            label="Favorites"
+            folio="01"
+            title="Favorites"
+            right={<SortMenu value={itemSortKey} options={ITEM_SORT_OPTIONS} onChange={setItemSortKey} />}
+          >
+            <ArchiveObjects
+              items={sortItems(vault.items.filter(isFavorite), itemSortKey)}
+              categories={vault.categories}
+              showCategory
+              emptyTitle="No favorites yet"
+              emptyDescription="Mark an item as a favorite to keep it close at hand."
+              onOpen={(item) => handleOpenItem(item.id)}
+              onToggle={(item) => void vault.toggleItem(item)}
+              onDelete={(item) => void handleDeleteItem(item)}
+              onToggleFavorite={handleToggleFavorite}
+            />
+          </VaultSection>
         ) : mainView === 'trash' ? (
           <TrashPanel
             items={vault.trashedItems}
@@ -672,29 +836,29 @@ export default function App() {
             }
           />
         ) : mainView === 'notes' ? (
-          <Suspense fallback={null}>
+          <Suspense fallback={<VaultSkeleton className="mt-10" aria-label="Loading notes" />}>
             <NotesPanel
               notes={vault.notes}
               onAddNote={vault.addNote}
               onOpenNote={handleOpenNote}
-              onDeleteNote={(id) => void vault.deleteNote(id)}
+              onDeleteNote={(id) => void handleDeleteNote(id)}
             />
           </Suspense>
         ) : (
-          <Suspense fallback={null}>
+          <Suspense fallback={<VaultSkeleton className="mt-10" aria-label="Loading documents" />}>
             <DocumentsPanel
               documents={docs.documents}
               loading={docs.loading}
               message={docs.message}
               onOpenDoc={handleOpenDoc}
               onOpenUploader={() => setDocUploadOpen(true)}
-              onDelete={docs.removeDocument}
+              onDelete={handleDeleteDocument}
               onDismissMessage={() => docs.setMessage('')}
             />
           </Suspense>
         )}
-      </div>
-
+      </AuthenticatedPublication>
+ 
       <FloatingNav
         categories={vault.categories}
         selectedCategoryId={vault.selectedCategoryId}
@@ -706,10 +870,12 @@ export default function App() {
         onSelectNotes={() => goToSection('notes')}
         docsActive={mainView === 'documents'}
         onSelectDocs={() => goToSection('documents')}
+        favoritesActive={mainView === 'favorites'}
+        onSelectFavorites={() => goToSection('favorites')}
         trashActive={mainView === 'trash'}
         onSelectTrash={() => goToSection('trash')}
       />
-
+ 
       {mainView !== 'trash' ? (
         <CaptureFab
           categories={vault.categories}
@@ -724,7 +890,7 @@ export default function App() {
           onViewExistingItem={(id) => handleOpenItem(id)}
         />
       ) : null}
-
+ 
       <Suspense fallback={null}>
         <DocumentUploader
           open={docUploadOpen}
@@ -738,7 +904,7 @@ export default function App() {
           }}
         />
       </Suspense>
-
+ 
       <ConfirmDialog
         open={!!purgeTarget}
         title="Delete forever?"
@@ -772,7 +938,7 @@ export default function App() {
           })()
         }
       />
-
+ 
       <Suspense fallback={null}>
         <ItemDetailOverlay
           item={openItem}
@@ -780,15 +946,11 @@ export default function App() {
           category={vault.categories.find((category) => category.id === openItem?.category_id)}
           onClose={handleDismissOverlay}
           onToggle={(item) => void vault.toggleItem(item)}
-          onDelete={async (id) => {
-            const ok = await vault.deleteItem(id)
-            if (ok) {
-              handleDismissOverlay()
-            }
-          }}
+          onToggleFavorite={handleToggleFavorite}
+          onDelete={handleDeleteItemById}
           onUpdate={(itemId, input) => void vault.updateItem(itemId, input)}
         />
-
+ 
         <CategoryEditor
           key={editingCategoryId ?? 'none'}
           category={editingCategory}
@@ -797,13 +959,13 @@ export default function App() {
             void vault.updateCategory(id, name, icon, color, fields)
           }
         />
-
+ 
         <NoteDetailOverlay
           note={openNote}
           onClose={handleDismissOverlay}
           onDelete={async () => {
             if (openNote) {
-              const ok = await vault.deleteNote(openNote.id)
+              const ok = await handleDeleteNote(openNote.id)
               if (ok) {
                 handleDismissOverlay()
               }
@@ -815,14 +977,27 @@ export default function App() {
             }
           }}
         />
-
+ 
         <DocumentViewer
           doc={openDoc}
           onClose={handleDismissOverlay}
-          onDelete={docs.removeDocument}
+          onDelete={handleDeleteDocument}
           onUpdate={docs.updateDocument}
         />
+ 
+        <AccountPanel
+          open={accountPanelOpen}
+          onClose={() => setAccountPanelOpen(false)}
+          session={vault.session}
+          preview={devPreview}
+          onUpdateDisplayName={vault.updateDisplayName}
+          onResetPassword={vault.resetPassword}
+          onSignOut={handleSignOut}
+          onReplayTour={onboardingTour.restart}
+        />
       </Suspense>
-    </main>
+ 
+      <OnboardingTour active={onboardingTour.active} onFinish={onboardingTour.finish} />
+    </AuthenticatedShell>
   );
 }

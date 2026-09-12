@@ -32,7 +32,7 @@ export function NoteCard({ note, index, matchFields, onClick, onDelete }: NoteCa
       whileTap={{ scale: 0.98 }}
       style={{ transformPerspective: 800 }}
       onClick={onClick}
-      className="term-panel term-brackets relative flex flex-col justify-between overflow-hidden rounded p-4 sm:p-5 text-left cursor-pointer group"
+      className="vault-surface vault-brackets relative flex flex-col justify-between overflow-hidden rounded p-4 sm:p-5 text-left cursor-pointer group"
     >
       {allDone && (
         <span className="border-accent text-accent pointer-events-none absolute right-3 top-3 -rotate-12 rounded-sm border-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] opacity-90">
@@ -83,7 +83,7 @@ export function NoteCard({ note, index, matchFields, onClick, onDelete }: NoteCa
             event.stopPropagation()
             onDelete()
           }}
-          className="term-chip reveal-on-hover rounded-full p-1 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="vault-chip reveal-on-hover rounded-full p-1 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
           title="Delete note"
         >
           <Trash2 size={12} />

@@ -1,5 +1,6 @@
 import type { Category, Note, VaultDocument, VaultItem } from '../types/app'
-
+import { isFavorite } from './ratings'
+ 
 // ---------------------------------------------------------------------------
 // Vault-wide text search.
 //
@@ -8,39 +9,40 @@ import type { Category, Note, VaultDocument, VaultItem } from '../types/app'
 // loaded items/notes/documents. Text is normalized before matching so casing,
 // leading/trailing whitespace and formatting don't cause false negatives.
 // ---------------------------------------------------------------------------
-
+ 
 export type ItemFieldHit = { label: string; value: string }
-
+ 
 export type ItemSearchHit = {
   item: VaultItem
   category: Category | null
   /** The fields that actually matched the query (for display on the card). */
   fields: ItemFieldHit[]
 }
-
+ 
 export type NoteSearchHit = {
   note: Note
   fields: ItemFieldHit[]
 }
-
+ 
 export type VaultSearchResults = {
   items: ItemSearchHit[]
   notes: NoteSearchHit[]
   documents: VaultDocument[]
 }
-
+ 
 /** The current section determines scope automatically — no manual dropdown. */
 export type SearchScope =
   | { kind: 'everything' }
   | { kind: 'category'; categoryId: string }
+  | { kind: 'favorites' }
   | { kind: 'notes' }
   | { kind: 'documents' }
   | { kind: 'trash' }
-
+ 
 /** Fields whose values are always visible on the card already; they stay searchable
  * but are never duplicated as a "match" line on a result card. */
 const HIDDEN_DISPLAY_LABELS = ['Title', 'Category']
-
+ 
 /** Safely coerces any stored value (string/number/boolean/nested object) to text
  * without ever throwing — item metadata is user-shaped so we defend defensively. */
 function searchableValue(value: unknown): string {
@@ -57,7 +59,7 @@ function searchableValue(value: unknown): string {
   }
   return String(value)
 }
-
+ 
 /** Canonical form for comparison: NFKC-normalized, lowercased, whitespace collapsed. */
 export function normalizeText(value: unknown): string {
   return searchableValue(value)
@@ -66,11 +68,11 @@ export function normalizeText(value: unknown): string {
     .replace(/\s+/g, ' ')
     .trim()
 }
-
+ 
 function queryTokens(query: string): string[] {
   return normalizeText(query).split(' ').filter(Boolean)
 }
-
+ 
 /** All query tokens must appear somewhere in the combined field text (partial matches
  * and multi-word queries like "Electronic City" both work). */
 function matches(fields: ItemFieldHit[], query: string): boolean {
@@ -79,7 +81,7 @@ function matches(fields: ItemFieldHit[], query: string): boolean {
   const haystack = fields.map((field) => normalizeText(field.value)).join(' ')
   return tokens.every((token) => haystack.includes(token))
 }
-
+ 
 /** Which fields visibly matched, limited to a couple so result cards stay compact. */
 function matchedFields(fields: ItemFieldHit[], query: string): ItemFieldHit[] {
   const tokens = queryTokens(query)
@@ -91,7 +93,7 @@ function matchedFields(fields: ItemFieldHit[], query: string): ItemFieldHit[] {
     )
     .slice(0, 2)
 }
-
+ 
 function itemFields(item: VaultItem, category: Category | null): ItemFieldHit[] {
   const fields: ItemFieldHit[] = [
     { label: 'Title', value: item.title },
@@ -110,7 +112,7 @@ function itemFields(item: VaultItem, category: Category | null): ItemFieldHit[] 
   if (item.notes) fields.push({ label: 'Notes', value: item.notes })
   return fields
 }
-
+ 
 function noteFields(note: Note): ItemFieldHit[] {
   const fields: ItemFieldHit[] = [{ label: 'Title', value: note.title }]
   if (note.body) fields.push({ label: 'Content', value: note.body })
@@ -121,7 +123,7 @@ function noteFields(note: Note): ItemFieldHit[] {
   }
   return fields
 }
-
+ 
 function documentFields(doc: VaultDocument): ItemFieldHit[] {
   return [
     { label: 'Name', value: doc.name },
@@ -129,7 +131,7 @@ function documentFields(doc: VaultDocument): ItemFieldHit[] {
     { label: 'Type', value: doc.mime_type },
   ]
 }
-
+ 
 export function searchItems(
   items: VaultItem[],
   categories: Category[],
@@ -146,7 +148,7 @@ export function searchItems(
   }
   return results
 }
-
+ 
 export function searchNotes(notes: Note[], query: string): NoteSearchHit[] {
   const results: NoteSearchHit[] = []
   for (const note of notes) {
@@ -157,11 +159,11 @@ export function searchNotes(notes: Note[], query: string): NoteSearchHit[] {
   }
   return results
 }
-
+ 
 export function searchDocuments(documents: VaultDocument[], query: string): VaultDocument[] {
   return documents.filter((doc) => matches(documentFields(doc), query))
 }
-
+ 
 export function searchVault(params: {
   query: string
   scope: SearchScope
@@ -176,17 +178,17 @@ export function searchVault(params: {
 }): VaultSearchResults {
   const empty: VaultSearchResults = { items: [], notes: [], documents: [] }
   if (!normalizeText(params.query)) return empty
-
+ 
   const { query, scope } = params
-
+ 
   if (scope.kind === 'notes') {
     return { items: [], notes: searchNotes(params.notes, query), documents: [] }
   }
-
+ 
   if (scope.kind === 'documents') {
     return { items: [], notes: [], documents: searchDocuments(params.documents, query) }
   }
-
+ 
   if (scope.kind === 'trash') {
     return {
       items: searchItems(params.trashedItems ?? [], params.categories, query),
@@ -194,16 +196,19 @@ export function searchVault(params: {
       documents: searchDocuments(params.trashedDocuments ?? [], query),
     }
   }
-
+ 
   const itemSource =
     scope.kind === 'category'
       ? params.items.filter((item) => item.category_id === scope.categoryId)
-      : params.items
-
+      : scope.kind === 'favorites'
+        ? params.items.filter((item) => isFavorite(item))
+        : params.items
+ 
   const items = searchItems(itemSource, params.categories, query)
   const notes = scope.kind === 'everything' ? searchNotes(params.notes, query) : []
   const documents =
     scope.kind === 'everything' ? searchDocuments(params.documents, query) : []
-
+ 
   return { items, notes, documents }
 }
+ 

@@ -65,7 +65,10 @@ export function CommandSearch({ value, onChange, placeholder }: CommandSearchPro
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onKeyDown={(event) => {
-            if (event.key === 'Escape') onChange('')
+            if (event.key === 'Escape' && hasText) {
+              event.preventDefault()
+              onChange('')
+            }
           }}
           placeholder={focused ? 'Search across your entire archive…' : placeholder}
           aria-label="Search"
@@ -78,7 +81,11 @@ export function CommandSearch({ value, onChange, placeholder }: CommandSearchPro
         {/* Clear button — fades in with text */}
         <motion.button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onChange('') }}
+          onClick={(event) => {
+            event.stopPropagation()
+            onChange('')
+            focusInput()
+          }}
           aria-label="Clear search"
           aria-hidden={!hasText}
           tabIndex={hasText ? 0 : -1}

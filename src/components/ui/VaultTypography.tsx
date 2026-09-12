@@ -20,35 +20,3 @@ export function VaultHeading({ as: Component = 'h2', folio, className, children,
   )
 }
 
-/**
- * VaultLabel — small semibold label for forms/fields.
- */
-export function VaultLabel({
-  as: Component = 'label',
-  className,
-  ...rest
-}: HTMLAttributes<HTMLElement> & { as?: ElementType }) {
-  return <Component className={cn('vault-label', className)} {...rest} />
-}
-
-/**
- * VaultMeta — compact muted secondary/metadata text.
- */
-export function VaultMeta({
-  as: Component = 'span',
-  className,
-  ...rest
-}: HTMLAttributes<HTMLElement> & { as?: ElementType }) {
-  return <Component className={cn('vault-meta', className)} {...rest} />
-}
-
-/**
- * VaultBody — default body copy (Inter).
- */
-export function VaultBody({
-  as: Component = 'p',
-  className,
-  ...rest
-}: HTMLAttributes<HTMLElement> & { as?: ElementType }) {
-  return <Component className={cn('vault-body', className)} {...rest} />
-}

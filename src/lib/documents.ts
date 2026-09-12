@@ -13,27 +13,27 @@
  *  - Signed URL TTL is kept short (60 s for preview & download).
  *  - User identity is derived from the authenticated Supabase session.
  */
-
-import { supabase } from './supabase'
+ 
+import { supabase } from '../../supabase'
 import { DOCUMENT_CATEGORIES } from '../types/app'
 import type { DocumentCategory, VaultDocument } from '../types/app'
-
+ 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
+ 
 export const DOC_BUCKET = 'vault-documents'
-
+ 
 /** 25 MB — matches schema CHECK constraint and Supabase bucket config. */
 export const MAX_DOC_BYTES = 25 * 1024 * 1024
-
+ 
 export const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'image/jpeg',
   'image/png',
   'image/webp',
 ] as const
-
+ 
 /** Human-readable labels for validation messages. */
 const MIME_LABELS: Record<string, string> = {
   'application/pdf': 'PDF',
@@ -41,11 +41,11 @@ const MIME_LABELS: Record<string, string> = {
   'image/png': 'PNG',
   'image/webp': 'WebP',
 }
-
+ 
 // ---------------------------------------------------------------------------
 // Validation
 // ---------------------------------------------------------------------------
-
+ 
 /**
  * Returns a human-readable error string if the file is invalid, or null if OK.
  * Checks both MIME type and size — does NOT rely on the filename extension.
@@ -64,11 +64,11 @@ export function validateDocumentFile(file: File): string | null {
   }
   return null
 }
-
+ 
 // ---------------------------------------------------------------------------
 // Sanitization
 // ---------------------------------------------------------------------------
-
+ 
 /**
  * Strip path separators and control characters so a filename cannot escape its
  * intended folder. Collapses runs of unsafe chars to a single underscore.
@@ -82,22 +82,22 @@ export function sanitizeFilename(raw: string): string {
     .slice(0, 100)                    // cap length
     || 'file'
 }
-
+ 
 // ---------------------------------------------------------------------------
 // CRUD helpers
 // ---------------------------------------------------------------------------
-
+ 
 /** Fetch all documents for the authenticated user (metadata only — RLS enforces isolation). */
 export async function listDocuments(): Promise<VaultDocument[]> {
   const { data, error } = await supabase
     .from('documents')
     .select('*')
     .order('created_at', { ascending: false })
-
+ 
   if (error) throw error
   return (data as VaultDocument[]) ?? []
 }
-
+ 
 /**
  * Upload a document to private storage and insert the DB row.
  * User ID is derived from the authenticated Supabase session.
@@ -117,13 +117,13 @@ export async function uploadDocument(
     throw new Error('You must be signed in to upload documents.')
   }
   const userId = user.id
-
+ 
   const validationError = validateDocumentFile(file)
   if (validationError) throw new Error(validationError)
-
+ 
   const trimmedName = name.trim()
   if (!trimmedName) throw new Error('Document name is required.')
-
+ 
   // Build safe storage path: <user_id>/<document_id>/<safe_filename>
   const docId = crypto.randomUUID()
   const ext = file.name.includes('.')
@@ -135,7 +135,7 @@ export async function uploadDocument(
   const safeBase = sanitizeFilename(rawBase)
   const safeFilename = ext ? `${safeBase}.${ext}` : safeBase
   const storagePath = `${userId}/${docId}/${safeFilename}`
-
+ 
   // 1. Upload file to private Storage.
   const { error: uploadError } = await supabase.storage
     .from(DOC_BUCKET)
@@ -144,11 +144,11 @@ export async function uploadDocument(
       upsert: false,
       contentType: file.type,
     })
-
+ 
   if (uploadError) {
     throw new Error(`Upload failed: ${uploadError.message}`)
   }
-
+ 
   // 2. Insert the metadata row.
   const { data, error: dbError } = await supabase
     .from('documents')
@@ -163,16 +163,16 @@ export async function uploadDocument(
     })
     .select('*')
     .single()
-
+ 
   if (dbError) {
     // Orphan prevention: remove uploaded storage object if DB insert fails
     await supabase.storage.from(DOC_BUCKET).remove([storagePath]).catch(() => {})
     throw new Error(`Failed to save document record: ${dbError.message}`)
   }
-
+ 
   return data as VaultDocument
 }
-
+ 
 /**
  * Generate a short-lived signed URL for authenticated document access.
  *
@@ -188,14 +188,14 @@ export async function getSignedUrl(
   const { data, error } = await supabase.storage
     .from(DOC_BUCKET)
     .createSignedUrl(storagePath, expiresIn)
-
+ 
   if (error || !data?.signedUrl) {
     throw new Error(`Could not generate secure access URL: ${error?.message ?? 'Unknown error'}`)
   }
-
+ 
   return data.signedUrl
 }
-
+ 
 /**
  * Update ONLY the user-facing metadata of a document (name + category).
  *
@@ -220,19 +220,19 @@ export async function updateDocumentMetadata(
   if (!(DOCUMENT_CATEGORIES as readonly string[]).includes(category)) {
     throw new Error('Please choose a valid category.')
   }
-
+ 
   const { data, error } = await supabase
     .from('documents')
     .update({ name: trimmedName, category })
     .eq('id', doc.id)
     .select()
     .single()
-
+ 
   if (error) throw new Error(`Failed to save changes: ${error.message}`)
-
+ 
   return data as VaultDocument
 }
-
+ 
 /**
  * Delete a document completely: Storage object first, then the DB row.
  *
@@ -247,20 +247,22 @@ export async function deleteDocument(doc: VaultDocument): Promise<void> {
   const { error: storageError } = await supabase.storage
     .from(DOC_BUCKET)
     .remove([doc.storage_path])
-
+ 
   if (storageError) {
     throw new Error(`Could not delete document file from storage: ${storageError.message}. The record was kept so you can retry.`)
   }
-
+ 
   // 2. Delete DB row.
   const { error: dbError } = await supabase
     .from('documents')
     .delete()
     .eq('id', doc.id)
-
+ 
   if (dbError) {
     throw new Error(
       `Document file was removed from storage, but deleting the record failed: ${dbError.message}. Please retry to clear the record.`,
     )
   }
 }
+ 
+ 

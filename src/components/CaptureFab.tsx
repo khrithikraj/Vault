@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion, useMotionValue, useSpring } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Camera, CheckCircle2, CopyX, Eye } from 'lucide-react'
 import { fallbackFieldSchema, getErrorMessage } from '../lib/fields'
 import { buildScreenshotAutofill, extractScreenshotText, type ScreenshotExtraction } from '../lib/screenshotAutofill'
 import { findItemDuplicates } from '../lib/duplicates'
 import { BrandIcon, CategoryIcon } from '../lib/icons'
-import { BorderTrail } from './BorderTrail'
 import { AddMenu } from './AddMenu'
+import { layers } from '../design/layers'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
+import { VaultDialog } from './ui/VaultDialog'
 import type { Category, FieldDefinition, VaultItem } from '../types/app'
 
 type CapturQuickAdd = 'choose' | 'item' | 'note' | 'document'
@@ -38,8 +39,8 @@ type CaptureFabProps = {
 
 type Stage = 'category' | 'photo' | 'fields' | 'review'
 
-const GHOST_OFFSET = 16
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024
+const CAPTURE_DRAFT_KEY = 'vault:captureDraft'
 
 function validatePhotoFile(file: File): string | null {
   if (!file.type.startsWith('image/')) {
@@ -86,6 +87,7 @@ export function CaptureFab({
   const [stepIndex, setStepIndex] = useState(0)
   const [direction, setDirection] = useState(1)
   const [values, setValues] = useState<Record<string, string>>({})
+  const [fieldError, setFieldError] = useState('')
   const [shakeToken, setShakeToken] = useState(0)
   const [cameFromReview, setCameFromReview] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
@@ -98,34 +100,28 @@ export function CaptureFab({
   const [ocrExtraction, setOcrExtraction] = useState<ScreenshotExtraction | null>(null)
   const [autofillSummary, setAutofillSummary] = useState<{ matchedFields: string[]; confidence: number } | null>(null)
   const [showFullExtraction, setShowFullExtraction] = useState(false)
-  const [ghost, setGhost] = useState<{
-    id: number
-    fromX: number
-    fromY: number
-    toX: number
-    toY: number
-    icon: string
-    color: string
-  } | null>(null)
   const reducedMotion = usePrefersReducedMotion()
 
   const fabRef = useRef<HTMLButtonElement>(null)
-  const saveButtonRef = useRef<HTMLButtonElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
   /** When the FAB is tapped for a known category, skip the category picker stage.
    *  Share-target launches reset it so the user still confirms the target. */
   const skipCategoryLaunchRef = useRef(false)
-  const magnetX = useMotionValue(0)
-  const magnetY = useMotionValue(0)
-  const springX = useSpring(magnetX, { stiffness: 200, damping: 14 })
-  const springY = useSpring(magnetY, { stiffness: 200, damping: 14 })
   const appliedAutofillKey = useRef('')
 
   useEffect(() => {
     if (!open) {
       return
     }
-    setValues({})
+    let draft: { categoryId?: string; values?: Record<string, string> } | null = null
+    try {
+      draft = JSON.parse(window.sessionStorage.getItem(CAPTURE_DRAFT_KEY) ?? 'null')
+    } catch {
+      window.sessionStorage.removeItem(CAPTURE_DRAFT_KEY)
+    }
+    const draftCategory = categories.find((category) => category.id === draft?.categoryId)
+    setValues(draftCategory && !initialPhotoFile ? draft?.values ?? {} : {})
+    setFieldError('')
     setStepIndex(0)
     setDirection(1)
     clearPhoto()
@@ -138,9 +134,9 @@ export function CaptureFab({
         setPhotoPreview(URL.createObjectURL(initialPhotoFile))
       }
     }
-    setCategoryId(defaultCategoryId ?? '')
+    setCategoryId(draftCategory && !initialPhotoFile ? draftCategory.id : defaultCategoryId ?? '')
     const skipCategory = skipCategoryLaunchRef.current && !!defaultCategoryId
-    setStage(skipCategory ? 'photo' : 'category')
+    setStage(draftCategory && !initialPhotoFile ? 'fields' : skipCategory ? 'photo' : 'category')
     skipCategoryLaunchRef.current = false
     setOcrStatus('idle')
     setOcrError(null)
@@ -152,17 +148,9 @@ export function CaptureFab({
   }, [open])
 
   useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [open])
+    if (!open || (!categoryId && Object.keys(values).length === 0)) return
+    window.sessionStorage.setItem(CAPTURE_DRAFT_KEY, JSON.stringify({ categoryId, values }))
+  }, [categoryId, open, values])
 
   // A fresh share-target photo forces the wizard open, even if it's currently closed.
   useEffect(() => {
@@ -241,20 +229,6 @@ export function CaptureFab({
     setDuplicateAcknowledged(false)
   }, [categoryId, values])
 
-  const handleMagnetMove = (event: React.MouseEvent<HTMLButtonElement>) => {
-    const bounds = fabRef.current?.getBoundingClientRect()
-    if (!bounds) return
-    const cx = bounds.left + bounds.width / 2
-    const cy = bounds.top + bounds.height / 2
-    magnetX.set((event.clientX - cx) * 0.35)
-    magnetY.set((event.clientY - cy) * 0.35)
-  }
-
-  const resetMagnet = () => {
-    magnetX.set(0)
-    magnetY.set(0)
-  }
-
   const chooseCategory = (id: string) => {
     setCategoryId(id)
     setStepIndex(0)
@@ -264,6 +238,7 @@ export function CaptureFab({
   }
 
   const setFieldValue = (key: string, value: string) => {
+    setFieldError('')
     setValues((current) => ({ ...current, [key]: value }))
   }
 
@@ -310,9 +285,11 @@ export function CaptureFab({
   const goNext = () => {
     const field = fields[stepIndex]
     if (field.required && !values[field.key]?.trim()) {
+      setFieldError(`${field.label} is required.`)
       setShakeToken((token) => token + 1)
       return
     }
+    setFieldError('')
     // If we jumped here from the review screen, go straight back to review
     if (cameFromReview) {
       setCameFromReview(false)
@@ -398,60 +375,72 @@ export function CaptureFab({
     }
 
     onSubmit({ categoryId, values, imageFile: photoFile })
-
-    const startEl = saveButtonRef.current
-    const endEl = document.querySelector(`[data-dock-item="${categoryId}"]`) as HTMLElement | null
-    if (startEl) {
-      const startRect = startEl.getBoundingClientRect()
-      const endRect = endEl?.getBoundingClientRect()
-      const from = { x: startRect.left + startRect.width / 2, y: startRect.top + startRect.height / 2 }
-      const to = endRect
-        ? { x: endRect.left + endRect.width / 2, y: endRect.top + endRect.height / 2 }
-        : { x: window.innerWidth - 48, y: window.innerHeight - 96 }
-
-      setGhost({
-        id: Date.now(),
-        fromX: from.x - GHOST_OFFSET,
-        fromY: from.y - GHOST_OFFSET,
-        toX: to.x - GHOST_OFFSET,
-        toY: to.y - GHOST_OFFSET,
-        icon: activeCategory?.icon ?? '✨',
-        color: activeCategory?.color ?? '#dc5000',
-      })
-    }
-
+    window.sessionStorage.removeItem(CAPTURE_DRAFT_KEY)
     onSaved?.(categoryId)
     setJustSaved(true)
     setTimeout(() => {
       setJustSaved(false)
       setOpen(false)
-    }, 750)
+    }, 450)
+  }
+
+  const totalSteps = fields.length + 3
+  const currentStep =
+    stage === 'category'
+      ? 1
+      : stage === 'photo'
+        ? 2
+        : stage === 'fields'
+          ? stepIndex + 3
+          : totalSteps
+  const progress = Math.round((currentStep / totalSteps) * 100)
+
+  const closeMenu = () => {
+    setMenuOpen(false)
+    window.requestAnimationFrame(() => fabRef.current?.focus())
   }
 
   return (
     <>
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setOpen(false)}
-          >
-            <motion.div
-              initial={{ y: 60, rotateX: -18, opacity: 0 }}
-              animate={{ y: 0, rotateX: 0, opacity: 1 }}
-              exit={{ y: 60, rotateX: -18, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 280, damping: 30 }}
-              style={{ transformPerspective: 900, transformOrigin: 'bottom' }}
-              onClick={(event) => event.stopPropagation()}
-              className="term-panel term-brackets relative flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-t p-6 sm:rounded sm:p-7"
-            >
-              <BorderTrail color="rgba(220,80,0,0.85)" size={90} duration={6} />
-              <div className="bg-ink/25 mx-auto mb-4 h-1.5 w-12 rounded-full sm:hidden" />
-
-              <div className="term-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pb-8 pr-1">
+      <VaultDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Add item"
+        showClose
+        closeLabel="Cancel item"
+        variant="sheet"
+        backdropOpacity={0.7}
+        className="mb-0 mt-auto max-w-lg !p-0 sm:my-auto sm:!p-4"
+        surfaceClassName="flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden rounded-t sm:rounded"
+        bodyClassName="flex min-h-0 flex-1 flex-col p-6 sm:p-7"
+        returnFocusRef={fabRef}
+      >
+              {!justSaved ? (
+                <div className="mb-5 border-b border-ink/10 pb-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="vault-meta text-[var(--accession-text-muted)]">
+                      Step {currentStep} of {totalSteps}
+                    </span>
+                    <span className="text-xs text-ink-soft/70">
+                      {Object.keys(values).length > 0 ? 'Draft kept in this tab' : `${progress}%`}
+                    </span>
+                  </div>
+                  <div
+                    className="mt-2 h-px bg-ink/10"
+                    role="progressbar"
+                    aria-label="Add item progress"
+                    aria-valuemin={1}
+                    aria-valuemax={totalSteps}
+                    aria-valuenow={currentStep}
+                  >
+                    <div
+                      className="h-px bg-accent transition-[width] duration-200"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+              <div className="vault-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pb-8 pr-1">
                 <AnimatePresence mode="wait">
                   {justSaved ? (
                     <motion.div
@@ -461,16 +450,11 @@ export function CaptureFab({
                       exit={{ opacity: 0 }}
                       className="flex flex-col items-center justify-center gap-3 py-10"
                     >
-                      <motion.span
-                        initial={{ scale: 0, rotate: -30 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 16 }}
-                        className="bg-ink text-cloud flex h-16 w-16 items-center justify-center rounded-full"
-                      >
+                      <span className="bg-ink text-cloud flex h-16 w-16 items-center justify-center rounded-full">
                         <CheckCircle2 size={32} />
-                      </motion.span>
+                      </span>
                       <p className="text-sm font-medium uppercase tracking-widest text-ink-soft">
-                        Flying into your vault…
+                        Saved to your vault
                       </p>
                     </motion.div>
                   ) : stage === 'category' ? (
@@ -503,7 +487,7 @@ export function CaptureFab({
                               }}
                               whileHover={{ scale: 1.05, y: -3 }}
                               whileTap={{ scale: 0.95 }}
-                              className={`term-panel-soft flex flex-col items-center gap-1.5 rounded p-4 transition-colors ${
+                              className={`vault-surface-soft flex flex-col items-center gap-1.5 rounded p-4 transition-colors ${
                                 categoryId === category.id ? 'border border-ink bg-cloud/80' : ''
                               }`}
                             >
@@ -527,7 +511,7 @@ export function CaptureFab({
                         type="button"
                         onClick={() => categoryId && setStage('photo')}
                         disabled={!categoryId}
-                        className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
+                        className="vault-btn-solid mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Continue to screenshot →
                       </motion.button>
@@ -569,7 +553,7 @@ export function CaptureFab({
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => photoInputRef.current?.click()}
-                          className="term-panel-soft border-ink/30 mt-5 flex h-48 w-full flex-col items-center justify-center gap-2 rounded border-dashed"
+                          className="vault-surface-soft border-ink/30 mt-5 flex h-48 w-full flex-col items-center justify-center gap-2 rounded border-dashed"
                         >
                           <BrandIcon icon={Camera} size={30} />
 <span className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
@@ -652,7 +636,7 @@ export function CaptureFab({
                         whileTap={{ scale: 0.98 }}
                         type="button"
                         onClick={() => setStage('fields')}
-                        className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
+                        className="vault-btn-solid mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
                       >
                         {photoFile ? 'Continue →' : 'Skip →'}
                       </motion.button>
@@ -722,7 +706,7 @@ export function CaptureFab({
                                     setFieldValue(fields[stepIndex].key, event.target.value)
                                   }
                                   rows={3}
-                                  className="term-input w-full rounded-none px-4 py-3 text-lg text-ink"
+                                  className="vault-input w-full rounded-none px-4 py-3 text-lg text-ink"
                                 />
                               ) : (
                                 <div className="relative">
@@ -738,13 +722,20 @@ export function CaptureFab({
                                       setFieldValue(fields[stepIndex].key, event.target.value)
                                     }
                                     type={fieldInputType(fields[stepIndex].type)}
-                                    className={`term-input w-full rounded-none py-3 text-lg text-ink ${
+                                    aria-invalid={fieldError ? true : undefined}
+                                    aria-describedby={fieldError ? 'capture-field-error' : undefined}
+                                    className={`vault-input w-full rounded-none py-3 text-lg text-ink ${
                                       fields[stepIndex].type === 'currency' ? 'pl-9 pr-4' : 'px-4'
                                     }`}
                                   />
                                 </div>
                               )}
                             </div>
+                            {fieldError ? (
+                              <p id="capture-field-error" role="alert" className="mt-2 text-sm text-red-400">
+                                {fieldError}
+                              </p>
+                            ) : null}
                           </motion.div>
                         </motion.div>
                       </AnimatePresence>
@@ -753,7 +744,7 @@ export function CaptureFab({
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         type="submit"
-                        className="term-btn-primary mt-8 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
+                        className="vault-btn-solid mt-8 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
                       >
                         {stepIndex === fields.length - 1 ? 'Review →' : 'Continue →'}
                       </motion.button>
@@ -856,7 +847,7 @@ export function CaptureFab({
                                   </button>
                                 ) : null}
                               </div>
-                              <div className="term-scrollbar mt-2 max-h-56 overflow-y-auto overflow-x-hidden pb-4 pr-1 font-mono text-[13px] leading-6 text-ink-soft">
+                              <div className="vault-scrollbar mt-2 max-h-56 overflow-y-auto overflow-x-hidden pb-4 pr-1 font-mono text-[13px] leading-6 text-ink-soft">
                                 {ocrExtraction.rawText ? (
                                   <p className="whitespace-pre-wrap break-words">
                                     {showFullExtraction ? ocrExtraction.rawText : ocrExtraction.rawText.slice(0, 700)}
@@ -919,14 +910,14 @@ export function CaptureFab({
                                 setOpen(false)
                                 onViewExistingItem?.(duplicates[0].item.id)
                               }}
-                              className="term-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink"
+                              className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink"
                             >
                               <Eye size={12} /> View existing
                             </button>
                             <button
                               type="button"
                               onClick={() => setDuplicateAcknowledged(true)}
-                              className="term-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent"
+                              className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent"
                             >
                               Create anyway
                             </button>
@@ -935,13 +926,12 @@ export function CaptureFab({
                       ) : null}
 
                       <motion.button
-                        ref={saveButtonRef}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         type="button"
                         onClick={handleSave}
                         disabled={duplicates.length > 0 && !duplicateAcknowledged}
-                        className="term-btn-primary mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
+                        className="vault-btn-solid mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Save to vault
                       </motion.button>
@@ -949,30 +939,11 @@ export function CaptureFab({
                   )}
                 </AnimatePresence>
               </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {ghost ? (
-          <motion.span
-            key={ghost.id}
-            initial={{ left: ghost.fromX, top: ghost.fromY, opacity: 1, scale: 1 }}
-            animate={{ left: ghost.toX, top: ghost.toY, opacity: 0, scale: 0.3 }}
-            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-            onAnimationComplete={() => setGhost(null)}
-            style={{ position: 'fixed' }}
-            className="pointer-events-none z-50"
-          >
-            <CategoryIcon icon={ghost.icon} color={ghost.color} size={30} />
-          </motion.span>
-        ) : null}
-      </AnimatePresence>
+      </VaultDialog>
 
       <AddMenu
         open={menuOpen}
-        onClose={() => setMenuOpen(false)}
+        onClose={closeMenu}
         onPickItem={() => {
           setMenuOpen(false)
           skipCategoryLaunchRef.current = true
@@ -989,14 +960,15 @@ export function CaptureFab({
       />
 
       <div
-        className="fixed right-4 z-30 sm:right-8"
-        style={{ bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 1rem) + 4.5rem)' }}
+        className="fixed right-4 sm:right-8"
+        style={{
+          bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 1rem) + 4.5rem)',
+          zIndex: layers.navigation,
+        }}
       >
         <motion.button
           ref={fabRef}
           type="button"
-          onMouseMove={handleMagnetMove}
-          onMouseLeave={resetMagnet}
           onClick={() => {
             if (quickAdd === 'note') {
               onQuickAddNote?.()
@@ -1013,36 +985,11 @@ export function CaptureFab({
             skipCategoryLaunchRef.current = true
             setOpen(true)
           }}
-          style={{ x: springX, y: springY }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          className="group relative flex h-16 w-16 items-center justify-center rounded-full"
-          aria-label="Add a new memory"
+          whileTap={reducedMotion ? undefined : { scale: 0.96 }}
+          className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-accent/60 bg-cloud shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition-colors hover:bg-cloud-alt"
+          aria-label="Add item"
+          data-tour="capture-fab"
         >
-          {!reducedMotion ? (
-            <>
-              <motion.span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-[-16px] rounded-full"
-                style={{
-                  background: 'radial-gradient(circle, rgba(220,80,0,0.45), transparent 70%)',
-                  filter: 'blur(10px)',
-                }}
-                animate={{ opacity: [0.25, 0.55, 0.25], scale: [0.96, 1.04, 0.96] }}
-                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <motion.span
-                aria-hidden="true"
-                className="absolute inset-[-3px] rounded-full opacity-80"
-                style={{
-                  background: 'conic-gradient(from 0deg, #dc5000, #382416, #100904, #dc5000)',
-                }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
-              />
-            </>
-          ) : null}
-          <span className="bg-cloud group-hover:bg-cloud-alt absolute inset-[3px] rounded-full transition-colors" />
           <motion.span
             className="relative text-2xl font-semibold text-ink"
             animate={{ rotate: open ? 45 : 0 }}

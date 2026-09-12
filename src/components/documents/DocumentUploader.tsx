@@ -15,10 +15,12 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { Upload, X, FolderOpen, FileText, Image, Loader2, AlertTriangle, Minimize2 } from 'lucide-react'
+import { Upload, X, FileText, Image, Loader2, AlertTriangle, Minimize2 } from 'lucide-react'
 import { validateDocumentFile, MAX_DOC_BYTES, ALLOWED_MIME_TYPES } from '../../lib/documents'
 import { VaultSelect } from '../VaultSelect'
+import { VaultButton } from '../ui/VaultButton'
+import { VaultDialog } from '../ui/VaultDialog'
+import { VaultInput } from '../ui/VaultInput'
 import { compressImage, shouldOfferOptimize } from '../../lib/compressImage'
 import { DOCUMENT_CATEGORIES } from '../../types/app'
 import type { DocumentCategory } from '../../types/app'
@@ -50,7 +52,7 @@ function FilePill({ file, onClear }: { file: File; onClear: () => void }) {
       <button
         type="button"
         onClick={onClear}
-        className="term-chip shrink-0 rounded-full p-1 text-ink-soft hover:text-ink"
+        className="vault-chip shrink-0 rounded-full p-1 text-ink-soft hover:text-ink"
         aria-label="Remove selected file"
       >
         <X size={14} />
@@ -83,23 +85,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
       setOptimizeChoice(null)
       setOptimizedFile(null)
       setOptimizing(false)
-      // Focus the name input after animation settles
-      setTimeout(() => nameInputRef.current?.focus(), 150)
     }
-  }, [open])
-
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !uploading) onClose() }
-    window.addEventListener('keydown', esc)
-    return () => window.removeEventListener('keydown', esc)
-  }, [onClose, uploading])
-
-  // Prevent background scroll while open
-  useEffect(() => {
-    if (!open) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
   }, [open])
 
   const handleFileChange = (incoming: File | null | undefined) => {
@@ -167,49 +153,37 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
   const acceptedTypes = ALLOWED_MIME_TYPES.join(',')
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4 backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={() => { if (!uploading) onClose() }}
-        >
-          <motion.div
-            className="term-panel term-brackets w-full overflow-hidden rounded sm:max-w-md sm:rounded"
-            initial={{ opacity: 0, y: 40, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 30, scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 360, damping: 30 }}
-            onClick={(e) => e.stopPropagation()}
+    <VaultDialog
+      open={open}
+      onClose={uploading ? undefined : onClose}
+      title="Add document"
+      showClose={!uploading}
+      closeLabel="Cancel upload"
+      className="max-w-md"
+      bodyClassName="max-h-[calc(100dvh-8rem)] overflow-y-auto"
+      initialFocusRef={nameInputRef}
+      footer={
+        <>
+          <VaultButton
+            type="submit"
+            form="document-upload-form"
+            variant="solid"
+            size="md"
+            disabled={!canSubmit}
+            className="flex-1"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-ink/15 px-5 py-4">
-              <div className="flex items-center gap-2.5">
-                <FolderOpen
-                  size={18}
-                  className="text-accent shrink-0"
-                  style={{ filter: 'drop-shadow(0 0 6px rgba(220,80,0,0.5))' }}
-                  aria-hidden="true"
-                />
-                <h2 className="font-display text-base font-bold uppercase tracking-tight text-ink">
-                  Add Document
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={uploading}
-                className="term-chip rounded-full p-1.5 text-ink-soft hover:text-ink disabled:opacity-40"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-5 grid gap-4">
+            {uploading
+              ? <><Loader2 size={13} className="animate-spin" /> Uploading…</>
+              : <><Upload size={13} /> Upload</>
+            }
+          </VaultButton>
+          <VaultButton type="button" variant="ghost" size="md" onClick={onClose} disabled={uploading}>
+            Cancel
+          </VaultButton>
+        </>
+      }
+    >
+            <form id="document-upload-form" onSubmit={handleSubmit} className="grid gap-4">
               {/* File picker */}
               <input
                 ref={fileInputRef}
@@ -263,7 +237,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                       onClick={() => setOptimizeChoice('optimize')}
                       disabled={optimizing}
                       className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-50 ${
-                        optimizeChoice === 'optimize' ? 'term-btn-primary' : 'border border-ink/30 text-ink-soft hover:text-ink'
+                        optimizeChoice === 'optimize' ? 'vault-btn-solid' : 'border border-ink/30 text-ink-soft hover:text-ink'
                       }`}
                     >
                       {optimizing ? (
@@ -281,7 +255,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                       onClick={() => { setOptimizeChoice('original'); setOptimizedFile(null) }}
                       disabled={optimizing}
                       className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-50 ${
-                        optimizeChoice === 'original' ? 'term-btn-primary' : 'border border-ink/30 text-ink-soft hover:text-ink'
+                        optimizeChoice === 'original' ? 'vault-btn-solid' : 'border border-ink/30 text-ink-soft hover:text-ink'
                       }`}
                     >
                       Keep original
@@ -306,7 +280,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                 >
                   Document name *
                 </label>
-                <input
+                <VaultInput
                   ref={nameInputRef}
                   id="doc-name"
                   type="text"
@@ -315,7 +289,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                   placeholder="e.g. Aadhaar Card"
                   required
                   maxLength={120}
-                  className="term-input mt-1.5 w-full rounded-none px-3 py-2.5 text-sm text-ink"
+                  className="mt-1.5 rounded-none"
                 />
               </div>
 
@@ -335,31 +309,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                 />
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className="term-btn-primary flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wide disabled:opacity-40"
-                >
-                  {uploading
-                    ? <><Loader2 size={13} className="animate-spin" /> Uploading…</>
-                    : <><Upload size={13} /> Upload</>
-                  }
-                </button>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  disabled={uploading}
-                  className="rounded-outline border border-ink/30 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-ink-soft hover:text-ink disabled:opacity-40"
-                >
-                  Cancel
-                </button>
-              </div>
             </form>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </VaultDialog>
   )
 }

@@ -1,6 +1,11 @@
-import { NotebookPen, Plus } from 'lucide-react'
-import { BrandIcon } from '../lib/icons'
+import { useEffect, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { NoteCard } from './NoteCard'
+import { SortMenu } from './ui/SortMenu'
+import { VaultEmptyState } from './ui/VaultEmptyState'
+import { VaultSection } from './ui/VaultSection'
+import { sortNotes, NOTE_SORT_OPTIONS } from '../lib/sort'
+import type { NoteSortKey } from '../lib/sort'
 import type { Note } from '../types/app'
 
 type NotesPanelProps = {
@@ -13,6 +18,14 @@ type NotesPanelProps = {
 /** Dedicated notes section — separate from the category vault — for freeform text and
  * checklists. Grid view shows every note as a card; tapping one opens the note editor overlay. */
 export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote }: NotesPanelProps) {
+  const [sortKey, setSortKey] = useState<NoteSortKey>(() => {
+    if (typeof window === 'undefined') return 'newest'
+    return (window.localStorage.getItem('vault:noteSort') as NoteSortKey | null) ?? 'newest'
+  })
+  useEffect(() => {
+    window.localStorage.setItem('vault:noteSort', sortKey)
+  }, [sortKey])
+
   const handleAdd = async () => {
     const note = await onAddNote()
     if (note) {
@@ -21,27 +34,33 @@ export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote }: Notes
   }
 
   return (
-    <div className="mt-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-base sm:text-lg font-bold uppercase tracking-wider text-ink">
-          <BrandIcon icon={NotebookPen} size={20} /> Notes
-        </h2>
-        <button
-          type="button"
-          onClick={() => void handleAdd()}
-          className="term-btn-primary rounded-full px-4 py-2 text-xs sm:text-sm font-semibold uppercase tracking-wide flex items-center gap-1.5"
-        >
-          <Plus size={15} /> New note
-        </button>
-      </div>
+    <VaultSection
+      className="mt-10"
+      label="Notes"
+      folio="01"
+      title="Notes"
+      right={
+        <div className="flex items-center gap-2">
+          <SortMenu value={sortKey} options={NOTE_SORT_OPTIONS} onChange={setSortKey} />
+          <button
+            type="button"
+            onClick={() => void handleAdd()}
+            className="vault-btn-solid rounded-full px-4 py-2 text-xs sm:text-sm font-semibold uppercase tracking-wide flex items-center gap-1.5"
+          >
+            <Plus size={15} /> New note
+          </button>
+        </div>
+      }
+    >
 
       {notes.length === 0 ? (
-        <div className="term-panel-soft border-ink/30 rounded border-dashed p-10 text-center text-sm text-ink-soft">
-          Nothing jotted down yet — tap "+ New note" to create one.
-        </div>
+        <VaultEmptyState
+          title="No notes yet"
+          description="Create a note to keep text and checklists together."
+        />
       ) : (
         <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {notes.map((note, index) => (
+          {sortNotes(notes, sortKey).map((note, index) => (
             <NoteCard
               key={note.id}
               note={note}
@@ -52,6 +71,6 @@ export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote }: Notes
           ))}
         </div>
       )}
-    </div>
+    </VaultSection>
   )
 }

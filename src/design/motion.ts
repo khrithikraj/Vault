@@ -1,5 +1,5 @@
 import type { Transition, Variants } from 'motion/react'
-
+ 
 /**
  * ======================================================================
  * RAJ'S VAULT — MOTION SYSTEM (V2 FOUNDATION)
@@ -17,7 +17,7 @@ import type { Transition, Variants } from 'motion/react'
  * knowledge of the preference.
  * ======================================================================
  */
-
+ 
 /** Resolves to `always` when the user prefers reduced motion, so Motion
  *  runs the transition instantly instead of animating. */
 export function reducedMotion<T extends Transition | undefined>(
@@ -31,40 +31,40 @@ export function reducedMotion<T extends Transition | undefined>(
   }
   return transition
 }
-
+ 
 const EASE = {
   outExpo: [0.22, 1, 0.36, 1] as const,
   smooth: [0.4, 0, 0.2, 1] as const,
 }
-
+ 
 export const motionTokens = {
   /** Micro interaction — hovers, chips, small color/opacity states. */
-  micro: { duration: 150, ease: EASE.smooth } as Transition,
-
+  micro: { duration: 0.15, ease: EASE.smooth } as Transition,
+ 
   /** Standard transition — the default for most UI state changes. */
-  standard: { duration: 250, ease: EASE.smooth } as Transition,
-
+  standard: { duration: 0.25, ease: EASE.smooth } as Transition,
+ 
   /** Card interaction — spring lift/tilt on hover. */
   card: {
     type: 'spring',
     stiffness: 300,
     damping: 26,
   } as const as Transition,
-
+ 
   /** Panel/dialog entrance — the "slab unfolds" spring. */
   overlay: {
     type: 'spring',
     stiffness: 340,
     damping: 30,
   } as const as Transition,
-
+ 
   /** Sheet (bottom) entrance — heavier mass, eases up from the edge. */
   sheet: {
     type: 'spring',
     stiffness: 320,
     damping: 32,
   } as const as Transition,
-
+ 
   /** Shared-layout nav pill slide (dock active pill, auth tabs). */
   nav: {
     type: 'spring',
@@ -72,12 +72,12 @@ export const motionTokens = {
     damping: 30,
   } as const as Transition,
 }
-
+ 
 export const motionEase = {
   outExpo: EASE.outExpo,
   smooth: EASE.smooth,
 }
-
+ 
 /** Overlay variants — a consistent enter/exit for modal/dialog/sheet layers.
  *  Accepts a custom offset to tune origin (e.g. sheets slide up, dialogs pop). */
 export function overlayVariants(options?: {
@@ -94,7 +94,7 @@ export function overlayVariants(options?: {
       opacity: 0,
       y: travel,
       scale,
-      transition: { duration: 160, ease: EASE.smooth },
+      transition: { duration: 0.16, ease: EASE.smooth },
     },
   }
 }

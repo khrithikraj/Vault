@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'motion/react'
-import type { MotionValue } from 'motion/react'
-import { FolderLock, Home, NotebookPen, Trash2 } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { FolderLock, Heart, Home, NotebookPen, Trash2 } from 'lucide-react'
 import { BrandIcon, CategoryIcon } from '../../lib/icons'
+import { layers } from '../../design/layers'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import type { Category } from '../../types/app'
 
@@ -15,6 +15,8 @@ type FloatingNavProps = {
   onSelectNotes: () => void
   docsActive: boolean
   onSelectDocs: () => void
+  favoritesActive: boolean
+  onSelectFavorites: () => void
   trashActive: boolean
   onSelectTrash: () => void
 }
@@ -31,13 +33,11 @@ type NavItem = {
  * V2 — Compact floating navigation.
  *
  * A slim dock island anchored at the bottom with safe-area awareness.
- * Primary items: Everything / Notes / Documents / Trash.
+ * Primary items: All items / Notes / Documents / Favorites / Trash.
  * When categories exist, a category toggle reveals them inline.
  *
  * Features:
- * - Cursor-proximity magnification on desktop (subtle, spring-based)
- * - Tooltip labels on desktop hover
- * - Always-readable on touch (no hover dependency)
+ * - Persistent labels on every input modality
  * - Active pill slides with Motion layoutId
  * - Horizontal scroll when many categories overflow
  */
@@ -49,19 +49,21 @@ export function FloatingNav({
   onSelectNotes,
   docsActive,
   onSelectDocs,
+  favoritesActive,
+  onSelectFavorites,
   trashActive,
   onSelectTrash,
 }: FloatingNavProps) {
-  const mouseX = useMotionValue(Infinity)
   const [showCategories, setShowCategories] = useState(false)
   const reducedMotion = usePrefersReducedMotion()
 
-  const isEverything = !notesActive && !docsActive && !trashActive && selectedCategoryId === null
+  const isEverything =
+    !notesActive && !docsActive && !trashActive && !favoritesActive && selectedCategoryId === null
 
   const primaryItems: NavItem[] = [
     {
       key: 'all',
-      label: 'Everything',
+      label: 'All items',
       icon: (size) => (
         <BrandIcon icon={Home} size={size} tone={isEverything ? 'ink' : 'accent'} />
       ),
@@ -88,6 +90,15 @@ export function FloatingNav({
       ),
       active: docsActive,
       onClick: onSelectDocs,
+    },
+    {
+      key: 'favorites',
+      label: 'Favorites',
+      icon: (size) => (
+        <BrandIcon icon={Heart} size={size} tone={favoritesActive ? 'ink' : 'accent'} />
+      ),
+      active: favoritesActive,
+      onClick: onSelectFavorites,
     },
     {
       key: 'trash',
@@ -123,13 +134,11 @@ export function FloatingNav({
   return (
     <nav
       aria-label="Primary navigation"
-      className="fixed inset-x-0 z-30 flex justify-center px-3"
-      style={{ bottom: 'max(env(safe-area-inset-bottom, 0px), 0.875rem)' }}
+      className="fixed inset-x-0 flex justify-center px-3"
+      style={{ bottom: 'max(env(safe-area-inset-bottom, 0px), 0.875rem)', zIndex: layers.navigation }}
     >
       <div
-        onMouseMove={(event) => mouseX.set(event.clientX)}
-        onMouseLeave={() => mouseX.set(Infinity)}
-        className="float-nav flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full px-2 py-1.5"
+        className="float-nav flex max-w-full items-stretch gap-0.5 overflow-x-auto rounded-full px-2 py-1.5"
         style={{ scrollbarWidth: 'none' }}
       >
         {/* Category section — toggle + category pills */}
@@ -137,7 +146,6 @@ export function FloatingNav({
           <>
             {/* Category toggle button */}
             <NavButton
-              mouseX={mouseX}
               reducedMotion={reducedMotion}
               item={{
                 key: '__cat-toggle',
@@ -182,7 +190,7 @@ export function FloatingNav({
                           }
                       }
                     >
-                      <NavButton mouseX={mouseX} reducedMotion={reducedMotion} item={item} />
+                      <NavButton reducedMotion={reducedMotion} item={item} />
                     </motion.div>
                   ))}
                 </>
@@ -194,7 +202,7 @@ export function FloatingNav({
                   exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.88 }}
                   transition={reducedMotion ? { duration: 0 } : { duration: 0.18, ease: 'easeOut' }}
                 >
-                  <NavButton mouseX={mouseX} reducedMotion={reducedMotion} item={activeCategoryItem} />
+                  <NavButton reducedMotion={reducedMotion} item={activeCategoryItem} />
                 </motion.div>
               ) : null}
             </AnimatePresence>
@@ -211,7 +219,6 @@ export function FloatingNav({
         {primaryItems.map((item) => (
           <NavButton
             key={item.key}
-            mouseX={mouseX}
             reducedMotion={reducedMotion}
             item={item}
           />
@@ -222,46 +229,29 @@ export function FloatingNav({
 }
 
 function NavButton({
-  mouseX,
   item,
   reducedMotion,
 }: {
-  mouseX: MotionValue<number>
   item: NavItem
   reducedMotion: boolean
 }) {
-  const ref = useRef<HTMLButtonElement>(null)
-  const [tooltip, setTooltip] = useState(false)
-
-  const distance = useTransform(mouseX, (value) => {
-    const bounds = ref.current?.getBoundingClientRect()
-    if (!bounds) return Infinity
-    return value - (bounds.left + bounds.width / 2)
-  })
-  const scale = useSpring(
-    useTransform(distance, [-100, 0, 100], [1, 1.24, 1]),
-    { stiffness: 340, damping: 22, mass: 0.35 },
-  )
-
   return (
     <motion.button
-      ref={ref}
       type="button"
       onClick={item.onClick}
-      onMouseEnter={() => setTooltip(true)}
-      onMouseLeave={() => setTooltip(false)}
       whileTap={{ scale: reducedMotion ? 1 : 0.86 }}
-      className={`relative flex shrink-0 flex-col items-center justify-center rounded-full px-2.5 py-1.5 transition-colors ${
+      className={`relative flex min-w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-full px-2 py-1.5 transition-colors ${
         item.active ? 'text-ink' : 'text-ink-soft'
       }`}
       aria-label={item.label}
       aria-current={item.active ? 'page' : undefined}
+      data-tour={item.key === 'favorites' ? 'nav-favorites' : undefined}
     >
       {/* Active background pill — slides via shared layoutId */}
       {item.active ? (
         <motion.span
           layoutId="floatnav-active-bg"
-          className="absolute inset-0 rounded-full bg-accent"
+          className="absolute inset-0 rounded-full bg-[var(--accession-nav-active)]"
           style={{
             boxShadow:
               '0 6px 18px -4px rgba(196,72,0,0.65), inset 0 1px 0 rgba(245,234,216,0.15)',
@@ -275,31 +265,12 @@ function NavButton({
         />
       ) : null}
 
-      {/* Icon */}
-      <motion.span
-        style={{ scale: reducedMotion ? 1 : scale }}
-        className="relative z-10 block leading-none"
-      >
+      <span className="relative z-10 block leading-none">
         {item.icon(18)}
-      </motion.span>
-
-      {/* Tooltip — desktop hover only, above the button */}
-      <motion.span
-        initial={false}
-        animate={{
-          opacity: tooltip && !reducedMotion ? 1 : 0,
-          y: tooltip && !reducedMotion ? 0 : 4,
-          pointerEvents: tooltip && !reducedMotion ? 'auto' : 'none',
-        }}
-        transition={{ duration: 0.14, ease: 'easeOut' }}
-        className={`pointer-events-none absolute -top-9 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded border px-2 py-1 text-[10px] font-medium uppercase tracking-wider ${
-          item.active
-            ? 'border-accent/30 bg-cloud text-ink'
-            : 'border-ink/10 bg-cloud text-ink-soft'
-        }`}
-      >
+      </span>
+      <span className="relative z-10 max-w-16 truncate text-[9px] font-medium leading-none text-current">
         {item.label}
-      </motion.span>
+      </span>
     </motion.button>
   )
 }

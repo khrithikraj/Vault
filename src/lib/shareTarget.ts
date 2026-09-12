@@ -1,5 +1,5 @@
 const SHARE_CACHE = 'share-target-v1'
-
+ 
 /** Reads back a photo stashed by the service worker's share-target handler (see public/sw.js),
  * then clears it from the cache so it's only ever consumed once. Returns null if nothing is
  * pending (e.g. a normal launch, or the Cache Storage API isn't supported).

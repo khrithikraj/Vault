@@ -2,15 +2,32 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { describeSupabaseError, fallbackFieldSchema, getErrorMessage, normalizeCategory } from '../lib/fields'
-import { SUPABASE_CONFIG_MESSAGE, supabase, supabaseConfigured, vaultBucket } from '../lib/supabase'
+import { supabase, supabaseConfigured, vaultBucket } from '../../supabase'
 import { sortTrashedByDeletedAt } from '../lib/trash'
+import type { AuthPresentationState } from '../types/auth'
 import type { Category, ChecklistItem, FieldDefinition, Note, VaultItem } from '../types/app'
+
+function getAuthErrorMessage(message: string) {
+  const normalized = message.toLowerCase()
+  if (normalized.includes('invalid login credentials')) return 'Incorrect email or password.'
+  if (normalized.includes('email not confirmed')) return 'Verify your email before signing in.'
+  if (normalized.includes('user already registered')) return 'An account already exists for this email.'
+  if (normalized.includes('password should be at least')) return 'Use a password with at least 6 characters.'
+  if (normalized.includes('rate limit') || normalized.includes('security purposes')) {
+    return 'Too many attempts. Wait a moment and try again.'
+  }
+  if (normalized.includes('expired') || normalized.includes('invalid token')) {
+    return 'This link has expired or is invalid.'
+  }
+  return 'Something went wrong. Please try again.'
+}
 
 export function useVault() {
   const [session, setSession] = useState<Session | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
   const [loadingData, setLoadingData] = useState(false)
   const [message, setMessage] = useState('')
+  const [authState, setAuthState] = useState<AuthPresentationState>({ kind: 'idle' })
   const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   const [categories, setCategories] = useState<Category[]>([])
@@ -28,7 +45,12 @@ export function useVault() {
     }
     const params = new URLSearchParams(window.location.hash.slice(1))
     const description = params.get('error_description')
-    setMessage(description || 'That link is invalid or has expired.')
+    const flow = params.get('type') === 'recovery' ? 'recovery' : 'verification'
+    setAuthState({
+      kind: 'link-error',
+      flow,
+      message: description || 'That link is invalid or has expired.',
+    })
     window.history.replaceState(null, '', window.location.pathname)
   }, [])
 
@@ -36,8 +58,8 @@ export function useVault() {
     // An unconfigured deploy (missing env vars) must not crash — show the auth UI with a
     // helpful message and bail out of every Supabase call. No session can exist anyway.
     if (!supabaseConfigured) {
+      setAuthState({ kind: 'error', message: 'This app is not configured. Please check the environment variables.' })
       setCheckingSession(false)
-      setMessage(SUPABASE_CONFIG_MESSAGE)
       return
     }
 
@@ -50,7 +72,7 @@ export function useVault() {
       }
 
       if (error) {
-        setMessage(error.message)
+        setAuthState({ kind: 'error', message: getAuthErrorMessage(error.message) })
       }
 
       setSession(data.session ?? null)
@@ -66,6 +88,7 @@ export function useVault() {
       (event, nextSession) => {
         if (event === 'PASSWORD_RECOVERY') {
           setPasswordRecovery(true)
+          setAuthState({ kind: 'idle' })
         }
         setSession(nextSession)
         if (nextSession?.user?.id) {
@@ -165,9 +188,8 @@ export function useVault() {
       setNotes(rawNotes.filter((note) => !note.deleted_at))
       setTrashedNotes(sortTrashedByDeletedAt(rawNotes.filter((note) => note.deleted_at)))
 
-      if (nextCategories.length > 0) {
-        setSelectedCategoryId((current) => current ?? nextCategories[0].id)
-      }
+      // Default view is "Everything" (selectedCategoryId stays null) rather than
+      // auto-selecting the first category — see homepage-default decision in plan.
     } catch (error) {
       setMessage(describeSupabaseError({ message: getErrorMessage(error) }))
     } finally {
@@ -224,27 +246,43 @@ export function useVault() {
 
   const signIn = async (email: string, password: string) => {
     if (!supabaseConfigured) {
-      setMessage(SUPABASE_CONFIG_MESSAGE)
       return
     }
+    setAuthState({ kind: 'submitting', action: 'sign-in' })
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setMessage(error.message)
+      setAuthState({ kind: 'error', message: getAuthErrorMessage(error.message) })
       throw error
     }
+    setAuthState({ kind: 'idle' })
   }
 
   const signUp = async (email: string, password: string) => {
     if (!supabaseConfigured) {
-      setMessage(SUPABASE_CONFIG_MESSAGE)
       return
     }
-    const { error } = await supabase.auth.signUp({ email, password })
+    setAuthState({ kind: 'submitting', action: 'sign-up' })
+    const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) {
-      setMessage(error.message)
+      setAuthState({ kind: 'error', message: getAuthErrorMessage(error.message) })
       throw error
     }
-    setMessage('Sign-up successful. Verify your email and sign in.')
+    setAuthState(data.session ? { kind: 'verified', email } : { kind: 'verification-pending', email })
+  }
+
+  const resendVerificationEmail = async (email: string) => {
+    if (!supabaseConfigured) return
+    setAuthState({ kind: 'submitting', action: 'resend-verification' })
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    })
+    if (error) {
+      setAuthState({ kind: 'error', message: getAuthErrorMessage(error.message) })
+      throw error
+    }
+    setAuthState({ kind: 'verification-pending', email })
   }
 
   const signOut = async () => {
@@ -256,31 +294,42 @@ export function useVault() {
 
   const resetPassword = async (email: string) => {
     if (!supabaseConfigured) {
-      setMessage(SUPABASE_CONFIG_MESSAGE)
       return
     }
     if (!email.trim()) {
-      setMessage('Enter your email above first, then tap "Forgot password?" again.')
-      return
+      const error = new Error('Enter your email address.')
+      setAuthState({ kind: 'error', message: error.message })
+      throw error
     }
+    setAuthState({ kind: 'submitting', action: 'request-recovery' })
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin,
     })
     if (error) {
-      setMessage(error.message)
-      return
+      setAuthState({ kind: 'error', message: getAuthErrorMessage(error.message) })
+      throw error
     }
-    setMessage('Password reset email sent — check your inbox.')
+    setAuthState({ kind: 'recovery-sent', email })
   }
 
   const updatePassword = async (password: string) => {
+    setAuthState({ kind: 'submitting', action: 'update-password' })
     const { error } = await supabase.auth.updateUser({ password })
+    if (error) {
+      setAuthState({ kind: 'error', message: getAuthErrorMessage(error.message) })
+      throw error
+    }
+    setPasswordRecovery(false)
+    setAuthState({ kind: 'restored' })
+  }
+
+  const updateDisplayName = async (name: string) => {
+    const { error } = await supabase.auth.updateUser({ data: { full_name: name.trim() } })
     if (error) {
       setMessage(error.message)
       throw error
     }
-    setPasswordRecovery(false)
-    setMessage('Password updated — you\'re all set.')
+    setMessage('Profile updated.')
   }
 
   const addCategory = async (input: {
@@ -715,6 +764,8 @@ export function useVault() {
     loadingData,
     message,
     setMessage,
+    authState,
+    setAuthState,
     categories,
     items,
     notes,
@@ -727,9 +778,11 @@ export function useVault() {
     doneCount,
     signIn,
     signUp,
+    resendVerificationEmail,
     signOut,
     resetPassword,
     updatePassword,
+    updateDisplayName,
     passwordRecovery,
     addCategory,
     updateCategory,

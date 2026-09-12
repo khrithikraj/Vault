@@ -1,0 +1,311 @@
+.accession-auth {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+.accession-auth-frame {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  border-top: 1px dashed var(--color-border-dash);
+  padding: 28px 0 var(--accession-space-6);
+  transition: border-color var(--duration-accession-rule) var(--ease-in-out);
+}
+
+.accession-auth.is-solid .accession-auth-frame {
+  border-top-style: solid;
+  border-top-color: var(--color-ink);
+}
+
+.accession-auth-layout {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--accession-gutter);
+  margin-top: clamp(56px, 8vh, 88px);
+}
+
+.accession-auth-folio {
+  grid-column: 1 / span 2;
+  margin: 8px 0 0;
+  color: var(--accession-text-muted);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.accession-auth-plate {
+  grid-column: 2 / span 2;
+  display: flex;
+  aspect-ratio: 4 / 3;
+  flex-direction: column;
+  justify-content: space-between;
+  align-self: end;
+  margin: 0 0 var(--accession-space-2);
+  border-top: 1px dashed var(--color-border-dash);
+  border-bottom: 1px dashed var(--color-border-dash);
+  padding: var(--accession-space-2) 0;
+  color: var(--accession-text-muted);
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.accession-auth-plate strong {
+  align-self: flex-end;
+  color: var(--accession-ink-muted);
+  font-family: var(--font-accession-serif);
+  font-size: clamp(2.75rem, 5vw, 4.5rem);
+  font-weight: 400;
+}
+
+.accession-auth-plate figcaption {
+  line-height: 1.5;
+}
+
+.accession-auth-content {
+  grid-column: 5 / span 6;
+}
+
+.accession-auth-content h1 {
+  margin: 0;
+  max-width: 12ch;
+  outline: 0;
+  font-family: var(--font-accession-serif);
+  font-size: clamp(2.75rem, 4.4vw, 4.25rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.accession-auth-copy {
+  margin: var(--accession-space-4) 0 0;
+  max-width: 48ch;
+  color: var(--accession-ink-body);
+  line-height: 1.7;
+}
+
+.accession-auth-form {
+  display: grid;
+  gap: var(--accession-space-3);
+  margin-top: var(--accession-space-4);
+  border-top: 1px solid var(--accession-ink-soft);
+  padding-top: var(--accession-space-3);
+}
+
+.accession-auth-field {
+  display: grid;
+  gap: 10px;
+  color: var(--accession-text-muted);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.accession-auth-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--accession-ink-rule);
+  transition: border-color 220ms var(--ease-in-out);
+}
+
+.accession-auth-input:focus-within {
+  border-color: var(--color-accent);
+}
+
+.accession-auth-input input {
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  padding: 0 48px 0 0;
+  outline: 0;
+  color: var(--color-ink);
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.accession-auth-reveal {
+  position: absolute;
+  right: 0;
+  min-width: 48px;
+  min-height: 48px;
+  border: 0;
+  color: var(--accession-text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.accession-auth-help {
+  margin: -2px 0 0;
+  color: var(--accession-text-subtle);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.5;
+  text-transform: none;
+}
+
+.accession-auth-error {
+  margin: var(--accession-space-4) 0 0;
+  border-left: 2px solid var(--color-warn);
+  padding: 10px 0 10px var(--accession-space-2);
+  outline: 0;
+  color: var(--color-ink);
+  line-height: 1.5;
+}
+
+.accession-auth-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--accession-space-3);
+  margin-top: var(--accession-space-1);
+}
+
+.accession-auth-primary,
+.accession-auth-secondary {
+  min-height: 48px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-dash);
+  padding: 0;
+  color: var(--color-ink);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.accession-auth-primary {
+  width: 100%;
+  border-top: 1px solid var(--color-ink);
+  border-bottom-color: var(--color-ink);
+  text-align: left;
+}
+
+.accession-auth-primary:hover,
+.accession-auth-primary:focus-visible,
+.accession-auth-secondary:hover,
+.accession-auth-secondary:focus-visible {
+  border-color: var(--color-accent);
+}
+
+.accession-auth-primary:disabled,
+.accession-auth-secondary:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.accession-auth-utilities {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--accession-space-3);
+  margin-top: var(--accession-space-3);
+  color: var(--accession-text-muted);
+}
+
+.accession-auth-marginalia {
+  grid-column: 11 / span 2;
+  align-self: start;
+  margin-top: 8px;
+  color: var(--accession-text-subtle);
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.accession-auth-receipt {
+  margin-top: var(--accession-space-5);
+  border-top: 1px dashed var(--color-border-dash);
+  border-bottom: 1px dashed var(--color-border-dash);
+  padding: var(--accession-space-3) 0;
+  overflow-wrap: anywhere;
+}
+
+.accession-auth-utility {
+  margin-top: var(--accession-space-5);
+  border-top: 1px dashed var(--color-border-dash);
+  padding-top: var(--accession-space-3);
+}
+
+@media (max-width: 767px) {
+  .accession-auth-frame {
+    padding: 22px 0 var(--accession-space-6);
+  }
+
+  .accession-auth-layout {
+    display: flex;
+    flex-direction: column;
+    margin-top: 64px;
+  }
+
+  .accession-auth-folio {
+    margin-bottom: var(--accession-space-4);
+  }
+
+  .accession-auth-plate {
+    order: 2;
+    width: min(100%, 180px);
+    margin: var(--accession-space-5) 0 0;
+  }
+
+  .accession-auth-content {
+    order: 1;
+  }
+
+  .accession-auth-content h1 {
+    font-size: clamp(2.5rem, 12vw, 3.75rem);
+  }
+
+  .accession-auth-form {
+    margin-top: var(--accession-space-4);
+  }
+
+  .accession-auth-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .accession-auth-primary,
+  .accession-auth-secondary {
+    width: 100%;
+    border: 1px solid var(--color-border-dash);
+    padding: 0 var(--accession-space-2);
+  }
+
+  .accession-auth-primary {
+    text-align: center;
+  }
+
+  .accession-auth-utilities {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .accession-auth-marginalia {
+    margin-top: var(--accession-space-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accession-auth-frame,
+  .accession-auth-input {
+    transition: none;
+  }
+}
