@@ -1,6 +1,6 @@
 import type { Category, Note, VaultDocument, VaultItem } from '../types/app'
 import type { TrashKind } from './trash'
-
+ 
 export type TrashRow = {
   kind: TrashKind
   id: string
@@ -9,7 +9,7 @@ export type TrashRow = {
   meta: string
   deletedAt: string
 }
-
+ 
 /** Merges soft-deleted items/notes/documents into a single sortable row list. */
 export function buildTrashRows(params: {
   items: VaultItem[]

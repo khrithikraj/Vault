@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, CheckCircle2, Copy, Info, RotateCcw, Trash2, Upload } from 'lucide-react'
+import { layers } from '../../design/layers'
 import { reducedMotion } from '../../design/motion'
 
 type IslandKind = 'saved' | 'copied' | 'restored' | 'uploaded' | 'deleted' | 'info' | 'error' | string
@@ -22,12 +23,14 @@ export function DynamicIsland({
   note,
   token,
   kind,
+  action,
   autoDismissMs = 2600,
   onDismiss,
 }: {
   note: string | null
   token?: number
   kind?: IslandKind
+  action?: ReactNode
   autoDismissMs?: number
   onDismiss?: () => void
 }) {
@@ -89,14 +92,17 @@ export function DynamicIsland({
   const label = LABELS[resolvedKind] ?? note
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+    <div
+      className="pointer-events-none fixed inset-x-0 top-4 flex justify-center px-4"
+      style={{ zIndex: layers.toast }}
+    >
       <AnimatePresence>
         {visible ? (
           <motion.div
             key={token ?? note}
             role="status"
             aria-live="polite"
-            className="island flex max-w-md items-center gap-2.5 rounded-full px-4 py-2"
+            className={`island flex max-w-md items-center gap-2.5 rounded-full px-4 py-2 ${action ? 'pointer-events-auto' : ''}`}
             initial={{ opacity: 0, y: -20, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.95 }}
@@ -111,6 +117,7 @@ export function DynamicIsland({
             <span className="font-display text-xs font-medium tracking-wide text-ink truncate">
               {label}
             </span>
+            {action ? <span className="ml-1 shrink-0">{action}</span> : null}
           </motion.div>
         ) : null}
       </AnimatePresence>

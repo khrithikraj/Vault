@@ -1,6 +1,9 @@
 import { AnimatePresence, motion } from 'motion/react'
+import type { ReactNode } from 'react'
 import { ArchiveObject } from './ArchiveObject'
+import { VaultEmptyState } from '../ui/VaultEmptyState'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { motionTokens } from '../../design/motion'
 import type { Category, VaultItem } from '../../types/app'
 import type { ItemFieldHit } from '../../lib/search'
 
@@ -10,10 +13,13 @@ type ArchiveObjectsProps = {
   onOpen: (item: VaultItem) => void
   onToggle: (item: VaultItem) => void
   onDelete: (item: VaultItem) => void
+  onToggleFavorite?: (item: VaultItem) => void
   /** Matched search fields per item id. */
   searchHits?: Map<string, ItemFieldHit[]>
   /** Show a category label strip (used in vault-wide search results). */
   showCategory?: boolean
+  emptyTitle?: ReactNode
+  emptyDescription?: ReactNode
 }
 
 /**
@@ -32,28 +38,30 @@ export function ArchiveObjects({
   onOpen,
   onToggle,
   onDelete,
+  onToggleFavorite,
   searchHits,
   showCategory = false,
+  emptyTitle = 'No items yet',
+  emptyDescription = 'Use Add item to file your first entry.',
 }: ArchiveObjectsProps) {
   const reducedMotion = usePrefersReducedMotion()
 
   if (items.length === 0) {
     return (
-      <div className="mt-4 border border-dashed border-ink/10 px-6 py-14 text-center">
-        <p className="vault-meta text-ink-soft/35">This shelf is empty</p>
-        <p className="mt-2 text-sm text-ink-soft/55">
-          Nothing saved yet — tap{' '}
-          <span className="font-semibold text-accent">+</span>{' '}
-          to add your first object.
-        </p>
-      </div>
+      <VaultEmptyState
+        className="mt-4"
+        title={emptyTitle}
+        description={emptyDescription}
+      />
     )
   }
 
   return (
     <motion.div
-      layout
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3.5"
+      // "position" only — full layout mode projects scale corrections onto every
+      // nested motion child (e.g. DoneStamp), hijacking their own mount animations.
+      layout="position"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-12"
       style={{ overflowX: 'clip' }}
     >
       <AnimatePresence initial={false}>
@@ -64,33 +72,28 @@ export function ArchiveObjects({
           return (
             <motion.div
               key={item.id}
-              layout
+              layout="position"
               initial={
                 reducedMotion
                   ? { opacity: 0 }
-                  : { opacity: 0, y: 24, scale: 0.98 }
+                  : { opacity: 0, y: 12 }
               }
               animate={
                 reducedMotion
                   ? { opacity: 1 }
-                  : { opacity: 1, y: 0, scale: 1 }
+                  : { opacity: 1, y: 0 }
               }
               exit={
                 reducedMotion
                   ? { opacity: 0 }
-                  : { opacity: 0, scale: 0.96, transition: { duration: 0.18 } }
+                  : { opacity: 0, transition: motionTokens.micro }
               }
               transition={
                 reducedMotion
                   ? { duration: 0 }
-                  : {
-                      type: 'spring',
-                      stiffness: 260,
-                      damping: 28,
-                      delay: Math.min(index, 10) * 0.04,
-                    }
+                    : { ...motionTokens.standard, delay: Math.min(index, 8) * 0.025 }
               }
-              className={isLead ? 'sm:col-span-2' : ''}
+                  className={isLead ? 'sm:col-span-12' : 'sm:col-span-6'}
             >
               <ArchiveObject
                 item={item}
@@ -101,6 +104,7 @@ export function ArchiveObjects({
                 onOpen={onOpen}
                 onToggle={onToggle}
                 onDelete={onDelete}
+                onToggleFavorite={onToggleFavorite}
               />
             </motion.div>
           )

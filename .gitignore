@@ -33,3 +33,6 @@ aadhaar2.pdf
 # Supabase local CLI state
 supabase/.temp/
 
+
+playwright-report/
+test-results/

@@ -2,7 +2,7 @@
  * DocumentCard — a single document entry in the Documents grid.
  *
  * Design follows the NotesPanel card pattern exactly:
- *   - .term-panel .term-brackets
+ *   - .vault-surface .vault-brackets
  *   - Motion lift on hover (3D, same spring as note cards)
  *   - Delete button appears on hover (opacity-0 → opacity-100)
  *   - .font-display uppercase for the document name
@@ -59,7 +59,7 @@ export function DocumentCard({ doc, index, onClick, onDelete }: DocumentCardProp
       whileTap={{ scale: 0.98 }}
       style={{ transformPerspective: 800 }}
       onClick={onClick}
-      className="term-panel term-brackets relative flex flex-col justify-between overflow-hidden rounded p-4 sm:p-5 cursor-pointer group"
+      className="vault-surface vault-brackets relative flex flex-col justify-between overflow-hidden rounded p-4 sm:p-5 cursor-pointer group"
       role="button"
       tabIndex={0}
       aria-label={`Open ${doc.name}`}
@@ -91,7 +91,7 @@ export function DocumentCard({ doc, index, onClick, onDelete }: DocumentCardProp
             e.stopPropagation()
             onDelete()
           }}
-          className="term-chip reveal-on-hover rounded-full p-1 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="vault-chip reveal-on-hover rounded-full p-1 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
           title="Delete document"
           aria-label={`Delete ${doc.name}`}
         >

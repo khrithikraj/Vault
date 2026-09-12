@@ -1,6 +1,6 @@
 import { defaultCategorySeeds } from './defaults'
 import type { Category, FieldDefinition, FieldType } from '../types/app'
-
+ 
 export const FIELD_TYPE_OPTIONS: Array<{ value: FieldType; label: string }> = [
   { value: 'text', label: 'Short text' },
   { value: 'textarea', label: 'Long text' },
@@ -8,13 +8,13 @@ export const FIELD_TYPE_OPTIONS: Array<{ value: FieldType; label: string }> = [
   { value: 'number', label: 'Number' },
   { value: 'currency', label: 'Price' },
 ]
-
+ 
 /** Fallback schema for brand-new custom categories. */
 export const fallbackFieldSchema: FieldDefinition[] = [
   { key: 'title', label: 'Name', type: 'text', required: true },
   { key: 'notes', label: 'Notes', type: 'textarea', required: false },
 ]
-
+ 
 /**
  * Guarantees a usable field_schema even if the DB row's column is missing/null/empty
  * (e.g. before the field_schema migration has been run) so the UI never crashes on
@@ -28,7 +28,7 @@ export function normalizeCategory(category: Category): Category {
   const seed = defaultCategorySeeds.find((entry) => entry.name === category.name)
   return { ...category, field_schema: seed?.field_schema ?? fallbackFieldSchema }
 }
-
+ 
 /** Supabase/PostgREST errors are plain objects, not real `Error` instances — this
  * unwraps a usable message from either shape instead of silently falling back. */
 export function getErrorMessage(error: unknown): string {
@@ -40,7 +40,7 @@ export function getErrorMessage(error: unknown): string {
   }
   return 'Something went wrong.'
 }
-
+ 
 /** Surfaces a hint to re-run the SQL migration when Supabase complains about a missing column. */
 export function describeSupabaseError(error: { message: string }) {
   if (/schema cache/i.test(error.message)) {
@@ -51,14 +51,14 @@ export function describeSupabaseError(error: { message: string }) {
   }
   return error.message
 }
-
+ 
 export function makeFieldKey(label: string, existing: FieldDefinition[]) {
   const base = label
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '') || 'field'
-
+ 
   let key = base
   let suffix = 1
   while (existing.some((field) => field.key === key)) {
@@ -67,3 +67,5 @@ export function makeFieldKey(label: string, existing: FieldDefinition[]) {
   }
   return key
 }
+ 
+ 

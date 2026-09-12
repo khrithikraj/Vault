@@ -7,13 +7,16 @@ import { cn } from '../../design/cn'
  */
 export function VaultSkeleton({
   className,
+  'aria-label': ariaLabel,
   ...rest
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      aria-hidden="true"
+      role={ariaLabel ? 'status' : undefined}
+      aria-label={ariaLabel}
+      aria-hidden={ariaLabel ? undefined : true}
       className={cn(
-        'term-panel h-32 animate-pulse rounded',
+        'h-32 animate-pulse border border-dashed border-ink/10 bg-ink/[0.02]',
         'motion-reduce:animate-none motion-reduce:opacity-60',
         className,
       )}

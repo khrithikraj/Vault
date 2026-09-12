@@ -2,22 +2,26 @@ import { motion } from 'motion/react'
 import { FolderLock, NotebookPen, Search, Sparkles, Trash2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { BrandIcon } from '../lib/icons'
-import { ItemGrid } from './ItemGrid'
+import { ArchiveObjects } from './home/ArchiveObjects'
 import { NoteCard } from './NoteCard'
 import { DocumentCard } from './documents/DocumentCard'
 import { TrashList } from './TrashPanel'
+import { VaultButton } from './ui/VaultButton'
+import { VaultEmptyState } from './ui/VaultEmptyState'
 import type { TrashRow } from '../lib/trashRows'
 import type { Category, VaultDocument, VaultItem } from '../types/app'
 import type { VaultSearchResults } from '../lib/search'
 
 type SearchResultsProps = {
   query: string
-  mode: 'everything' | 'category' | 'notes' | 'documents' | 'trash'
+  mode: 'everything' | 'category' | 'favorites' | 'notes' | 'documents' | 'trash'
+  scopeLabel: string
   results: VaultSearchResults
   categories: Category[]
   onOpenItem: (item: VaultItem) => void
   onToggleItem: (item: VaultItem) => void
   onDeleteItem: (item: VaultItem) => void
+  onToggleFavoriteItem: (item: VaultItem) => void
   onOpenNote: (noteId: string) => void
   onDeleteNote: (noteId: string) => void
   onOpenDoc: (doc: VaultDocument) => void
@@ -26,6 +30,7 @@ type SearchResultsProps = {
   trashRows?: TrashRow[]
   onRestoreTrashRow?: (row: TrashRow) => void
   onPurgeTrashRow?: (row: TrashRow) => void
+  onClear: () => void
 }
 
 function GroupHeader({ icon, label }: { icon: LucideIcon; label: string }) {
@@ -37,16 +42,18 @@ function GroupHeader({ icon, label }: { icon: LucideIcon; label: string }) {
 }
 
 /** Renders the current section's content area while a search query is active.
- * Reuses the existing vault cards (ItemGrid, NoteCard, DocumentCard) so results
+ * Reuses the existing vault cards (ArchiveObjects, NoteCard, DocumentCard) so results
  * feel native — just scoped and grouped instead of the normal section layout. */
 export function SearchResults({
   query,
   mode,
+  scopeLabel,
   results,
   categories,
   onOpenItem,
   onToggleItem,
   onDeleteItem,
+  onToggleFavoriteItem,
   onOpenNote,
   onDeleteNote,
   onOpenDoc,
@@ -54,22 +61,19 @@ export function SearchResults({
   trashRows,
   onRestoreTrashRow,
   onPurgeTrashRow,
+  onClear,
 }: SearchResultsProps) {
   const total = results.items.length + results.notes.length + results.documents.length
 
   if (total === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="term-panel-soft border-ink/30 mt-10 rounded border-dashed p-10 text-center"
-      >
-        <p className="text-micro text-ink-soft">No results</p>
-        <p className="mt-2 text-sm text-ink-soft">
-          {mode === 'trash'
-            ? `Nothing in the trash matches &ldquo;${query}&rdquo;.`
-            : `Nothing in this section matches &ldquo;${query}&rdquo;.`}
-        </p>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-10">
+        <VaultEmptyState
+          icon={<BrandIcon icon={Search} size={18} />}
+          title={`No results in ${scopeLabel}`}
+          description={<>Nothing matches &ldquo;{query}&rdquo;. Try another term or clear the search.</>}
+          action={<VaultButton onClick={onClear}>Clear search</VaultButton>}
+        />
       </motion.div>
     )
   }
@@ -80,7 +84,7 @@ export function SearchResults({
         <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
           <BrandIcon icon={Trash2} size={18} />
           Search results
-          <span className="ml-1 text-xs font-normal text-ink-soft/70">· {total}</span>
+          <span className="ml-1 text-xs font-normal text-ink-soft/70">· {total} {total === 1 ? 'result' : 'results'} · {scopeLabel}</span>
         </h2>
         <TrashList
           rows={trashRows ?? []}
@@ -98,14 +102,14 @@ export function SearchResults({
       <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
         <BrandIcon icon={Search} size={18} />
         Search results
-        <span className="ml-1 text-xs font-normal text-ink-soft/70">· {total}</span>
+        <span className="ml-1 text-xs font-normal text-ink-soft/70">· {total} {total === 1 ? 'result' : 'results'} · {scopeLabel}</span>
       </h2>
 
-      {mode === 'everything' || mode === 'category' ? (
+      {mode === 'everything' || mode === 'category' || mode === 'favorites' ? (
         results.items.length > 0 ? (
           <>
             {mode === 'everything' ? <GroupHeader icon={Sparkles} label="Items" /> : null}
-            <ItemGrid
+            <ArchiveObjects
               items={results.items.map((hit) => hit.item)}
               categories={categories}
               searchHits={hitsMap}
@@ -113,6 +117,7 @@ export function SearchResults({
               onOpen={onOpenItem}
               onToggle={onToggleItem}
               onDelete={onDeleteItem}
+              onToggleFavorite={onToggleFavoriteItem}
             />
           </>
         ) : null

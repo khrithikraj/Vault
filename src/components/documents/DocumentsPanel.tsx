@@ -8,12 +8,16 @@
  *   - Empty state matching Vault's dashed-border aesthetic
  */
 
-import { useState } from 'react'
-import { motion } from 'motion/react'
-import { FolderLock, Plus } from 'lucide-react'
-import { BrandIcon } from '../../lib/icons'
+import { useEffect, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { DocumentCard } from './DocumentCard'
-import { DocumentDeleteDialog } from './DocumentDeleteDialog'
+import { ConfirmDialog } from '../ConfirmDialog'
+import { SortMenu } from '../ui/SortMenu'
+import { VaultEmptyState } from '../ui/VaultEmptyState'
+import { VaultSection } from '../ui/VaultSection'
+import { VaultSkeleton } from '../ui/VaultSkeleton'
+import { sortDocuments, DOCUMENT_SORT_OPTIONS } from '../../lib/sort'
+import type { DocumentSortKey } from '../../lib/sort'
 import { DOCUMENT_CATEGORIES } from '../../types/app'
 import type { DocumentCategory, VaultDocument } from '../../types/app'
 
@@ -40,10 +44,18 @@ export function DocumentsPanel({
   const [deleteTarget, setDeleteTarget] = useState<VaultDocument | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [filterCategory, setFilterCategory] = useState<DocumentCategory | 'All'>('All')
+  const [sortKey, setSortKey] = useState<DocumentSortKey>(() => {
+    if (typeof window === 'undefined') return 'newest'
+    return (window.localStorage.getItem('vault:docSort') as DocumentSortKey | null) ?? 'newest'
+  })
+  useEffect(() => {
+    window.localStorage.setItem('vault:docSort', sortKey)
+  }, [sortKey])
 
-  const filteredDocs = filterCategory === 'All'
-    ? documents
-    : documents.filter((d) => d.category === filterCategory)
+  const filteredDocs = sortDocuments(
+    filterCategory === 'All' ? documents : documents.filter((d) => d.category === filterCategory),
+    sortKey,
+  )
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return
@@ -56,23 +68,24 @@ export function DocumentsPanel({
   }
 
   return (
-    <div className="mt-4">
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                               */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-base font-bold uppercase tracking-wider text-ink sm:text-lg">
-          <BrandIcon icon={FolderLock} size={20} />
-          Documents
-        </h2>
-        <button
-          type="button"
-          onClick={onOpenUploader}
-          className="term-btn-primary flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide sm:text-sm"
-        >
-          <Plus size={15} /> Add Document
-        </button>
-      </div>
+    <VaultSection
+      className="mt-10"
+      label="Documents"
+      folio="01"
+      title="Documents"
+      right={
+        <div className="flex items-center gap-2">
+          <SortMenu value={sortKey} options={DOCUMENT_SORT_OPTIONS} onChange={setSortKey} />
+          <button
+            type="button"
+            onClick={onOpenUploader}
+            className="vault-btn-solid flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide sm:text-sm"
+          >
+            <Plus size={15} /> Add Document
+          </button>
+        </div>
+      }
+    >
 
       {/* ------------------------------------------------------------------ */}
       {/* Message banner                                                        */}
@@ -83,7 +96,7 @@ export function DocumentsPanel({
           <button
             type="button"
             onClick={onDismissMessage}
-            className="term-chip shrink-0 rounded-full px-2 py-1 text-xs font-medium uppercase tracking-wide"
+            className="vault-chip shrink-0 rounded-full px-2 py-1 text-xs font-medium uppercase tracking-wide"
           >
             Dismiss
           </button>
@@ -106,7 +119,7 @@ export function DocumentsPanel({
                 type="button"
                 onClick={() => setFilterCategory(cat)}
                 data-active={filterCategory === cat ? 'true' : undefined}
-                className="term-chip rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-all"
+                className="vault-chip rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-all"
               >
                 {cat}
                 {count > 0 && (
@@ -125,33 +138,23 @@ export function DocumentsPanel({
         /* Skeleton state */
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((key) => (
-            <div key={key} className="term-panel h-28 animate-pulse rounded" />
+            <VaultSkeleton key={key} className="h-28" />
           ))}
         </div>
       ) : filteredDocs.length === 0 ? (
-        /* Empty state */
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="term-panel-soft border-ink/30 rounded border-dashed p-10 text-center"
-        >
-          {filterCategory !== 'All' ? (
-            <>
-              <p className="text-sm text-ink-soft">No {filterCategory} documents yet.</p>
-              <button
-                type="button"
-                onClick={() => setFilterCategory('All')}
-                className="mt-3 text-xs font-semibold uppercase tracking-wide text-accent underline"
-              >
-                Show all
-              </button>
-            </>
-          ) : (
-            <p className="text-sm text-ink-soft">
-              No documents yet — tap &ldquo;Add Document&rdquo; to upload one.
-            </p>
-          )}
-        </motion.div>
+        <VaultEmptyState
+          title={filterCategory !== 'All' ? `No ${filterCategory} documents` : 'No documents yet'}
+          description={filterCategory === 'All' ? 'Add a document to keep it available here.' : undefined}
+          action={filterCategory !== 'All' ? (
+            <button
+              type="button"
+              onClick={() => setFilterCategory('All')}
+              className="text-xs font-semibold uppercase tracking-wide text-accent underline"
+            >
+              Show all
+            </button>
+          ) : undefined}
+        />
       ) : (
         /* Document grid */
         <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -170,12 +173,21 @@ export function DocumentsPanel({
       {/* ------------------------------------------------------------------ */}
       {/* Modals / Overlays                                                     */}
       {/* ------------------------------------------------------------------ */}
-      <DocumentDeleteDialog
-        doc={deleteTarget}
-        deleting={deleting}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Move to trash?"
+        message={deleteTarget ? (
+          <>
+            <span className="font-semibold text-ink">{deleteTarget.name}</span> will be moved to
+            Trash. The file stays private and can be restored.
+          </>
+        ) : null}
+        confirmLabel="Move to trash"
+        busy={deleting}
+        busyLabel="Moving…"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
       />
-    </div>
+    </VaultSection>
   )
 }

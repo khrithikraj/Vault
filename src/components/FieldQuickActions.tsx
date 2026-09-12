@@ -30,7 +30,7 @@ export function FieldQuickActions({ value, fieldType, label, onClear }: FieldQui
               href={action.url}
               target="_blank"
               rel="noreferrer"
-              className="term-chip flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-accent hover:bg-accent/10"
+              className="vault-chip flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-accent hover:bg-accent/10"
             >
               <ExternalLink size={12} /> Open
             </a>
@@ -41,7 +41,7 @@ export function FieldQuickActions({ value, fieldType, label, onClear }: FieldQui
             <a
               key={action.kind}
               href={mailtoUrl(value)}
-              className="term-chip flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-accent hover:bg-accent/10"
+              className="vault-chip flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-accent hover:bg-accent/10"
             >
               <Mail size={12} /> Email
             </a>
@@ -52,7 +52,7 @@ export function FieldQuickActions({ value, fieldType, label, onClear }: FieldQui
             <a
               key={action.kind}
               href={callUrl(action.tel)}
-              className="term-chip flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-accent hover:bg-accent/10"
+              className="vault-chip flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-accent hover:bg-accent/10"
             >
               <Phone size={12} /> Call
             </a>
@@ -65,7 +65,7 @@ export function FieldQuickActions({ value, fieldType, label, onClear }: FieldQui
               href={mapsUrl(action.query)}
               target="_blank"
               rel="noreferrer"
-              className="term-chip flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-accent hover:bg-accent/10"
+              className="vault-chip flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-accent hover:bg-accent/10"
             >
               <MapPin size={12} /> Maps
             </a>
@@ -77,7 +77,7 @@ export function FieldQuickActions({ value, fieldType, label, onClear }: FieldQui
         <button
           type="button"
           onClick={onClear}
-          className="term-chip flex items-center gap-1 rounded-full px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-soft hover:text-warn"
+          className="vault-chip flex items-center gap-1 rounded-full px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-soft hover:text-warn"
         >
           <X size={12} /> Clear
         </button>

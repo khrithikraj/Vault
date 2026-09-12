@@ -1,6 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Archive, FolderLock, NotebookPen } from 'lucide-react'
+import { layers } from '../design/layers'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 
 type AddMenuProps = {
@@ -15,7 +17,7 @@ type ActionItem = {
   id: string
   label: string
   sublabel: string
-  icon: React.ReactNode
+  icon: ReactNode
   accentClass: string
   onClick: () => void
 }
@@ -41,22 +43,21 @@ export function AddMenu({
   onPickDocument,
 }: AddMenuProps) {
   const reducedMotion = usePrefersReducedMotion()
+  const [activeIndex, setActiveIndex] = useState(0)
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
 
-  // Escape key to close
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+    setActiveIndex(0)
+    const frame = window.requestAnimationFrame(() => itemRefs.current[0]?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [open])
 
   const items: ActionItem[] = [
     {
       id: 'item',
-      label: 'Archive',
-      sublabel: 'Save an object',
+      label: 'Item',
+      sublabel: 'Add an item',
       icon: <Archive size={17} strokeWidth={1.7} />,
       accentClass: 'text-accent',
       onClick: onPickItem,
@@ -71,7 +72,7 @@ export function AddMenu({
     },
     {
       id: 'doc',
-      label: 'Record',
+      label: 'Document',
       sublabel: 'Upload a document',
       icon: <FolderLock size={17} strokeWidth={1.7} />,
       accentClass: 'text-ink-soft',
@@ -90,7 +91,8 @@ export function AddMenu({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[54]"
+            className="fixed inset-0"
+            style={{ zIndex: layers.overlay }}
             onClick={onClose}
             aria-hidden="true"
           />
@@ -108,10 +110,28 @@ export function AddMenu({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={reducedMotion ? { duration: 0 } : { duration: 0.15 }}
-            className="fixed z-[55] flex flex-col items-end gap-2"
+            className="fixed flex flex-col items-end gap-2"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                event.stopPropagation()
+                onClose()
+                return
+              }
+              let next = activeIndex
+              if (event.key === 'ArrowDown') next = (activeIndex + 1) % items.length
+              else if (event.key === 'ArrowUp') next = (activeIndex - 1 + items.length) % items.length
+              else if (event.key === 'Home') next = 0
+              else if (event.key === 'End') next = items.length - 1
+              else return
+              event.preventDefault()
+              setActiveIndex(next)
+              itemRefs.current[next]?.focus()
+            }}
             style={{
               right: 'max(env(safe-area-inset-right, 0px), 1rem)',
               bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 0.875rem) + 5rem)',
+              zIndex: layers.modal,
             }}
           >
             <motion.div
@@ -134,23 +154,26 @@ export function AddMenu({
               }}
               className="float-nav flex flex-col items-stretch gap-0.5 rounded-2xl px-2 py-2.5"
             >
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <motion.button
                   key={item.id}
+                  ref={(node) => {
+                    itemRefs.current[index] = node
+                  }}
                   type="button"
                   role="menuitem"
+                  tabIndex={index === activeIndex ? 0 : -1}
+                  onFocus={() => setActiveIndex(index)}
                   variants={{
-                    closed: reducedMotion
-                      ? { opacity: 0 }
-                      : { opacity: 0, y: 12, scale: 0.92 },
+                    closed: reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 },
                     open: reducedMotion
                       ? { opacity: 1 }
-                      : { opacity: 1, y: 0, scale: 1 },
+                      : { opacity: 1, y: 0 },
                   }}
                   transition={
                     reducedMotion
                       ? { duration: 0 }
-                      : { type: 'spring', stiffness: 360, damping: 28 }
+                      : { duration: 0.2, ease: 'easeOut' }
                   }
                   whileTap={reducedMotion ? {} : { scale: 0.95 }}
                   onClick={item.onClick}

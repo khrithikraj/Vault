@@ -88,7 +88,7 @@ export function TiltCard({
       onMouseLeave={handleMouseLeave}
       onClick={onClick}
       style={{ boxShadow: shadow, rotateX, rotateY, transformPerspective: 760 }}
-      className={`term-panel term-brackets group relative overflow-hidden rounded will-change-transform ${className}`}
+      className={`vault-surface vault-brackets group relative overflow-hidden rounded will-change-transform ${className}`}
     >
       <motion.div
         aria-hidden="true"

@@ -46,7 +46,7 @@ export function CopyButton({ text, label = 'Copy', copiedLabel = 'Copied', class
       type="button"
       onClick={() => void handleClick()}
       title={label}
-      className={`term-chip flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+      className={`vault-chip flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
         copied ? 'text-accent' : 'text-ink-soft hover:text-ink'
       } ${className}`}
     >

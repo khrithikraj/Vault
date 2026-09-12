@@ -1,13 +1,13 @@
 import type { Category, VaultItem } from '../types/app'
 import { normalizeText } from './search'
-
+ 
 export type DuplicateMatch = {
   item: VaultItem
   category: Category
   /** Labels of the non-title fields already filled in on the existing item. */
   matchedFields: string[]
 }
-
+ 
 /**
  * Non-blocking duplicate detection for the capture flow.
  *
@@ -28,19 +28,19 @@ export function findItemDuplicates(
 ): DuplicateMatch[] {
   const normalizedTitle = normalizeText(input.values.title)
   if (!normalizedTitle) return []
-
+ 
   const category = categories.find((c) => c.id === input.categoryId)
   if (!category) return []
-
+ 
   const results: DuplicateMatch[] = []
   for (const item of items) {
     if (item.category_id !== input.categoryId) continue
     if (normalizeText(item.title) !== normalizedTitle) continue
-
+ 
     let conflicts = false
     const matched: string[] = []
     const labels = new Map((category.field_schema ?? []).map((f) => [f.key, f.label]))
-
+ 
     for (const [key, raw] of Object.entries(input.values)) {
       const typed = normalizeText(raw)
       if (key === 'title' || key === 'notes' || !typed) continue
@@ -52,9 +52,9 @@ export function findItemDuplicates(
       }
       matched.push(labels.get(key) ?? key)
     }
-
+ 
     if (conflicts) continue
     results.push({ item, category, matchedFields: matched })
   }
   return results
-}
+} 

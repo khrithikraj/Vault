@@ -1,10 +1,7 @@
 /**
  * DocumentEditDialog — small modal for editing ONLY a document's name + category.
  *
- * Mirrors DocumentDeleteDialog's overlay pattern (AnimatePresence → backdrop →
- * panel) and reuses the existing design tokens (term-panel, term-brackets,
- * term-input, VaultSelect, term-btn-primary). The stored file is never touched
- * here — metadata only.
+ * The stored file is never touched here — metadata only.
  *
  * Flow: validate locally → call onSave (which updates Supabase server-side and
  * only touches local state after a confirmed response) → close on success. On
@@ -12,10 +9,12 @@
  * the entered values.
  */
 
-import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { AlertTriangle, Loader2, Pencil, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { AlertTriangle, Loader2 } from 'lucide-react'
 import { VaultSelect } from '../VaultSelect'
+import { VaultButton } from '../ui/VaultButton'
+import { VaultDialog } from '../ui/VaultDialog'
+import { VaultInput } from '../ui/VaultInput'
 import { DOCUMENT_CATEGORIES } from '../../types/app'
 import type { DocumentCategory, VaultDocument } from '../../types/app'
 
@@ -34,6 +33,7 @@ export function DocumentEditDialog({ doc, onSave, onCancel }: DocumentEditDialog
   const [category, setCategory] = useState<DocumentCategory>('Identity')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
   // Reset the form whenever the dialog opens / switches document.
   useEffect(() => {
@@ -44,13 +44,6 @@ export function DocumentEditDialog({ doc, onSave, onCancel }: DocumentEditDialog
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.id])
-
-  // Escape cancels (matches all other overlays).
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
-    window.addEventListener('keydown', esc)
-    return () => window.removeEventListener('keydown', esc)
-  }, [onCancel])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,57 +56,46 @@ export function DocumentEditDialog({ doc, onSave, onCancel }: DocumentEditDialog
     setSaving(true)
     const result = await onSave(name.trim(), category)
     setSaving(false)
-    if (!result.ok) {
+    if (result.ok) {
+      onCancel()
+    } else {
       setError(result.error ?? 'Could not save changes.')
     }
   }
 
   return (
-    <AnimatePresence>
-      {doc && (
-        <motion.div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={() => { if (!saving) onCancel() }}
-        >
-          <motion.div
-            className="term-panel term-brackets relative w-full max-w-sm overflow-hidden rounded p-6"
-            initial={{ opacity: 0, y: 16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-            onClick={(e) => e.stopPropagation()}
+    <VaultDialog
+      open={doc !== null}
+      onClose={saving ? undefined : onCancel}
+      title="Edit document"
+      showClose={!saving}
+      closeLabel="Cancel edit"
+      className="max-w-sm"
+      initialFocusRef={nameInputRef}
+      footer={
+        <>
+          <VaultButton
+            type="submit"
+            form="document-edit-form"
+            variant="solid"
+            size="md"
+            disabled={saving}
+            className="flex-1"
           >
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={saving}
-              className="term-chip absolute right-3 top-3 rounded-full p-1.5 text-ink-soft hover:text-ink disabled:opacity-40"
-              aria-label="Cancel edit"
-            >
-              <X size={15} />
-            </button>
-
-            <div className="flex items-start gap-3 pr-8">
-              <Pencil
-                size={18}
-                strokeWidth={2}
-                className="mt-0.5 shrink-0 text-accent"
-                aria-hidden="true"
-              />
-              <div>
-                <h2 className="font-display text-base font-bold uppercase tracking-tight text-ink">
-                  Edit document
-                </h2>
-                <p className="mt-1.5 text-xs text-ink-soft leading-relaxed">
-                  Only the name and category change — the stored file is untouched.
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
+            {saving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : 'Save changes'}
+          </VaultButton>
+          <VaultButton type="button" variant="ghost" size="md" onClick={onCancel} disabled={saving}>
+            Cancel
+          </VaultButton>
+        </>
+      }
+    >
+      {doc ? (
+        <>
+          <p className="mb-5 text-xs leading-relaxed text-ink-soft">
+            Only the name and category change. The stored file is untouched.
+          </p>
+          <form id="document-edit-form" onSubmit={handleSubmit} className="grid gap-4">
               <div>
                 <label
                   htmlFor="doc-edit-name"
@@ -121,7 +103,8 @@ export function DocumentEditDialog({ doc, onSave, onCancel }: DocumentEditDialog
                 >
                   Document name *
                 </label>
-                <input
+                <VaultInput
+                  ref={nameInputRef}
                   id="doc-edit-name"
                   type="text"
                   value={name}
@@ -129,8 +112,7 @@ export function DocumentEditDialog({ doc, onSave, onCancel }: DocumentEditDialog
                   placeholder="e.g. Driving Licence 2026"
                   required
                   maxLength={120}
-                  autoFocus
-                  className="term-input mt-1.5 w-full rounded-none px-3 py-2.5 text-sm text-ink"
+                  className="mt-1.5 rounded-none"
                 />
               </div>
 
@@ -153,30 +135,9 @@ export function DocumentEditDialog({ doc, onSave, onCancel }: DocumentEditDialog
                 </div>
               )}
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="term-btn-primary flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wide disabled:opacity-40"
-                >
-                  {saving
-                    ? <><Loader2 size={13} className="animate-spin" /> Saving…</>
-                    : 'Save changes'
-                  }
-                </button>
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  disabled={saving}
-                  className="rounded-outline border border-ink/30 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-ink-soft hover:text-ink disabled:opacity-40"
-                >
-                  Cancel
-                </button>
-              </div>
             </form>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </>
+      ) : null}
+    </VaultDialog>
   )
 }

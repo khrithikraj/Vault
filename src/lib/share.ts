@@ -13,15 +13,15 @@
  *     security-definer RPC, which is keyed by the exact token and never exposes owner_id.
  *   - The owner's `items`/`categories`/`documents` tables remain locked to the owner.
  */
-
-import { supabase, supabaseConfigured } from './supabase'
+ 
+import { supabase, supabaseConfigured } from '../../supabase'
 import type { Category, ChecklistItem, Note, VaultItem } from '../types/app'
-
+ 
 export type SharedFieldValue =
   | { kind: 'currency'; value: string }
   | { kind: 'url'; value: string }
   | { kind: 'text'; value: string }
-
+ 
 /** Shared snapshot of a vault ITEM (category-fields display surface only). */
 export type SharedItem = {
   id: string
@@ -37,7 +37,7 @@ export type SharedItem = {
   fields: { label: string; value: SharedFieldValue; required?: boolean }[]
   created_at: string
 }
-
+ 
 /** Shared snapshot of a NOTE (title, body, checklist — nothing else). */
 export type SharedNote = {
   id: string
@@ -48,10 +48,10 @@ export type SharedNote = {
   checklist: ChecklistItem[]
   created_at: string
 }
-
+ 
 /** Anything a shared /s/:token snapshot can be. */
 export type SharedSnapshot = SharedItem | SharedNote
-
+ 
 /** Build the shareable snapshot from a live item + its category (mirrors the overlay's display logic). */
 function buildSnapshot(
   item: VaultItem,
@@ -83,9 +83,9 @@ function buildSnapshot(
     fields,
   }
 }
-
+ 
 let tokenCache: Record<string, string> | null = null
-
+ 
 /** Generate a cryptographically random, non-guessable token (128 bits of entropy, URL-safe). */
 export function generateShareToken(): string {
   const bytes = new Uint8Array(16)
@@ -96,12 +96,12 @@ export function generateShareToken(): string {
   }
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
-
+ 
 /** Absolute URL for a shared snapshot. */
 export function buildShareUrl(token: string): string {
   return `${window.location.origin}${window.location.pathname.replace(/\/$/, '')}/s/${token}`
 }
-
+ 
 /**
  * Insert a snapshot row for the signed-in user and return its token (and URL).
  * Shared by item and note sharing so there is one code path for token generation,
@@ -121,7 +121,7 @@ async function insertSnapshot(
   if (authError || !user) {
     throw new Error('You must be signed in to create a share link.')
   }
-
+ 
   const token = generateShareToken()
   const payload = {
     owner_id: user.id,
@@ -137,13 +137,13 @@ async function insertSnapshot(
     source_url: snapshot.kind === 'item' ? (snapshot as SharedItem).source_url : null,
     fields: snapshot.kind === 'item' ? (snapshot as SharedItem).fields : [],
   }
-
+ 
   const { data, error } = await supabase
     .from('shared_items')
     .insert(payload)
     .select('token')
     .single()
-
+ 
   if (error || !data) {
     throw new Error(error?.message || 'Could not create share link.')
   }
@@ -152,7 +152,7 @@ async function insertSnapshot(
   tokenCache[data.token] = url
   return { token: data.token, url }
 }
-
+ 
 /**
  * Create a share snapshot for an ITEM and return its token (and URL).
  */
@@ -162,7 +162,7 @@ export async function createSharedItem(
 ): Promise<{ token: string; url: string }> {
   return insertSnapshot(buildSnapshot(item, category))
 }
-
+ 
 /**
  * Create a share snapshot for a NOTE and return its token (and URL).
  * Only the title, body (notes) and checklist are copied — never the owner's
@@ -176,7 +176,7 @@ export async function createSharedNote(note: Note): Promise<{ token: string; url
     checklist: note.checklist,
   })
 }
-
+ 
 /** Fetch a shared snapshot by token.
  * Goes through the `get_shared_item(token)` security-definer RPC, which is keyed by
  * the exact token (returns at most one row) and never exposes `owner_id`. This works
@@ -187,7 +187,9 @@ export async function fetchSharedItem(token: string): Promise<SharedSnapshot | n
   const { data, error } = await supabase
     .rpc('get_shared_item', { p_token: token })
     .maybeSingle()
-
+ 
   if (error || !data) return null
   return data as SharedSnapshot
 }
+ 
+ 

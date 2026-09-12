@@ -148,7 +148,7 @@ export function SharedItemView({ token, signedIn, onAddToVault, onBack }: Shared
         <button
           type="button"
           onClick={onBack}
-          className="term-chip mb-6 flex items-center gap-1.5 self-start rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
+          className="vault-chip mb-6 flex items-center gap-1.5 self-start rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
         >
           <ArrowLeft size={13} /> Back
         </button>
@@ -159,7 +159,7 @@ export function SharedItemView({ token, signedIn, onAddToVault, onBack }: Shared
             <span className="text-xs uppercase tracking-widest">Loading share…</span>
           </div>
         ) : error || !item ? (
-          <div className="term-panel term-brackets w-full rounded p-8 text-center">
+          <div className="vault-surface vault-brackets w-full rounded p-8 text-center">
             <h1 className="font-display text-lg font-bold uppercase tracking-tight text-ink">
               Link not found
             </h1>
@@ -170,7 +170,7 @@ export function SharedItemView({ token, signedIn, onAddToVault, onBack }: Shared
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 24 }}
-            className="term-panel term-brackets w-full overflow-hidden rounded"
+            className="vault-surface vault-brackets w-full overflow-hidden rounded"
             style={
               {
                 '--vault-accent': isNote ? '#dc5000' : (item as SharedItem).category_color,
@@ -239,7 +239,7 @@ export function SharedItemView({ token, signedIn, onAddToVault, onBack }: Shared
                   type="button"
                   onClick={() => void handleAdd()}
                   disabled={added || adding}
-                  className="term-btn-primary flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wide disabled:opacity-50"
+                  className="vault-btn-solid flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wide disabled:opacity-50"
                 >
                   {added ? (
                     <><Check size={13} /> Added to your vault</>

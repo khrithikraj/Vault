@@ -1,9 +1,7 @@
-import { useRef, useState } from 'react'
-import type { MouseEvent } from 'react'
-import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
-import { Check, ChevronRight, Trash2 } from 'lucide-react'
+import { ChevronRight, Check, Heart, Trash2 } from 'lucide-react'
 import { CategoryIcon } from '../../lib/icons'
-import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { DoneStamp } from '../DoneStamp'
+import { averageRating, isFavorite } from '../../lib/ratings'
 import type { Category, VaultItem } from '../../types/app'
 import type { ItemFieldHit } from '../../lib/search'
 
@@ -15,6 +13,7 @@ type ArchiveObjectProps = {
   onOpen: (item: VaultItem) => void
   onToggle: (item: VaultItem) => void
   onDelete: (item: VaultItem) => void
+  onToggleFavorite?: (item: VaultItem) => void
   searchHits?: ItemFieldHit[]
   showCategory?: boolean
 }
@@ -33,8 +32,6 @@ const prettyDate = new Intl.DateTimeFormat('en-IN', {
  * marker and serial, title-first body with optional specimen thumbnail,
  * footer with date, mark-done toggle and soft delete.
  *
- * Depth: very subtle 3D tilt on desktop (max 2.2°), tiny lift on hover.
- * On touch: tap scale only, no tilt.
  */
 export function ArchiveObject({
   item,
@@ -43,39 +40,11 @@ export function ArchiveObject({
   onOpen,
   onToggle,
   onDelete,
+  onToggleFavorite,
   searchHits,
   showCategory = false,
 }: ArchiveObjectProps) {
-  const ref = useRef<HTMLDivElement>(null)
-  const reducedMotion = usePrefersReducedMotion()
-  const [hovered, setHovered] = useState(false)
-
   const isDone = item.status === 'done'
-
-  const mx = useMotionValue(0)
-  const my = useMotionValue(0)
-  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [-1.8, 1.8]), {
-    stiffness: 280,
-    damping: 28,
-  })
-  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [2.2, -2.2]), {
-    stiffness: 280,
-    damping: 28,
-  })
-
-  const onMouseMove = (event: MouseEvent<HTMLDivElement>) => {
-    const bounds = ref.current?.getBoundingClientRect()
-    if (!bounds || reducedMotion) return
-    mx.set((event.clientX - bounds.left) / bounds.width - 0.5)
-    my.set((event.clientY - bounds.top) / bounds.height - 0.5)
-  }
-  const onMouseLeave = () => {
-    if (reducedMotion) return
-    mx.set(0)
-    my.set(0)
-    setHovered(false)
-  }
-  const onMouseEnter = () => setHovered(true)
 
   const highlightField = category?.field_schema.find(
     (field) => field.key !== 'title' && field.key !== 'notes' && item.metadata[field.key],
@@ -96,27 +65,23 @@ export function ArchiveObject({
   const accentColor = category?.color ?? 'var(--color-accent)'
 
   return (
-    <motion.article
-      ref={ref}
-      onMouseMove={onMouseMove}
-      onMouseLeave={onMouseLeave}
-      onMouseEnter={onMouseEnter}
-      style={
-        reducedMotion
-          ? undefined
-          : { rotateX, rotateY, transformPerspective: 1000 }
-      }
-      whileHover={reducedMotion ? {} : { y: -3 }}
-      whileTap={reducedMotion ? {} : { scale: 0.985 }}
-      transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+    <article
       onClick={() => onOpen(item)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onOpen(item)
+        }
+      }}
       className="archive-object group cursor-pointer select-none overflow-hidden"
+      role="button"
+      tabIndex={0}
       aria-label={`${item.title}, archived item`}
     >
       {/* Active category accent — top edge hairline in category color */}
       <div
         className="absolute inset-x-0 top-0 h-px"
-        style={{ background: accentColor, opacity: hovered ? 0.6 : 0.25 }}
+        style={{ background: accentColor, opacity: 0.5 }}
         aria-hidden="true"
       />
 
@@ -140,11 +105,25 @@ export function ArchiveObject({
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {isDone ? (
-            <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
-              <Check size={9} strokeWidth={3} aria-hidden="true" />
-              Done
-            </span>
+          {isDone ? <DoneStamp variant="pill" /> : null}
+          {isDone && averageRating(item) != null ? (
+            <span className="text-accent text-[9px] font-semibold">★ {averageRating(item)}</span>
+          ) : null}
+          {onToggleFavorite ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                onToggleFavorite(item)
+              }}
+              className={`inline-flex h-9 w-9 items-center justify-center transition-colors ${
+                isFavorite(item) ? 'text-red-400' : 'text-ink-soft/30 hover:text-red-400'
+              }`}
+              aria-label={isFavorite(item) ? `Remove ${item.title} from favorites` : `Add ${item.title} to favorites`}
+              aria-pressed={isFavorite(item)}
+            >
+              <Heart size={14} className={isFavorite(item) ? 'fill-current' : ''} />
+            </button>
           ) : null}
           <span className="font-display text-[9px] tracking-[0.18em] text-ink-soft/35">
             #{item.id.slice(0, 6).toUpperCase()}
@@ -212,7 +191,7 @@ export function ArchiveObject({
               event.stopPropagation()
               onToggle(item)
             }}
-            className={`flex items-center gap-1 rounded px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors ${
+            className={`flex min-h-9 items-center gap-1 rounded px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors ${
               isDone
                 ? 'bg-accent/20 text-accent hover:bg-accent hover:text-ink'
                 : 'text-ink-soft/50 hover:text-ink'
@@ -235,11 +214,11 @@ export function ArchiveObject({
               event.stopPropagation()
               onOpen(item)
             }}
-            className="p-1.5 text-ink-soft/35 transition-colors hover:text-ink"
+            className="inline-flex h-9 w-9 items-center justify-center text-ink-soft/35 transition-colors hover:text-ink"
             aria-label={`Open ${item.title}`}
             title="View detail"
           >
-            <ChevronRight size={12} />
+            <ChevronRight size={14} />
           </button>
 
           {/* Delete */}
@@ -249,14 +228,14 @@ export function ArchiveObject({
               event.stopPropagation()
               onDelete(item)
             }}
-            className="p-1.5 text-ink-soft/35 transition-colors hover:text-red-400"
+            className="inline-flex h-9 w-9 items-center justify-center text-ink-soft/35 transition-colors hover:text-red-400"
             aria-label={`Delete ${item.title}`}
             title="Delete item"
           >
-            <Trash2 size={12} />
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
-    </motion.article>
+    </article>
   )
 }

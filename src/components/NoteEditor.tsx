@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'motion/react'
-import { Check, Link as LinkIcon, Loader2, Plus, Share2, Trash2, X } from 'lucide-react'
+import { motion, Reorder, useDragControls } from 'motion/react'
+import { Check, GripVertical, Loader2, Plus, Share2, Trash2, X } from 'lucide-react'
 import type { ChecklistItem, Note } from '../types/app'
 import { createSharedNote } from '../lib/share'
 import { formatNoteForClipboard } from '../lib/quickActions'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { CopyButton } from './CopyButton'
+import { ShareStatusPanel } from './ShareStatusPanel'
 
 export function NoteEditor({
   note,
@@ -24,6 +26,7 @@ export function NoteEditor({
   const [saving, setSaving] = useState(false)
   const openedFor = useRef(note.id)
   const lastSaved = useRef({ title: note.title, body: note.body, checklist: note.checklist })
+  const reducedMotion = usePrefersReducedMotion()
   const [shareState, setShareState] = useState<'idle' | 'sharing' | 'done' | 'error'>('idle')
   const [shareUrl, setShareUrl] = useState('')
   const [shareError, setShareError] = useState('')
@@ -153,7 +156,7 @@ export function NoteEditor({
             type="button"
             onClick={() => void handleShare()}
             disabled={shareState === 'sharing'}
-            className="term-chip flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
+            className="vault-chip flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
           >
             {shareState === 'sharing' ? (
               <Loader2 size={12} className="animate-spin" />
@@ -165,7 +168,7 @@ export function NoteEditor({
           <button
             type="button"
             onClick={() => void handleManualSave()}
-            className="term-btn-primary rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide flex items-center gap-1 whitespace-nowrap"
+            className="vault-btn-solid rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide flex items-center gap-1 whitespace-nowrap"
           >
             <Check size={12} /> Save
           </button>
@@ -180,40 +183,16 @@ export function NoteEditor({
         </div>
       </div>
 
-      {/* Share link status panel (mirrors the item share panel) */}
-      {shareUrl || shareState === 'error' ? (
-        <div className="rounded border border-ink/15 bg-ink/5 px-3 py-2.5">
-          {shareState === 'error' ? (
-            <div className="text-xs text-red-400">
-              <p>Couldn't create a share link right now.</p>
-              {shareError ? <p className="mt-1 break-words opacity-90">{shareError}</p> : null}
-            </div>
-          ) : shareState === 'done' ? (
-            <div className="flex items-center gap-2 text-xs font-medium text-ink">
-              <Check size={13} className="shrink-0 text-accent" />
-              Share link copied to clipboard
-            </div>
-          ) : (
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-              <LinkIcon size={13} className="shrink-0 text-accent" />
-              <span className="min-w-0 flex-1 truncate text-xs text-ink-soft">{shareUrl}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (navigator.clipboard?.writeText) {
-                    void navigator.clipboard.writeText(shareUrl)
-                  }
-                  setShareState('done')
-                  window.setTimeout(() => setShareState('idle'), 3000)
-                }}
-                className="term-chip shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink"
-              >
-                Copy
-              </button>
-            </div>
-          )}
-        </div>
-      ) : null}
+      <ShareStatusPanel
+        state={shareState}
+        url={shareUrl}
+        error={shareError}
+        onCopy={() => {
+          if (navigator.clipboard?.writeText) void navigator.clipboard.writeText(shareUrl)
+          setShareState('done')
+          window.setTimeout(() => setShareState('idle'), 3000)
+        }}
+      />
 
       {/* Note Title */}
       <div>
@@ -224,7 +203,7 @@ export function NoteEditor({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Note title..."
-          className="term-input mt-1 w-full min-w-0 rounded-none px-3.5 py-2.5 text-lg sm:text-xl font-bold text-ink"
+          className="vault-input mt-1 w-full min-w-0 rounded-none px-3.5 py-2.5 text-lg sm:text-xl font-bold text-ink"
         />
       </div>
 
@@ -238,7 +217,7 @@ export function NoteEditor({
           onChange={(e) => setBody(e.target.value)}
           placeholder="Write anything down (ideas, markdown, reminders, lists)..."
           rows={6}
-          className="term-input mt-1 w-full min-w-0 resize-y rounded-none px-3.5 py-2.5 text-sm text-ink leading-relaxed"
+          className="vault-input mt-1 w-full min-w-0 resize-y rounded-none px-3.5 py-2.5 text-sm text-ink leading-relaxed"
         />
       </div>
 
@@ -251,42 +230,26 @@ export function NoteEditor({
         </div>
 
         <div className="mt-3 flex min-w-0 flex-col gap-2">
-          {checklist.map((item) => (
-            <div
-              key={item.id}
-              className="term-input flex w-full min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-none px-3 py-2 bg-cloud/50"
-            >
-              <input
-                type="checkbox"
-                checked={item.done}
-                onChange={() => toggleChecklistItem(item.id)}
-                className="h-4 w-4 shrink-0 accent-ink cursor-pointer"
+          {checklist.length > 1 ? (
+            <p className="text-[10px] text-ink-soft/50">Drag the handle to reorder.</p>
+          ) : null}
+          <Reorder.Group
+            axis="y"
+            values={checklist}
+            onReorder={setChecklist}
+            className="flex min-w-0 flex-col gap-2"
+          >
+            {checklist.map((item) => (
+              <ChecklistRow
+                key={item.id}
+                item={item}
+                reducedMotion={reducedMotion}
+                onToggle={() => toggleChecklistItem(item.id)}
+                onTextChange={(text) => updateChecklistItemText(item.id, text)}
+                onRemove={() => removeChecklistItem(item.id)}
               />
-              <input
-                value={item.text}
-                onChange={(e) => updateChecklistItemText(item.id, e.target.value)}
-                placeholder="Checklist item..."
-                className={`w-full min-w-0 flex-1 bg-transparent text-sm border-none outline-none ${
-                  item.done ? 'text-ink-soft line-through' : 'text-ink'
-                }`}
-              />
-              <span className="flex shrink-0 items-center gap-1">
-                {item.done && (
-                  <span className="border-accent text-accent rounded-sm border px-1 text-[9px] font-bold uppercase tracking-widest shrink-0">
-                    ✓
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => removeChecklistItem(item.id)}
-                  className="shrink-0 text-ink-soft hover:text-red-400 p-1"
-                  aria-label="Remove checklist item"
-                >
-                  <X size={14} />
-                </button>
-              </span>
-            </div>
-          ))}
+            ))}
+          </Reorder.Group>
         </div>
 
         <div className="mt-3 flex min-w-0 gap-2">
@@ -300,12 +263,12 @@ export function NoteEditor({
               }
             }}
             placeholder="Add new task or list item..."
-            className="term-input min-w-0 flex-1 rounded-none px-3 py-2 text-sm text-ink"
+            className="vault-input min-w-0 flex-1 rounded-none px-3 py-2 text-sm text-ink"
           />
           <button
             type="button"
             onClick={addChecklistItem}
-            className="term-btn-primary shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-1"
+            className="vault-btn-solid shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-1"
           >
             <Plus size={13} /> Add
           </button>
@@ -314,3 +277,71 @@ export function NoteEditor({
     </motion.div>
   )
 }
+
+/** One draggable checklist row — its own `useDragControls` instance so the handle
+ * (not the text input) is what actually starts a drag, on both mouse and touch. */
+function ChecklistRow({
+  item,
+  reducedMotion,
+  onToggle,
+  onTextChange,
+  onRemove,
+}: {
+  item: ChecklistItem
+  reducedMotion: boolean
+  onToggle: () => void
+  onTextChange: (text: string) => void
+  onRemove: () => void
+}) {
+  const controls = useDragControls()
+
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={controls}
+      layout={reducedMotion ? undefined : true}
+      transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
+      className="vault-input flex w-full min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-none px-2 py-2 bg-cloud/50"
+    >
+      <button
+        type="button"
+        onPointerDown={(event) => controls.start(event)}
+        className="shrink-0 cursor-grab touch-none p-1 text-ink-soft/50 hover:text-ink active:cursor-grabbing"
+        aria-label="Drag to reorder"
+      >
+        <GripVertical size={15} />
+      </button>
+      <input
+        type="checkbox"
+        checked={item.done}
+        onChange={onToggle}
+        className="h-4 w-4 shrink-0 accent-ink cursor-pointer"
+      />
+      <input
+        value={item.text}
+        onChange={(e) => onTextChange(e.target.value)}
+        placeholder="Checklist item..."
+        className={`w-full min-w-0 flex-1 bg-transparent text-sm border-none outline-none ${
+          item.done ? 'text-ink-soft line-through' : 'text-ink'
+        }`}
+      />
+      <span className="flex shrink-0 items-center gap-1">
+        {item.done && (
+          <span className="border-accent text-accent rounded-sm border px-1 text-[9px] font-bold uppercase tracking-widest shrink-0">
+            ✓
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onRemove}
+          className="shrink-0 text-ink-soft hover:text-red-400 p-1"
+          aria-label="Remove checklist item"
+        >
+          <X size={14} />
+        </button>
+      </span>
+    </Reorder.Item>
+  )
+}
+
