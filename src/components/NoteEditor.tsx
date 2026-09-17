@@ -1,23 +1,43 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, Reorder, useDragControls } from 'motion/react'
-import { Check, GripVertical, Loader2, Plus, Share2, Trash2, X } from 'lucide-react'
-import type { ChecklistItem, Note } from '../types/app'
+import { Bell, BellOff, Check, GripVertical, Loader2, Plus, Share2, Trash2, X } from 'lucide-react'
+import type { ChecklistItem, ChecklistReminder, DailyChecklistCompletion, Note, Weekday } from '../types/app'
 import { createSharedNote } from '../lib/share'
 import { formatNoteForClipboard } from '../lib/quickActions'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { CopyButton } from './CopyButton'
 import { ShareStatusPanel } from './ShareStatusPanel'
+import { FavoriteButton } from './ui/FavoriteButton'
+import { isNoteFavorite } from '../lib/favorites'
+import { browserTimezone, noteReminder, reminderForItem, type ReminderRecurrence } from '../lib/reminders'
+import { getNotificationStatus, type NotificationStatus } from '../lib/notifications'
+import { NoteReminderControl } from './notes/NoteReminderControl'
+import { ReminderControl } from './notes/ReminderControl'
 
 export function NoteEditor({
   note,
   onBack,
   onDelete,
   onUpdate,
+  reminders,
+  dailyCompletions,
+  onUpsertReminder,
+  onRemoveReminder,
+  onToggleDailyCompletion,
+  onEnableNotifications,
+  onDisableNotifications,
 }: {
   note: Note
   onBack: () => void
   onDelete: () => void
-  onUpdate: (patch: Partial<Pick<Note, 'title' | 'body' | 'checklist'>>) => Promise<void>
+  onUpdate: (patch: Partial<Pick<Note, 'title' | 'body' | 'checklist' | 'is_favorite'>>) => Promise<void>
+  reminders: ChecklistReminder[]
+  dailyCompletions: DailyChecklistCompletion[]
+  onUpsertReminder: (input: { checklistItemId?: string | null; localTime: string; enabled: boolean; recurrence?: ReminderRecurrence; dayOfWeek?: Weekday | null; timezone?: string }) => void
+  onRemoveReminder: (reminderId: string) => void
+  onToggleDailyCompletion: (reminder: ChecklistReminder) => void
+  onEnableNotifications: () => Promise<{ message?: string }>
+  onDisableNotifications: () => Promise<{ message?: string }>
 }) {
   const [title, setTitle] = useState(note.title)
   const [body, setBody] = useState(note.body)
@@ -30,6 +50,15 @@ export function NoteEditor({
   const [shareState, setShareState] = useState<'idle' | 'sharing' | 'done' | 'error'>('idle')
   const [shareUrl, setShareUrl] = useState('')
   const [shareError, setShareError] = useState('')
+  const [notificationMessage, setNotificationMessage] = useState('')
+  const [notificationStatus, setNotificationStatus] = useState<NotificationStatus | null>(null)
+  const [notificationBusy, setNotificationBusy] = useState(false)
+
+  const currentNoteReminder = noteReminder(reminders, note.id)
+
+  useEffect(() => {
+    void getNotificationStatus().then(setNotificationStatus)
+  }, [])
 
   // Swapping notes resets editor state
   if (openedFor.current !== note.id) {
@@ -81,6 +110,9 @@ export function NoteEditor({
 
   const removeChecklistItem = (itemId: string) => {
     setChecklist((current) => current.filter((item) => item.id !== itemId))
+    // Don't leave an orphan daily reminder for a checklist item that no longer exists.
+    const reminder = reminderForItem(reminders, note.id, itemId)
+    if (reminder) onRemoveReminder(reminder.id)
   }
 
   const handleManualSave = async () => {
@@ -105,7 +137,6 @@ export function NoteEditor({
     try {
       const { url } = await createSharedNote({ ...note, title, body, checklist })
       setShareUrl(url)
-      // Prefer the native share sheet when available; fall back to copying the link.
       if (typeof navigator.share === 'function') {
         try {
           await navigator.share({ title: title || note.title, text: `Check this out on Raj's Vault`, url })
@@ -142,28 +173,93 @@ export function NoteEditor({
         >
           [ ← Back to notes ]
         </button>
-        <div className="flex items-center gap-2">
-          {saving ? (
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-ink-soft animate-pulse">
-              Saving…
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {notificationStatus?.kind === 'enabled' ? (
+            <button
+              type="button"
+              disabled={notificationBusy}
+              onClick={() => {
+                setNotificationBusy(true)
+                void onDisableNotifications()
+                  .then((result) => setNotificationMessage(result.message ?? 'Notifications disabled.'))
+                  .finally(() => {
+                    setNotificationBusy(false)
+                    void getNotificationStatus().then(setNotificationStatus)
+                  })
+              }}
+              className="vault-chip flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap"
+            >
+              <BellOff size={12} /> Notifications on
+            </button>
+          ) : notificationStatus?.kind === 'unsupported' ? (
+            <span
+              className="vault-chip flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap opacity-60"
+              title={notificationStatus.message}
+            >
+              <Bell size={12} /> Push not supported
+            </span>
+          ) : notificationStatus?.kind === 'denied' ? (
+            <span
+              className="vault-chip flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap opacity-60"
+              title={notificationStatus.message}
+            >
+              <Bell size={12} /> Notifications blocked
             </span>
           ) : (
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-ink-soft/60 hidden sm:inline">
-              Autosaved
-            </span>
+            <button
+              type="button"
+              disabled={notificationBusy}
+              onClick={() => {
+                setNotificationBusy(true)
+                void onEnableNotifications()
+                  .then((result) => setNotificationMessage(result.message ?? ''))
+                  .finally(() => {
+                    setNotificationBusy(false)
+                    void getNotificationStatus().then(setNotificationStatus)
+                  })
+              }}
+              className="vault-chip flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap"
+            >
+              {notificationBusy ? <Loader2 size={12} className="animate-spin" /> : <Bell size={12} />} Enable notifications
+            </button>
           )}
+
+          <NoteReminderControl
+            reminder={currentNoteReminder}
+            dailyCompletions={dailyCompletions}
+            targetTitle={title || note.title}
+            onSaveReminder={(localTime, recurrence, dayOfWeek) =>
+              onUpsertReminder({
+                checklistItemId: null,
+                localTime,
+                enabled: true,
+                recurrence,
+                dayOfWeek,
+                timezone: browserTimezone(),
+              })
+            }
+            onRemoveReminder={() => {
+              if (currentNoteReminder) onRemoveReminder(currentNoteReminder.id)
+            }}
+            onToggleDailyCompletion={onToggleDailyCompletion}
+          />
+
+          <FavoriteButton
+            active={isNoteFavorite(note)}
+            label={isNoteFavorite(note) ? 'Remove from favorites' : 'Add to favorites'}
+            onToggle={() => void onUpdate({ is_favorite: !isNoteFavorite(note) })}
+          />
+          {saving ? (
+            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
+              <Loader2 size={10} className="animate-spin" /> Saving…
+            </span>
+          ) : null}
           <button
             type="button"
             onClick={() => void handleShare()}
-            disabled={shareState === 'sharing'}
-            className="vault-chip flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
+            className="vault-chip flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap"
           >
-            {shareState === 'sharing' ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Share2 size={12} />
-            )}
-            Share
+            <Share2 size={12} /> Share
           </button>
           <button
             type="button"
@@ -193,6 +289,7 @@ export function NoteEditor({
           window.setTimeout(() => setShareState('idle'), 3000)
         }}
       />
+      {notificationMessage ? <p className="text-xs text-ink-soft" role="status">{notificationMessage}</p> : null}
 
       {/* Note Title */}
       <div>
@@ -223,7 +320,7 @@ export function NoteEditor({
 
       {/* Checklist Section */}
       <div className="rounded border border-ink/15 p-3.5 bg-ink/5 min-w-0">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
             Checklist ({checklist.filter((i) => i.done).length}/{checklist.length})
           </p>
@@ -244,9 +341,26 @@ export function NoteEditor({
                 key={item.id}
                 item={item}
                 reducedMotion={reducedMotion}
+                itemReminder={reminderForItem(reminders, note.id, item.id)}
+                dailyCompletions={dailyCompletions}
                 onToggle={() => toggleChecklistItem(item.id)}
                 onTextChange={(text) => updateChecklistItemText(item.id, text)}
                 onRemove={() => removeChecklistItem(item.id)}
+                onSetItemReminder={(localTime, recurrence, dayOfWeek) =>
+                  onUpsertReminder({
+                    checklistItemId: item.id,
+                    localTime,
+                    enabled: true,
+                    recurrence,
+                    dayOfWeek,
+                    timezone: reminderForItem(reminders, note.id, item.id)?.timezone ?? browserTimezone(),
+                  })
+                }
+                onRemoveItemReminder={() => {
+                  const r = reminderForItem(reminders, note.id, item.id)
+                  if (r) onRemoveReminder(r.id)
+                }}
+                onToggleDailyCompletion={onToggleDailyCompletion}
               />
             ))}
           </Reorder.Group>
@@ -278,20 +392,29 @@ export function NoteEditor({
   )
 }
 
-/** One draggable checklist row — its own `useDragControls` instance so the handle
- * (not the text input) is what actually starts a drag, on both mouse and touch. */
+/** One draggable checklist row — clean by default, with an unobtrusive unified item-level reminder control. */
 function ChecklistRow({
   item,
   reducedMotion,
+  itemReminder,
+  dailyCompletions,
   onToggle,
   onTextChange,
   onRemove,
+  onSetItemReminder,
+  onRemoveItemReminder,
+  onToggleDailyCompletion,
 }: {
   item: ChecklistItem
   reducedMotion: boolean
+  itemReminder?: ChecklistReminder
+  dailyCompletions: DailyChecklistCompletion[]
   onToggle: () => void
   onTextChange: (text: string) => void
   onRemove: () => void
+  onSetItemReminder: (localTime: string, recurrence?: ReminderRecurrence, dayOfWeek?: Weekday | null) => void
+  onRemoveItemReminder: () => void
+  onToggleDailyCompletion: (reminder: ChecklistReminder) => void
 }) {
   const controls = useDragControls()
 
@@ -302,7 +425,7 @@ function ChecklistRow({
       dragControls={controls}
       layout={reducedMotion ? undefined : true}
       transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
-      className="vault-input flex w-full min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-none px-2 py-2 bg-cloud/50"
+      className="vault-input flex w-full min-w-0 max-w-full items-center gap-2 overflow-visible rounded-none px-2 py-2 bg-cloud/50"
     >
       <button
         type="button"
@@ -326,17 +449,29 @@ function ChecklistRow({
           item.done ? 'text-ink-soft line-through' : 'text-ink'
         }`}
       />
-      <span className="flex shrink-0 items-center gap-1">
+      <span className="flex shrink-0 items-center gap-1.5 relative">
+        {/* Unobtrusive unified item-level reminder control */}
+        <ReminderControl
+          reminder={itemReminder}
+          dailyCompletions={dailyCompletions}
+          targetTitle={item.text}
+          targetType="item"
+          variant="item-button"
+          onSaveReminder={onSetItemReminder}
+          onRemoveReminder={onRemoveItemReminder}
+          onToggleDailyCompletion={onToggleDailyCompletion}
+        />
         {item.done && (
           <span className="border-accent text-accent rounded-sm border px-1 text-[9px] font-bold uppercase tracking-widest shrink-0">
             ✓
           </span>
         )}
+        {/* Direct delete button */}
         <button
           type="button"
           onClick={onRemove}
-          className="shrink-0 text-ink-soft hover:text-red-400 p-1"
-          aria-label="Remove checklist item"
+          className="p-1 text-ink-soft/40 hover:text-red-400 transition-colors"
+          aria-label="Remove item"
         >
           <X size={14} />
         </button>

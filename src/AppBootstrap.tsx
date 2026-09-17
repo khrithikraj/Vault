@@ -8,9 +8,14 @@ function shouldOpenVaultImmediately() {
   const url = new URL(window.location.href)
   const isAppRoute = url.pathname.startsWith('/s/') || url.searchParams.has('shared')
   const isAuthCallback = url.searchParams.has('code') || url.hash.includes('type=recovery') || url.hash.includes('error=')
-  const hasStoredSession = Object.keys(window.localStorage).some(
-    (key) => key.startsWith('sb-') && key.endsWith('-auth-token'),
-  )
+  let hasStoredSession = false
+  try {
+    hasStoredSession = Object.keys(window.localStorage).some(
+      (key) => key.startsWith('sb-') && key.endsWith('-auth-token'),
+    )
+  } catch {
+    hasStoredSession = false
+  }
 
   return isAppRoute || isAuthCallback || hasStoredSession
 }

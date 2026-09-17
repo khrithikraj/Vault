@@ -30,6 +30,7 @@ type DocumentsPanelProps = {
   onOpenUploader: () => void
   onDelete: (doc: VaultDocument) => Promise<boolean>
   onDismissMessage: () => void
+  onToggleFavorite: (doc: VaultDocument) => void
 }
 
 export function DocumentsPanel({
@@ -40,6 +41,7 @@ export function DocumentsPanel({
   onOpenUploader,
   onDelete,
   onDismissMessage,
+  onToggleFavorite,
 }: DocumentsPanelProps) {
   const [deleteTarget, setDeleteTarget] = useState<VaultDocument | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -165,6 +167,7 @@ export function DocumentsPanel({
               index={index}
               onClick={() => onOpenDoc(doc)}
               onDelete={() => setDeleteTarget(doc)}
+              onToggleFavorite={() => onToggleFavorite(doc)}
             />
           ))}
         </div>

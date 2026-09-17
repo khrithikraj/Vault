@@ -2,6 +2,8 @@ import { motion } from 'motion/react'
 import { Trash2 } from 'lucide-react'
 import type { Note } from '../types/app'
 import type { ItemFieldHit } from '../lib/search'
+import { isNoteFavorite } from '../lib/favorites'
+import { FavoriteButton } from './ui/FavoriteButton'
 
 type NoteCardProps = {
   note: Note
@@ -10,11 +12,12 @@ type NoteCardProps = {
   matchFields?: ItemFieldHit[]
   onClick: () => void
   onDelete: () => void
+  onToggleFavorite: () => void
 }
 
 const prettyDate = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short' })
 
-export function NoteCard({ note, index, matchFields, onClick, onDelete }: NoteCardProps) {
+export function NoteCard({ note, index, matchFields, onClick, onDelete, onToggleFavorite }: NoteCardProps) {
   const doneCount = note.checklist.filter((entry) => entry.done).length
   const allDone = note.checklist.length > 0 && doneCount === note.checklist.length
   const showMatch = matchFields && matchFields.length > 0
@@ -45,9 +48,17 @@ export function NoteCard({ note, index, matchFields, onClick, onDelete }: NoteCa
           <p className="font-display font-semibold uppercase leading-snug text-ink group-hover:text-accent transition-colors text-base truncate">
             {note.title.trim() || 'Untitled note'}
           </p>
-          <span className="shrink-0 text-xs text-ink-soft">
-            {prettyDate.format(new Date(note.updated_at || note.created_at))}
-          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            <FavoriteButton
+              active={isNoteFavorite(note)}
+              label={isNoteFavorite(note) ? `Remove ${note.title || 'note'} from favorites` : `Add ${note.title || 'note'} to favorites`}
+              onToggle={onToggleFavorite}
+              size={13}
+            />
+            <span className="text-xs text-ink-soft">
+              {prettyDate.format(new Date(note.updated_at || note.created_at))}
+            </span>
+          </div>
         </div>
 
         {showMatch && matchFields ? (

@@ -1,7 +1,8 @@
 import { useVault } from './hooks/useVault'
 import { useMockVault } from './hooks/useMockVault'
 import { useDocuments } from './hooks/useDocuments'
-import type { Note, VaultDocument, VaultItem } from './types/app'
+import type { Note, VaultDocument, VaultItem, Weekday } from './types/app'
+import type { ReminderRecurrence } from './lib/reminders'
 import { consumeSharedPhoto } from './lib/shareTarget'
 import { AuthScreen } from './components/AuthScreen'
 import { UpdatePasswordScreen } from './components/UpdatePasswordScreen'
@@ -37,6 +38,9 @@ import { OnboardingTour } from './components/OnboardingTour'
 import { useOnboardingTour } from './hooks/useOnboardingTour'
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { AccessionDocument } from './components/accession/AccessionDocument'
+import { enablePushNotifications, disablePushNotifications } from './lib/notifications'
+import { NoteCard } from './components/NoteCard'
+import { DocumentCard } from './components/documents/DocumentCard'
  
 // Modals opened on demand only — lazy-loaded to keep the initial bundle lean.
 const ItemDetailOverlay = lazy(() =>
@@ -118,10 +122,65 @@ export default function App({ onReturnToLanding = () => window.location.assign('
  
   const handleToggleFavorite = useCallback(
     (item: VaultItem) => {
-      void vault.updateItem(item.id, { metadata: withFavoriteToggled(item) })
+      void vault.updateItem(item.id, {
+        metadata: withFavoriteToggled(item),
+        is_favorite: !isFavorite(item),
+      })
     },
     [vault],
   )
+
+  const handleToggleNoteFavorite = useCallback(
+    (note: Note) => {
+      void vault.updateNote(note.id, { is_favorite: !note.is_favorite })
+    },
+    [vault],
+  )
+
+  const handleToggleDocumentFavorite = useCallback(
+    (doc: VaultDocument) => {
+      void docs.toggleFavorite(doc)
+    },
+    [docs],
+  )
+
+  const handleUpsertReminder = useCallback(
+    (input: {
+      noteId: string
+      checklistItemId?: string | null
+      localTime: string
+      enabled: boolean
+      recurrence?: ReminderRecurrence
+      dayOfWeek?: Weekday | null
+      timezone?: string
+    }) => {
+      void vault.upsertReminder(input)
+    },
+    [vault],
+  )
+
+  const handleRemoveReminder = useCallback(
+    (reminderId: string) => {
+      void vault.removeReminder(reminderId)
+    },
+    [vault],
+  )
+
+  const handleEnableNotifications = useCallback(async () => {
+    const result = await enablePushNotifications()
+    if (result.kind === 'enabled') return { message: 'Notifications enabled.' }
+    if (result.kind === 'disabled') return { message: 'Notifications are off.' }
+    return { message: result.message }
+  }, [])
+
+  const handleDisableNotifications = useCallback(async () => {
+    const result = await disablePushNotifications()
+    return {
+      message: result.ok
+        ? (result.message ?? 'Notifications disabled on this device.')
+        : (result.message ?? 'Could not disable notifications.'),
+    }
+  }, [])
  
   // Doc uploader is lifted to App level so Quick Add (from any section) can open it.
   const [docUploadOpen, setDocUploadOpen] = useState(false)
@@ -185,6 +244,13 @@ export default function App({ onReturnToLanding = () => window.location.assign('
   useEffect(() => {
     setSearchQuery('')
   }, [mainView, vault.selectedCategoryId])
+
+  useEffect(() => {
+    const noteId = new URLSearchParams(window.location.search).get('openNote')
+    if (!noteId || !vault.notes.some((note) => note.id === noteId)) return
+    setOpenNoteId(noteId)
+    window.history.replaceState(window.history.state, '', window.location.pathname)
+  }, [vault.notes])
  
   // ---------------------------------------------------------------------------
   // Share route: /s/:token — a read-only preview of a shared item snapshot.
@@ -532,6 +598,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     if (!vault.session?.user?.id || devPreview) return
     const needsDocuments =
       mainView === 'documents' ||
+      mainView === 'favorites' ||
       mainView === 'trash' ||
       (searchScope.kind === 'everything' && activeQuery.length > 0)
     if (!needsDocuments) return
@@ -721,8 +788,10 @@ export default function App({ onReturnToLanding = () => window.location.assign('
             onToggleFavoriteItem={handleToggleFavorite}
             onOpenNote={handleOpenNote}
             onDeleteNote={(id) => void handleDeleteNote(id)}
+            onToggleFavoriteNote={handleToggleNoteFavorite}
             onOpenDoc={handleOpenDoc}
             onDeleteDoc={handleDeleteDocument}
+            onToggleFavoriteDoc={handleToggleDocumentFavorite}
             trashRows={filteredTrashRows}
             onRestoreTrashRow={handleRestoreTrashRow}
             onPurgeTrashRow={(row) =>
@@ -800,17 +869,42 @@ export default function App({ onReturnToLanding = () => window.location.assign('
             title="Favorites"
             right={<SortMenu value={itemSortKey} options={ITEM_SORT_OPTIONS} onChange={setItemSortKey} />}
           >
-            <ArchiveObjects
-              items={sortItems(vault.items.filter(isFavorite), itemSortKey)}
-              categories={vault.categories}
-              showCategory
-              emptyTitle="No favorites yet"
-              emptyDescription="Mark an item as a favorite to keep it close at hand."
-              onOpen={(item) => handleOpenItem(item.id)}
-              onToggle={(item) => void vault.toggleItem(item)}
-              onDelete={(item) => void handleDeleteItem(item)}
-              onToggleFavorite={handleToggleFavorite}
-            />
+            <div className="space-y-10">
+              <section aria-labelledby="favorite-items-heading">
+                <h3 id="favorite-items-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Items</h3>
+                <ArchiveObjects
+                  items={sortItems(vault.items.filter(isFavorite), itemSortKey)}
+                  categories={vault.categories}
+                  showCategory
+                  emptyTitle="No favorites yet"
+                  emptyDescription="Mark an item as a favorite to keep it close at hand."
+                  onOpen={(item) => handleOpenItem(item.id)}
+                  onToggle={(item) => void vault.toggleItem(item)}
+                  onDelete={(item) => void handleDeleteItem(item)}
+                  onToggleFavorite={handleToggleFavorite}
+                />
+              </section>
+              <section aria-labelledby="favorite-notes-heading">
+                <h3 id="favorite-notes-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Notes</h3>
+                {vault.notes.filter((note) => note.is_favorite).length > 0 ? (
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                    {vault.notes.filter((note) => note.is_favorite).map((note, index) => (
+                      <NoteCard key={note.id} note={note} index={index} onClick={() => handleOpenNote(note.id)} onDelete={() => void handleDeleteNote(note.id)} onToggleFavorite={() => handleToggleNoteFavorite(note)} />
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-ink-soft/70">No favorite notes.</p>}
+              </section>
+              <section aria-labelledby="favorite-documents-heading">
+                <h3 id="favorite-documents-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Documents</h3>
+                {docs.documents.filter((doc) => doc.is_favorite).length > 0 ? (
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                    {docs.documents.filter((doc) => doc.is_favorite).map((doc, index) => (
+                      <DocumentCard key={doc.id} doc={doc} index={index} onClick={() => handleOpenDoc(doc)} onDelete={() => void handleDeleteDocument(doc)} onToggleFavorite={() => handleToggleDocumentFavorite(doc)} />
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-ink-soft/70">No favorite documents.</p>}
+              </section>
+            </div>
           </VaultSection>
         ) : mainView === 'trash' ? (
           <TrashPanel
@@ -842,6 +936,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
               onAddNote={vault.addNote}
               onOpenNote={handleOpenNote}
               onDeleteNote={(id) => void handleDeleteNote(id)}
+              onToggleFavorite={handleToggleNoteFavorite}
             />
           </Suspense>
         ) : (
@@ -854,6 +949,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
               onOpenUploader={() => setDocUploadOpen(true)}
               onDelete={handleDeleteDocument}
               onDismissMessage={() => docs.setMessage('')}
+              onToggleFavorite={handleToggleDocumentFavorite}
             />
           </Suspense>
         )}
@@ -976,6 +1072,13 @@ export default function App({ onReturnToLanding = () => window.location.assign('
               await vault.updateNote(openNote.id, patch)
             }
           }}
+          reminders={vault.reminders}
+          dailyCompletions={vault.dailyCompletions}
+          onUpsertReminder={handleUpsertReminder}
+          onRemoveReminder={handleRemoveReminder}
+          onToggleDailyCompletion={(reminder) => void vault.toggleDailyCompletion(reminder)}
+          onEnableNotifications={handleEnableNotifications}
+          onDisableNotifications={handleDisableNotifications}
         />
  
         <DocumentViewer
@@ -983,6 +1086,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
           onClose={handleDismissOverlay}
           onDelete={handleDeleteDocument}
           onUpdate={docs.updateDocument}
+          onToggleFavorite={handleToggleDocumentFavorite}
         />
  
         <AccountPanel

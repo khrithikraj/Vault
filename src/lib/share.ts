@@ -14,8 +14,9 @@
  *   - The owner's `items`/`categories`/`documents` tables remain locked to the owner.
  */
  
-import { supabase, supabaseConfigured } from '../../supabase'
+import { supabase, supabaseConfigured } from './supabase'
 import type { Category, ChecklistItem, Note, VaultItem } from '../types/app'
+import { getBranches } from './branches'
  
 export type SharedFieldValue =
   | { kind: 'currency'; value: string }
@@ -70,6 +71,13 @@ function buildSnapshot(
     } else {
       fields.push({ label: field.label, value: { kind: 'text', value: text }, required: field.required })
     }
+  }
+  const branches = getBranches(item)
+  if (branches.length > 0) {
+    fields.push({
+      label: 'Branches',
+      value: { kind: 'text', value: branches.map((branch) => `${branch.name}: ${branch.address}`).join(' | ') },
+    })
   }
   return {
     kind: 'item',

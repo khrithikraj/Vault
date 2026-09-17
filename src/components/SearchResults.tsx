@@ -9,7 +9,7 @@ import { TrashList } from './TrashPanel'
 import { VaultButton } from './ui/VaultButton'
 import { VaultEmptyState } from './ui/VaultEmptyState'
 import type { TrashRow } from '../lib/trashRows'
-import type { Category, VaultDocument, VaultItem } from '../types/app'
+import type { Category, Note, VaultDocument, VaultItem } from '../types/app'
 import type { VaultSearchResults } from '../lib/search'
 
 type SearchResultsProps = {
@@ -24,8 +24,10 @@ type SearchResultsProps = {
   onToggleFavoriteItem: (item: VaultItem) => void
   onOpenNote: (noteId: string) => void
   onDeleteNote: (noteId: string) => void
+  onToggleFavoriteNote: (note: Note) => void
   onOpenDoc: (doc: VaultDocument) => void
   onDeleteDoc: (doc: VaultDocument) => Promise<boolean>
+  onToggleFavoriteDoc: (doc: VaultDocument) => void
   /** Trash mode: pre-built rows (the search query already filtered them). */
   trashRows?: TrashRow[]
   onRestoreTrashRow?: (row: TrashRow) => void
@@ -56,8 +58,10 @@ export function SearchResults({
   onToggleFavoriteItem,
   onOpenNote,
   onDeleteNote,
+  onToggleFavoriteNote,
   onOpenDoc,
   onDeleteDoc,
+  onToggleFavoriteDoc,
   trashRows,
   onRestoreTrashRow,
   onPurgeTrashRow,
@@ -123,7 +127,7 @@ export function SearchResults({
         ) : null
       ) : null}
 
-      {mode === 'everything' || mode === 'notes' ? (
+      {mode === 'everything' || mode === 'favorites' || mode === 'notes' ? (
         results.notes.length > 0 ? (
           <>
             {mode === 'everything' ? (
@@ -141,6 +145,7 @@ export function SearchResults({
                   matchFields={hit.fields}
                   onClick={() => onOpenNote(hit.note.id)}
                   onDelete={() => onDeleteNote(hit.note.id)}
+                  onToggleFavorite={() => onToggleFavoriteNote(hit.note)}
                 />
               ))}
             </div>
@@ -148,7 +153,7 @@ export function SearchResults({
         ) : null
       ) : null}
 
-      {mode === 'everything' || mode === 'documents' ? (
+      {mode === 'everything' || mode === 'favorites' || mode === 'documents' ? (
         results.documents.length > 0 ? (
           <>
             {mode === 'everything' ? (
@@ -165,6 +170,7 @@ export function SearchResults({
                   index={index}
                   onClick={() => onOpenDoc(doc)}
                   onDelete={() => void onDeleteDoc(doc)}
+                  onToggleFavorite={() => onToggleFavoriteDoc(doc)}
                 />
               ))}
             </div>

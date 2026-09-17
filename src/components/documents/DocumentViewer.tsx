@@ -33,6 +33,7 @@ import { VaultDialog } from '../ui/VaultDialog'
 import { DocumentEditDialog } from './DocumentEditDialog'
 import { PdfCanvasViewer } from './PdfCanvasViewer'
 import type { DocumentCategory, VaultDocument } from '../../types/app'
+import { FavoriteButton } from '../ui/FavoriteButton'
 
 type DocumentViewerProps = {
   doc: VaultDocument | null
@@ -43,7 +44,9 @@ type DocumentViewerProps = {
     doc: VaultDocument,
     name: string,
     category: DocumentCategory,
+    isFavorite?: boolean,
   ) => Promise<{ ok: boolean; error?: string }>
+  onToggleFavorite: (doc: VaultDocument) => void
 }
 
 function formatBytes(bytes: number): string {
@@ -51,7 +54,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentViewerProps) {
+export function DocumentViewer({ doc, onClose, onDelete, onUpdate, onToggleFavorite }: DocumentViewerProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [loadingUrl, setLoadingUrl] = useState(false)
   const [urlError, setUrlError] = useState<string | null>(null)
@@ -82,7 +85,7 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
 
   const handleEditSave = async (name: string, category: DocumentCategory) => {
     if (!doc) return { ok: false as const, error: 'Document not found.' }
-    return onUpdate(doc, name, category)
+    return onUpdate(doc, name, category, doc.is_favorite)
   }
 
   // ---------------------------------------------------------------------------
@@ -215,6 +218,11 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate }: DocumentVie
               {/* Action buttons */}
               <div className="flex shrink-0 items-center gap-2">
                 <CopyButton text={doc.name} label="Copy" copiedLabel="Copied" />
+                <FavoriteButton
+                  active={doc.is_favorite}
+                  label={doc.is_favorite ? `Remove ${doc.name} from favorites` : `Add ${doc.name} to favorites`}
+                  onToggle={() => onToggleFavorite(doc)}
+                />
                 <VaultButton
                   type="button"
                   onClick={() => setEditOpen(true)}

@@ -75,7 +75,7 @@ export function CommandSearch({ value, onChange, placeholder }: CommandSearchPro
           enterKeyHint="search"
           autoComplete="off"
           spellCheck={false}
-          className="min-w-0 flex-1 bg-transparent text-sm text-ink placeholder:text-ink-soft/45 focus:outline-none focus-visible:outline-none sm:text-base [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden"
+          className="min-w-0 flex-1 bg-transparent text-sm text-ink focus:outline-none focus-visible:outline-none sm:text-base [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden"
         />
 
         {/* Clear button — fades in with text */}

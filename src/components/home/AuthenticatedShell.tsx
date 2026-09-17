@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
 import type { Category } from '../../types/app'
+import { reducedMotion } from '../../design/motion'
 import { FilmGrain } from '../FilmGrain'
 import { ProgressiveBlur } from '../ProgressiveBlur'
 import { ScrollProgress } from '../ScrollProgress'
@@ -42,7 +43,7 @@ export function AuthenticatedPublication({
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
+        transition={reducedMotion({ duration: 0.5, ease: 'easeOut' })}
         className="relative"
       >
         {identity}
@@ -53,7 +54,7 @@ export function AuthenticatedPublication({
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: 'easeOut', delay: 0.06 }}
+        transition={reducedMotion({ duration: 0.45, ease: 'easeOut', delay: 0.06 })}
         className="mt-8 sm:mt-10"
         data-tour="search"
       >

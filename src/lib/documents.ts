@@ -14,7 +14,7 @@
  *  - User identity is derived from the authenticated Supabase session.
  */
  
-import { supabase } from '../../supabase'
+import { supabase } from './supabase'
 import { DOCUMENT_CATEGORIES } from '../types/app'
 import type { DocumentCategory, VaultDocument } from '../types/app'
  
@@ -213,6 +213,7 @@ export async function updateDocumentMetadata(
   doc: VaultDocument,
   name: string,
   category: DocumentCategory,
+  isFavorite?: boolean,
 ): Promise<VaultDocument> {
   const trimmedName = name.trim()
   if (!trimmedName) throw new Error('Document name is required.')
@@ -223,7 +224,11 @@ export async function updateDocumentMetadata(
  
   const { data, error } = await supabase
     .from('documents')
-    .update({ name: trimmedName, category })
+    .update({
+      name: trimmedName,
+      category,
+      ...(isFavorite === undefined ? {} : { is_favorite: isFavorite }),
+    })
     .eq('id', doc.id)
     .select()
     .single()

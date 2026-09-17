@@ -35,6 +35,16 @@ test('files, recalls, and opens an entry', async ({ page }) => {
 })
 
 test('has no automatically detectable WCAG violations', async ({ page }) => {
+  await page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      try {
+        animation.commitStyles?.()
+        animation.cancel()
+      } catch {
+        /* already settled */
+      }
+    }
+  })
   const results = await new AxeBuilder({ page }).analyze()
   expect(results.violations).toEqual([])
 })

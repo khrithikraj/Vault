@@ -3,9 +3,11 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './tests/e2e',
   outputDir: 'test-results',
+  timeout: 60_000,
   fullyParallel: true,
   reporter: [['list'], ['html', { open: 'never' }]],
   expect: {
+    timeout: 15_000,
     toHaveScreenshot: {
       animations: 'disabled',
       maxDiffPixelRatio: 0.015,

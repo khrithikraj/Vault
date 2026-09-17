@@ -1,9 +1,10 @@
-import { ChevronRight, Check, Heart, Trash2 } from 'lucide-react'
+import { ChevronRight, Check, Trash2 } from 'lucide-react'
 import { CategoryIcon } from '../../lib/icons'
 import { DoneStamp } from '../DoneStamp'
 import { averageRating, isFavorite } from '../../lib/ratings'
 import type { Category, VaultItem } from '../../types/app'
 import type { ItemFieldHit } from '../../lib/search'
+import { FavoriteButton } from '../ui/FavoriteButton'
 
 type ArchiveObjectProps = {
   item: VaultItem
@@ -110,20 +111,12 @@ export function ArchiveObject({
             <span className="text-accent text-[9px] font-semibold">★ {averageRating(item)}</span>
           ) : null}
           {onToggleFavorite ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                onToggleFavorite(item)
-              }}
-              className={`inline-flex h-9 w-9 items-center justify-center transition-colors ${
-                isFavorite(item) ? 'text-red-400' : 'text-ink-soft/30 hover:text-red-400'
-              }`}
-              aria-label={isFavorite(item) ? `Remove ${item.title} from favorites` : `Add ${item.title} to favorites`}
-              aria-pressed={isFavorite(item)}
-            >
-              <Heart size={14} className={isFavorite(item) ? 'fill-current' : ''} />
-            </button>
+            <FavoriteButton
+              active={isFavorite(item)}
+              label={isFavorite(item) ? `Remove ${item.title} from favorites` : `Add ${item.title} to favorites`}
+              onToggle={() => onToggleFavorite(item)}
+              size={14}
+            />
           ) : null}
           <span className="font-display text-[9px] tracking-[0.18em] text-ink-soft/35">
             #{item.id.slice(0, 6).toUpperCase()}

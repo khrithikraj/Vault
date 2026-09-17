@@ -26,6 +26,9 @@ audit-prod.json
 # Local editor configuration
 .vscode/
 
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
+
 # Local document test fixtures
 aadhaar1.pdf
 aadhaar2.pdf
