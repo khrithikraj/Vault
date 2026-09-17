@@ -13,12 +13,14 @@
 import { motion } from 'motion/react'
 import { FileText, Image, Trash2 } from 'lucide-react'
 import type { VaultDocument } from '../../types/app'
+import { FavoriteButton } from '../ui/FavoriteButton'
 
 type DocumentCardProps = {
   doc: VaultDocument
   index: number
   onClick: () => void
   onDelete: () => void
+  onToggleFavorite: () => void
 }
 
 const prettyDate = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -48,7 +50,7 @@ function DocTypeIcon({ mimeType, size = 20 }: { mimeType: string; size?: number 
     : <Image size={size} strokeWidth={2} style={{ color, filter }} aria-hidden="true" />
 }
 
-export function DocumentCard({ doc, index, onClick, onDelete }: DocumentCardProps) {
+export function DocumentCard({ doc, index, onClick, onDelete, onToggleFavorite }: DocumentCardProps) {
   return (
     <motion.div
       layout
@@ -78,6 +80,12 @@ export function DocumentCard({ doc, index, onClick, onDelete }: DocumentCardProp
             {doc.category} · {mimeLabel(doc.mime_type)} · {formatBytes(doc.file_size)}
           </p>
         </div>
+        <FavoriteButton
+          active={doc.is_favorite}
+          label={doc.is_favorite ? `Remove ${doc.name} from favorites` : `Add ${doc.name} to favorites`}
+          onToggle={onToggleFavorite}
+          size={13}
+        />
       </div>
 
       {/* Footer row: date + delete button */}

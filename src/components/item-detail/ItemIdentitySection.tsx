@@ -1,12 +1,13 @@
-import { Heart, Loader2, Pencil, Share2 } from 'lucide-react'
+import { Loader2, Pencil, Share2 } from 'lucide-react'
 import { CategoryIcon } from '../../lib/icons'
 import { averageRating, isFavorite } from '../../lib/ratings'
 import type { Category, VaultItem } from '../../types/app'
 import { CopyButton } from '../CopyButton'
 import { VaultSelect } from '../VaultSelect'
 import { StarRating } from '../ui/StarRating'
-import { VaultButton, VaultIconButton } from '../ui/VaultButton'
+import { VaultButton } from '../ui/VaultButton'
 import { VaultInput } from '../ui/VaultInput'
+import { FavoriteButton } from '../ui/FavoriteButton'
 
 type ItemIdentitySectionProps = {
   item: VaultItem
@@ -89,12 +90,10 @@ export function ItemIdentitySection({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <VaultIconButton
-            icon={Heart}
+          <FavoriteButton
+            active={isFavorite(item)}
             label={isFavorite(item) ? 'Remove from favorites' : 'Add to favorites'}
-            aria-pressed={isFavorite(item)}
-            className={isFavorite(item) ? 'text-red-400 [&>svg]:fill-current' : undefined}
-            onClick={onToggleFavorite}
+            onToggle={onToggleFavorite}
           />
           <VaultButton
             type="button"

@@ -2,10 +2,26 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { describeSupabaseError, fallbackFieldSchema, getErrorMessage, normalizeCategory } from '../lib/fields'
-import { supabase, supabaseConfigured, vaultBucket } from '../../supabase'
+import { supabase, supabaseConfigured, vaultBucket } from '../lib/supabase'
 import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { AuthPresentationState } from '../types/auth'
-import type { Category, ChecklistItem, FieldDefinition, Note, VaultItem } from '../types/app'
+import type { Category, ChecklistItem, ChecklistReminder, DailyChecklistCompletion, FieldDefinition, Note, VaultItem, Weekday } from '../types/app'
+import { browserTimezone, computeNextFireAt, localDateInTimezone, validateReminderTime, type ReminderRecurrence } from '../lib/reminders'
+
+// The remote `reminders` table may predate migration 20260916000008 (adds the
+// day_of_week column). Writing `day_of_week` to a schema that lacks it fails every
+// reminder save with `column reminders.day_of_week does not exist` (code 42703), so
+// probe once (and cache) and only send the field when the column actually exists.
+let dayOfWeekColumnProbe: Promise<boolean> | null = null
+function remindersSupportDayOfWeek(): Promise<boolean> {
+  if (!dayOfWeekColumnProbe) {
+    dayOfWeekColumnProbe = (async () => {
+      const { error } = await supabase.from('reminders').select('day_of_week').limit(0)
+      return !error
+    })().catch(() => false)
+  }
+  return dayOfWeekColumnProbe
+}
 
 function getAuthErrorMessage(message: string) {
   const normalized = message.toLowerCase()
@@ -35,6 +51,8 @@ export function useVault() {
   const [notes, setNotes] = useState<Note[]>([])
   const [trashedItems, setTrashedItems] = useState<VaultItem[]>([])
   const [trashedNotes, setTrashedNotes] = useState<Note[]>([])
+  const [reminders, setReminders] = useState<ChecklistReminder[]>([])
+  const [dailyCompletions, setDailyCompletions] = useState<DailyChecklistCompletion[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -146,6 +164,8 @@ export function useVault() {
         { data: categoryData, error: categoryError },
         { data: itemData, error: itemError },
         { data: noteData, error: noteError },
+        { data: reminderData, error: reminderError },
+        { data: completionData, error: completionError },
       ] = await Promise.all([
         supabase
           .from('categories')
@@ -162,6 +182,8 @@ export function useVault() {
           .select('*')
           .eq('user_id', userId)
           .order('updated_at', { ascending: false }),
+        supabase.from('reminders').select('*').eq('user_id', userId),
+        supabase.from('daily_checklist_completions').select('*'),
       ])
 
       if (categoryError) {
@@ -175,6 +197,8 @@ export function useVault() {
       if (noteError) {
         setMessage(describeSupabaseError(noteError))
       }
+      if (!reminderError) setReminders((reminderData as ChecklistReminder[]) ?? [])
+      if (!completionError) setDailyCompletions((completionData as DailyChecklistCompletion[]) ?? [])
 
       const nextCategories = ((categoryData as Category[]) ?? []).map(normalizeCategory)
       setCategories(nextCategories)
@@ -518,6 +542,7 @@ export function useVault() {
       categoryId?: string
       metadata?: Record<string, unknown>
       status?: 'saved' | 'done'
+      is_favorite?: boolean
       imageFile?: File | null
       removeImage?: boolean
     },
@@ -544,6 +569,7 @@ export function useVault() {
     if (input.categoryId !== undefined) patch.category_id = input.categoryId
     if (input.metadata !== undefined) patch.metadata = input.metadata
     if (input.status !== undefined) patch.status = input.status
+    if (input.is_favorite !== undefined) patch.is_favorite = input.is_favorite
     if (imageUrl !== undefined) patch.image_url = imageUrl
 
     const { data, error } = await supabase
@@ -674,7 +700,7 @@ export function useVault() {
 
   const updateNote = async (
     noteId: string,
-    patch: Partial<Pick<Note, 'title' | 'body' | 'checklist'>>,
+    patch: Partial<Pick<Note, 'title' | 'body' | 'checklist' | 'is_favorite'>>,
   ) => {
     const { data, error } = await supabase
       .from('notes')
@@ -692,6 +718,100 @@ export function useVault() {
     setNotes((current) => current.map((note) => (note.id === updated.id ? updated : note)))
   }
 
+  const upsertReminder = async (input: {
+    noteId: string
+    checklistItemId?: string | null
+    localTime: string
+    enabled: boolean
+    recurrence?: ReminderRecurrence
+    dayOfWeek?: Weekday | null
+    timezone?: string
+  }) => {
+    if (!session?.user?.id) return
+    if (!validateReminderTime(input.localTime)) {
+      setMessage('Enter a valid reminder time.')
+      return
+    }
+    const targetItemId = input.checklistItemId ?? null
+    const timezone = input.timezone ?? browserTimezone()
+    const recurrence = input.recurrence ?? 'daily'
+    const dayOfWeek = recurrence === 'weekly' ? (input.dayOfWeek ?? null) : null
+    const nextFireAt = input.enabled
+      ? computeNextFireAt(input.localTime, recurrence, timezone, dayOfWeek)
+      : null
+
+    // Find-then-update-or-insert: partial unique indexes on nullable columns cannot
+    // be targeted by PostgREST generic upsert conflict inference, so we handle the
+    // two cases (note-level and item-level) explicitly.
+    const existing = reminders.find(
+      (r) =>
+        r.note_id === input.noteId &&
+        (targetItemId === null ? r.checklist_item_id === null : r.checklist_item_id === targetItemId),
+    )
+
+    const includeDayOfWeek = await remindersSupportDayOfWeek()
+    const reminderFields = {
+      local_time: input.localTime,
+      enabled: input.enabled,
+      recurrence,
+      timezone,
+      next_fire_at: nextFireAt,
+      ...(includeDayOfWeek ? { day_of_week: dayOfWeek } : {}),
+    }
+
+    let data: ChecklistReminder | null = null
+    if (existing) {
+      const { data: updated, error } = await supabase
+        .from('reminders')
+        .update(reminderFields)
+        .eq('id', existing.id)
+        .select('*')
+        .single()
+      if (error) { setMessage(describeSupabaseError(error)); return }
+      data = updated as ChecklistReminder
+    } else {
+      const { data: inserted, error } = await supabase
+        .from('reminders')
+        .insert({
+          user_id: session.user.id,
+          note_id: input.noteId,
+          checklist_item_id: targetItemId,
+          ...reminderFields,
+        })
+        .select('*')
+        .single()
+      if (error) { setMessage(describeSupabaseError(error)); return }
+      data = inserted as ChecklistReminder
+    }
+    setReminders((current) => [...current.filter((entry) => entry.id !== data!.id), data!])
+  }
+
+  const removeReminder = async (reminderId: string) => {
+    const { error } = await supabase.from('reminders').delete().eq('id', reminderId)
+    if (error) {
+      setMessage(describeSupabaseError(error))
+      return
+    }
+    setReminders((current) => current.filter((entry) => entry.id !== reminderId))
+    setDailyCompletions((current) => current.filter((entry) => entry.reminder_id !== reminderId))
+  }
+
+  const toggleDailyCompletion = async (reminder: ChecklistReminder) => {
+    if (!session?.user?.id) return
+    const localDate = localDateInTimezone(new Date(), reminder.timezone)
+    const existing = dailyCompletions.find((entry) => entry.reminder_id === reminder.id && entry.local_date === localDate)
+    if (existing) {
+      const { error } = await supabase.from('daily_checklist_completions').delete().match({ reminder_id: reminder.id, local_date: localDate })
+      if (error) { setMessage(describeSupabaseError(error)); return }
+      setDailyCompletions((current) => current.filter((entry) => !(entry.reminder_id === reminder.id && entry.local_date === localDate)))
+      return
+    }
+    const completion = { reminder_id: reminder.id, local_date: localDate, completed_at: new Date().toISOString() }
+    const { error } = await supabase.from('daily_checklist_completions').upsert(completion)
+    if (error) { setMessage(describeSupabaseError(error)); return }
+    setDailyCompletions((current) => [...current, completion])
+  }
+
   /** Soft-delete: moves the note to Recently Deleted, restorable at any time. */
   const deleteNote = async (noteId: string): Promise<boolean> => {
     const { data, error } = await supabase
@@ -704,6 +824,23 @@ export function useVault() {
     if (error) {
       setMessage(describeSupabaseError(error))
       return false
+    }
+
+    // A deleted note must not keep firing daily reminders. Remove its reminder rows
+    // (daily completions cascade via FK). Done best-effort after the soft-delete so a
+    // transient cleanup failure never blocks the delete itself.
+    const { error: reminderError } = await supabase
+      .from('reminders')
+      .delete()
+      .eq('note_id', noteId)
+    if (!reminderError) {
+      setReminders((current) => current.filter((entry) => entry.note_id !== noteId))
+      setDailyCompletions((current) => {
+        const removedIds = reminders
+          .filter((entry) => entry.note_id === noteId)
+          .map((entry) => entry.id)
+        return current.filter((entry) => !removedIds.includes(entry.reminder_id))
+      })
     }
 
     const updated = data as Note
@@ -809,6 +946,11 @@ export function useVault() {
     purgeItem,
     addNote,
     updateNote,
+    reminders,
+    dailyCompletions,
+    upsertReminder,
+    removeReminder,
+    toggleDailyCompletion,
     deleteNote,
     restoreNote,
     purgeNote,

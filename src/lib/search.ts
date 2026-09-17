@@ -1,5 +1,7 @@
 import type { Category, Note, VaultDocument, VaultItem } from '../types/app'
-import { isFavorite } from './ratings'
+import { isFavorite } from './favorites'
+import { branchSearchText } from './branches'
+import { INTERNAL_METADATA_KEYS } from './ratings'
  
 // ---------------------------------------------------------------------------
 // Vault-wide text search.
@@ -105,11 +107,14 @@ function itemFields(item: VaultItem, category: Category | null): ItemFieldHit[] 
   if (item.metadata) {
     const labels = new Map((category?.field_schema ?? []).map((field) => [field.key, field.label]))
     for (const [key, value] of Object.entries(item.metadata)) {
+      if ((INTERNAL_METADATA_KEYS as readonly string[]).includes(key)) continue
       const text = searchableValue(value)
       if (text) fields.push({ label: labels.get(key) ?? key, value: text })
     }
   }
   if (item.notes) fields.push({ label: 'Notes', value: item.notes })
+  const branches = branchSearchText(item)
+  if (branches) fields.push({ label: 'Branches', value: branches })
   return fields
 }
  
@@ -205,9 +210,16 @@ export function searchVault(params: {
         : params.items
  
   const items = searchItems(itemSource, params.categories, query)
-  const notes = scope.kind === 'everything' ? searchNotes(params.notes, query) : []
+  const notes = scope.kind === 'everything' || scope.kind === 'favorites'
+    ? searchNotes(params.notes.filter((note) => scope.kind !== 'favorites' || isFavorite(note)), query)
+    : []
   const documents =
-    scope.kind === 'everything' ? searchDocuments(params.documents, query) : []
+    scope.kind === 'everything' || scope.kind === 'favorites'
+      ? searchDocuments(
+          params.documents.filter((doc) => scope.kind !== 'favorites' || isFavorite(doc)),
+          query,
+        )
+      : []
  
   return { items, notes, documents }
 }

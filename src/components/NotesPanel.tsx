@@ -13,11 +13,12 @@ type NotesPanelProps = {
   onAddNote: () => Promise<Note | null | undefined>
   onOpenNote: (noteId: string) => void
   onDeleteNote: (noteId: string) => void
+  onToggleFavorite: (note: Note) => void
 }
 
 /** Dedicated notes section — separate from the category vault — for freeform text and
  * checklists. Grid view shows every note as a card; tapping one opens the note editor overlay. */
-export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote }: NotesPanelProps) {
+export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote, onToggleFavorite }: NotesPanelProps) {
   const [sortKey, setSortKey] = useState<NoteSortKey>(() => {
     if (typeof window === 'undefined') return 'newest'
     return (window.localStorage.getItem('vault:noteSort') as NoteSortKey | null) ?? 'newest'
@@ -67,6 +68,7 @@ export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote }: Notes
               index={index}
               onClick={() => onOpenNote(note.id)}
               onDelete={() => onDeleteNote(note.id)}
+              onToggleFavorite={() => onToggleFavorite(note)}
             />
           ))}
         </div>

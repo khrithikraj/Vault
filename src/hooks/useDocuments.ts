@@ -17,7 +17,7 @@ import {
   deleteDocument,
   validateDocumentFile,
 } from '../lib/documents'
-import { supabase } from '../../supabase'
+import { supabase } from '../lib/supabase'
 import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { DocumentCategory, VaultDocument } from '../types/app'
 
@@ -95,10 +95,11 @@ export function useDocuments() {
       doc: VaultDocument,
       name: string,
       category: DocumentCategory,
+      isFavorite?: boolean,
     ): Promise<{ ok: boolean; error?: string }> => {
       setMessage('')
       try {
-        const updated = await updateDocumentMetadataRecord(doc, name, category)
+        const updated = await updateDocumentMetadataRecord(doc, name, category, isFavorite)
         setDocuments((current) => current.map((d) => (d.id === updated.id ? updated : d)))
         setTrashedDocuments((current) => current.map((d) => (d.id === updated.id ? updated : d)))
         return { ok: true }
@@ -133,6 +134,25 @@ export function useDocuments() {
       return true
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Delete failed.')
+      return false
+    }
+  }, [])
+
+  const toggleFavorite = useCallback(async (doc: VaultDocument): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .update({ is_favorite: !doc.is_favorite })
+        .eq('id', doc.id)
+        .select()
+        .single()
+      if (error) throw error
+      const updated = data as VaultDocument
+      setDocuments((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+      setTrashedDocuments((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
+      return true
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Could not update favorite.')
       return false
     }
   }, [])
@@ -187,6 +207,7 @@ export function useDocuments() {
     load,
     addDocument,
     updateDocument,
+    toggleFavorite,
     removeDocument,
     restoreDocument,
     purgeDocument,

@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { normalizeCategory } from '../lib/fields'
+import { browserTimezone, computeNextFireAt, localDateInTimezone, type ReminderRecurrence } from '../lib/reminders'
 import { sortTrashedByDeletedAt } from '../lib/trash'
-import type { Category, ChecklistItem, FieldDefinition, Note, VaultItem } from '../types/app'
+import type { Category, ChecklistItem, ChecklistReminder, DailyChecklistCompletion, FieldDefinition, Note, VaultItem, Weekday } from '../types/app'
 import type { AuthPresentationState } from '../types/auth'
 
 const DEV_USER_ID = 'dev-preview-user'
@@ -41,6 +42,8 @@ export function useMockVault() {
   const [notes, setNotes] = useState<Note[]>([])
   const [trashedItems, setTrashedItems] = useState<VaultItem[]>([])
   const [trashedNotes, setTrashedNotes] = useState<Note[]>([])
+  const [reminders, setReminders] = useState<ChecklistReminder[]>([])
+  const [dailyCompletions, setDailyCompletions] = useState<DailyChecklistCompletion[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [authState, setAuthState] = useState<AuthPresentationState>({ kind: 'idle' })
@@ -155,6 +158,7 @@ export function useMockVault() {
       tags: [],
       status: 'saved',
       metadata,
+      is_favorite: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       deleted_at: null,
@@ -170,6 +174,7 @@ export function useMockVault() {
       categoryId?: string
       metadata?: Record<string, unknown>
       status?: 'saved' | 'done'
+      is_favorite?: boolean
       imageFile?: File | null
       removeImage?: boolean
     },
@@ -192,6 +197,7 @@ export function useMockVault() {
           ...(input.categoryId !== undefined ? { category_id: input.categoryId } : {}),
           ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
           ...(input.status !== undefined ? { status: input.status } : {}),
+          ...(input.is_favorite !== undefined ? { is_favorite: input.is_favorite } : {}),
           image_url: imageUrl,
           updated_at: new Date().toISOString(),
         }
@@ -210,15 +216,12 @@ export function useMockVault() {
   }
 
   const deleteItem = async (itemId: string): Promise<boolean> => {
-    setItems((current) => {
-      const target = current.find((item) => item.id === itemId)
-      if (target) {
-        setTrashedItems((trash) =>
-          sortTrashedByDeletedAt([{ ...target, deleted_at: new Date().toISOString() }, ...trash]),
-        )
-      }
-      return current.filter((item) => item.id !== itemId)
-    })
+    const target = items.find((item) => item.id === itemId)
+    if (target) {
+      const trashed = { ...target, deleted_at: new Date().toISOString() }
+      setTrashedItems((trash) => sortTrashedByDeletedAt([trashed, ...trash]))
+    }
+    setItems((current) => current.filter((item) => item.id !== itemId))
     return true
   }
 
@@ -246,6 +249,7 @@ export function useMockVault() {
       title: '',
       body: '',
       checklist: [],
+      is_favorite: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       deleted_at: null,
@@ -256,7 +260,7 @@ export function useMockVault() {
 
   const updateNote = async (
     noteId: string,
-    patch: Partial<Pick<Note, 'title' | 'body' | 'checklist'>>,
+    patch: Partial<Pick<Note, 'title' | 'body' | 'checklist' | 'is_favorite'>>,
   ) => {
     setNotes((current) =>
       current.map((note) =>
@@ -267,16 +271,68 @@ export function useMockVault() {
     )
   }
 
+  const upsertReminder = async (input: {
+    noteId: string
+    checklistItemId?: string | null
+    localTime: string
+    enabled: boolean
+    recurrence?: ReminderRecurrence
+    dayOfWeek?: Weekday | null
+    timezone?: string
+  }) => {
+    const targetItemId = input.checklistItemId ?? null
+    const timezone = input.timezone ?? browserTimezone()
+    const recurrence = input.recurrence ?? 'daily'
+    const dayOfWeek = recurrence === 'weekly' ? (input.dayOfWeek ?? null) : null
+    const nextFireAt = input.enabled
+      ? computeNextFireAt(input.localTime, recurrence, timezone, dayOfWeek)
+      : null
+    const existing = reminders.find(
+      (entry) =>
+        entry.note_id === input.noteId &&
+        (targetItemId === null ? entry.checklist_item_id === null : entry.checklist_item_id === targetItemId),
+    )
+    const reminder: ChecklistReminder = {
+      id: existing?.id ?? makeId(),
+      user_id: DEV_USER_ID,
+      note_id: input.noteId,
+      checklist_item_id: targetItemId,
+      enabled: input.enabled,
+      recurrence,
+      day_of_week: dayOfWeek,
+      local_time: input.localTime,
+      timezone,
+      next_fire_at: nextFireAt,
+      last_fired_at: existing?.last_fired_at ?? null,
+      created_at: existing?.created_at ?? new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    setReminders((current) => [...current.filter((entry) => entry.id !== reminder.id), reminder])
+  }
+
+  const removeReminder = async (reminderId: string) => {
+    setReminders((current) => current.filter((entry) => entry.id !== reminderId))
+    setDailyCompletions((current) => current.filter((entry) => entry.reminder_id !== reminderId))
+  }
+
+  const toggleDailyCompletion = async (reminder: ChecklistReminder) => {
+    const localDate = localDateInTimezone(new Date(), reminder.timezone)
+    const exists = dailyCompletions.some((entry) => entry.reminder_id === reminder.id && entry.local_date === localDate)
+    setDailyCompletions((current) => exists
+      ? current.filter((entry) => !(entry.reminder_id === reminder.id && entry.local_date === localDate))
+      : [...current, { reminder_id: reminder.id, local_date: localDate, completed_at: new Date().toISOString() }])
+  }
+
   const deleteNote = async (noteId: string): Promise<boolean> => {
-    setNotes((current) => {
-      const target = current.find((note) => note.id === noteId)
-      if (target) {
-        setTrashedNotes((trash) =>
-          sortTrashedByDeletedAt([{ ...target, deleted_at: new Date().toISOString() }, ...trash]),
-        )
-      }
-      return current.filter((note) => note.id !== noteId)
-    })
+    const removedIds = reminders.filter((entry) => entry.note_id === noteId).map((entry) => entry.id)
+    setReminders((current) => current.filter((entry) => entry.note_id !== noteId))
+    setDailyCompletions((current) => current.filter((entry) => !removedIds.includes(entry.reminder_id)))
+    const target = notes.find((note) => note.id === noteId)
+    if (target) {
+      const trashed = { ...target, deleted_at: new Date().toISOString() }
+      setTrashedNotes((trash) => sortTrashedByDeletedAt([trashed, ...trash]))
+    }
+    setNotes((current) => current.filter((note) => note.id !== noteId))
     return true
   }
 
@@ -287,6 +343,9 @@ export function useMockVault() {
   }
 
   const purgeNote = async (note: Note): Promise<boolean> => {
+    const removedIds = reminders.filter((entry) => entry.note_id === note.id).map((entry) => entry.id)
+    setReminders((current) => current.filter((entry) => entry.note_id !== note.id))
+    setDailyCompletions((current) => current.filter((entry) => !removedIds.includes(entry.reminder_id)))
     setTrashedNotes((current) => current.filter((entry) => entry.id !== note.id))
     return true
   }
@@ -302,6 +361,7 @@ export function useMockVault() {
       title: input.title,
       body: input.body,
       checklist: input.checklist,
+      is_favorite: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       deleted_at: null,
@@ -349,6 +409,8 @@ export function useMockVault() {
       setNotes([])
       setTrashedItems([])
       setTrashedNotes([])
+      setReminders([])
+      setDailyCompletions([])
       setSelectedCategoryId(null)
       setMessage('')
     },
@@ -368,5 +430,10 @@ export function useMockVault() {
     restoreNote,
     purgeNote,
     importNote,
+    reminders,
+    dailyCompletions,
+    upsertReminder,
+    removeReminder,
+    toggleDailyCompletion,
   }
 }

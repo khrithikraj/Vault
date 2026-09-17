@@ -2,6 +2,44 @@
 // installability. Deliberately does NOT cache/intercept normal app or Supabase requests,
 // so it can't accidentally serve stale data — the app is not offline-first.
 const SHARE_CACHE = 'share-target-v1'
+
+self.addEventListener('push', (event) => {
+  let payload = {}
+  try { payload = event.data ? event.data.json() : {} } catch { payload = {} }
+  const title = payload.title || "Raj's Vault"
+  const options = {
+    body: payload.body || 'A daily checklist item is due.',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { noteId: payload.noteId, checklistItemId: payload.checklistItemId },
+  }
+  event.waitUntil(
+    self.registration.showNotification(title, options).catch((error) => {
+      // If showNotification rejects without a fallback, Chrome substitutes a generic
+      // "site updated in the background" tile and the reminder is effectively lost.
+      // Retry with the minimal, always-serializable options before giving up.
+      console.error('[sw] showNotification failed, retrying minimal options', error)
+      return self.registration.showNotification(title, { body: options.body })
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const noteId = event.notification.data?.noteId
+  const target = noteId ? `/?openNote=${encodeURIComponent(noteId)}` : '/'
+  event.waitUntil((async () => {
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    for (const client of clients) {
+      if ('focus' in client) {
+        await client.focus()
+        if ('navigate' in client) await client.navigate(target)
+        return
+      }
+    }
+    await self.clients.openWindow(target)
+  })())
+})
  
 self.addEventListener('install', () => {
   self.skipWaiting()

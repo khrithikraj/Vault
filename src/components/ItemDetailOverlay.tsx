@@ -19,6 +19,7 @@ import {
   INTERNAL_METADATA_KEYS,
 } from '../lib/ratings'
 import type { Category, FieldDefinition, VaultItem } from '../types/app'
+import { FoodSpotBranches } from './item-detail/FoodSpotBranches'
 
 type ItemDetailOverlayProps = {
   item: VaultItem | null
@@ -35,6 +36,7 @@ type ItemDetailOverlayProps = {
       notes?: string | null
       categoryId?: string
       metadata?: Record<string, unknown>
+      is_favorite?: boolean
       imageFile?: File | null
       removeImage?: boolean
     },
@@ -372,6 +374,14 @@ export function ItemDetailOverlay({
                     </section>
                   ) : !metadataFields.some((f) => item.metadata?.[f.key]) ? (
                     <p className="mt-4 text-sm italic text-ink-soft/70">No extra details added.</p>
+                  ) : null}
+
+                  {selectedCategory?.name === 'Food Spots' ? (
+                    <FoodSpotBranches
+                      key={item.id}
+                      item={item}
+                      onUpdate={(metadata) => onUpdate(item.id, { metadata })}
+                    />
                   ) : null}
 
                   {/* Tried entries + ratings — e.g. multiple dishes tried at one food spot */}

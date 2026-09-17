@@ -837,6 +837,10 @@ button {
 .cmd-surface input {
   color: var(--color-ink, #f5ead8);
 }
+
+.cmd-surface input::placeholder {
+  color: #b8ac9c;
+}
  
 .cmd-surface:focus-within {
   border-color: var(--color-accent);

@@ -6,19 +6,22 @@
  */
  
 import type { VaultItem } from '../types/app'
- 
+import { isItemFavorite } from './favorites'
+import { BRANCHES_KEY } from './branches'
+
 export type TriedEntry = {
   id: string
   name: string
   rating: number
   note?: string
 }
- 
+
 const FAVORITE_KEY = '__favorite'
 const TRIED_KEY = '__triedEntries'
- 
-/** Internal keys that must never be exposed to the generic per-category field editor. */
-export const INTERNAL_METADATA_KEYS = [FAVORITE_KEY, TRIED_KEY] as const
+
+/** Internal keys that must never be exposed to the generic per-category field editor
+ * (and are always re-merged verbatim when a generic edit saves). */
+export const INTERNAL_METADATA_KEYS = [FAVORITE_KEY, TRIED_KEY, BRANCHES_KEY] as const
  
 /** Pulls just the internal keys out of an item's metadata, to be re-merged after a generic edit. */
 export function internalMetadata(item: VaultItem): Record<string, unknown> {
@@ -30,7 +33,7 @@ export function internalMetadata(item: VaultItem): Record<string, unknown> {
 }
  
 export function isFavorite(item: VaultItem): boolean {
-  return item.metadata?.[FAVORITE_KEY] === true
+  return isItemFavorite(item)
 }
  
 /** Returns a full metadata patch (spreads existing metadata) with the favorite flag flipped. */
@@ -62,19 +65,6 @@ export function withTriedEntryAdded(
     note: input.note?.trim() || undefined,
   }
   return { ...item.metadata, [TRIED_KEY]: [...getTriedEntries(item), entry] }
-}
- 
-export function withTriedEntryUpdated(
-  item: VaultItem,
-  entryId: string,
-  patch: Partial<Pick<TriedEntry, 'name' | 'rating' | 'note'>>,
-): Record<string, unknown> {
-  return {
-    ...item.metadata,
-    [TRIED_KEY]: getTriedEntries(item).map((entry) =>
-      entry.id === entryId ? { ...entry, ...patch } : entry,
-    ),
-  }
 }
  
 export function withTriedEntryRemoved(item: VaultItem, entryId: string): Record<string, unknown> {

@@ -31,10 +31,18 @@ export type VaultItem = {
   tags: string[]
   status: 'saved' | 'done'
   metadata: Record<string, unknown>
+  is_favorite: boolean
   created_at: string
   updated_at: string
   /** Set to an ISO timestamp when the item is in Recently Deleted; null otherwise. */
   deleted_at: string | null
+}
+
+export type FoodSpotBranch = {
+  id: string
+  name: string
+  address: string
+  mapUrl: string
 }
 
 export type ChecklistItem = {
@@ -43,12 +51,38 @@ export type ChecklistItem = {
   done: boolean
 }
 
+export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+
+export type ChecklistReminder = {
+  id: string
+  user_id: string
+  note_id: string
+  /** NULL = whole-note reminder; a real checklist item UUID = item-level reminder. */
+  checklist_item_id: string | null
+  enabled: boolean
+  recurrence: 'once' | 'daily' | 'weekdays' | 'weekly'
+  day_of_week?: Weekday | null
+  local_time: string
+  timezone: string
+  next_fire_at: string | null
+  last_fired_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type DailyChecklistCompletion = {
+  reminder_id: string
+  local_date: string
+  completed_at: string
+}
+
 export type Note = {
   id: string
   user_id: string
   title: string
   body: string
   checklist: ChecklistItem[]
+  is_favorite: boolean
   created_at: string
   updated_at: string
   /** Set to an ISO timestamp when the note is in Recently Deleted; null otherwise. */
@@ -79,6 +113,7 @@ export type VaultDocument = {
   mime_type: string
   file_size: number
   storage_path: string
+  is_favorite: boolean
   created_at: string
   /** Set to an ISO timestamp when the document is in Recently Deleted; null otherwise. */
   deleted_at: string | null

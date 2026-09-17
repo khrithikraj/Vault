@@ -8,13 +8,17 @@ export async function consumeSharedPhoto(): Promise<File | null> {
   if (typeof caches === 'undefined') {
     return null
   }
-  const cache = await caches.open(SHARE_CACHE)
-  const res = await cache.match('/shared-file-0')
-  if (!res) {
+  try {
+    const cache = await caches.open(SHARE_CACHE)
+    const res = await cache.match('/shared-file-0')
+    if (!res) {
+      return null
+    }
+    const blob = await res.blob()
+    await cache.delete('/shared-file-0')
+    await cache.delete('/shared-meta')
+    return new File([blob], 'shared-photo.jpg', { type: blob.type || 'image/jpeg' })
+  } catch {
     return null
   }
-  const blob = await res.blob()
-  await cache.delete('/shared-file-0')
-  await cache.delete('/shared-meta')
-  return new File([blob], 'shared-photo.jpg', { type: blob.type || 'image/jpeg' })
 }
