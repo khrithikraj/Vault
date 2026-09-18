@@ -81,7 +81,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
   const onboardingTour = useOnboardingTour(
     !vault.checkingSession && !vault.passwordRecovery && !!vault.session,
   )
-  const docs = useDocuments()
+  const docs = useDocuments(vault.session?.user?.id ?? null)
  
   // Overlay state: item, note, document
   const [openItemId, setOpenItemId] = useState<string | null>(null)
@@ -589,6 +589,18 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     })
   }, [])
  
+  // Reset documents on every session boundary BEFORE any document load can start.
+  // On the commit that changes the signed-in user, this effect claims the new owner and
+  // advances the session generation first, so a load started in the same commit captures
+  // a generation that reset() cannot later invalidate (cold signed-in loads stay current),
+  // and in-flight loads from the previous session are dropped. It also re-arms
+  // docsLoadedRef so the next session's documents are fetched fresh.
+  useEffect(() => {
+    docs.reset(vault.session?.user?.id ?? null)
+    docsLoadedRef.current = false
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vault.session?.user?.id])
+
   // Load documents lazily — once per session — when the user opens the Documents tab,
   // the Trash tab (trashed documents can be restored there), or when a vault-wide search
   // is active so Everything results can include documents even if that tab hasn't been
@@ -605,13 +617,6 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     docsLoadedRef.current = true
     void docs.load()
   }, [mainView, activeQuery, searchScope, vault.session?.user?.id, devPreview, docs])
- 
-  // Reset docs state on sign-out so a new sign-in gets fresh data.
-  useEffect(() => {
-    if (!vault.session) {
-      docsLoadedRef.current = false
-    }
-  }, [vault.session])
  
   const activeCategory = vault.categories.find(
     (category) => category.id === vault.selectedCategoryId,

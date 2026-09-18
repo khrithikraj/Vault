@@ -1,0 +1,11 @@
+# Edge Function platform configuration.
+#
+# Only [functions.send-reminders] is set here. To match the official
+# service-to-service pattern (@supabase/server withSupabase secret-key auth),
+# the platform-level JWT check is turned off for this single function; the
+# function itself accepts only the dedicated secret key named `sendreminders`
+# on the `apikey` header. Every other function keeps the platform default
+# (verify_jwt = true).
+
+[functions.send-reminders]
+verify_jwt = false
