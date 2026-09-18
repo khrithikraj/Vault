@@ -28,6 +28,27 @@ export const WEEKDAY_TO_NUMBER: Record<Weekday, number> = {
   saturday: 6,
 }
 
+export const REMINDER_RECURRENCES: readonly ReminderRecurrence[] = ['once', 'daily', 'weekdays', 'weekly']
+
+/** True when `value` is a usable IANA time zone. Never throws - returns false for
+ *  invalid zones (Intl.DateTimeFormat throws a RangeError only in that case). */
+export function isValidTimezone(value: unknown): boolean {
+  if (typeof value !== 'string' || value.trim() === '') return false
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: value }).format(new Date(0))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** True when `value` is (starts with) a valid HH:MM wall-clock time. Postgres
+ *  `time` columns come back as "HH:MM:SS", so only the HH:MM prefix is required -
+ *  the caller then slices to 5 chars exactly like the rest of this module. */
+export function isValidReminderTime(value: unknown): boolean {
+  return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d/.test(value)
+}
+
 /** @deprecated kept for backward compat — use ScheduledReminder */
 export type DailyScheduledReminder = ScheduledReminder
 
@@ -220,6 +241,79 @@ export function isReminderValid(
   if (isNoteLevel) return true
   const hasItem = note.checklist?.some((entry) => entry.id === reminder.checklist_item_id)
   return Boolean(hasItem)
+}
+
+export type ReminderPreflightError =
+  | 'invalid-reminder'
+  | 'malformed-note'
+  | 'invalid-recurrence'
+  | 'invalid-local-time'
+  | 'invalid-timezone'
+  | 'invalid-next-fire-at'
+  | 'invalid-weekday'
+
+export type ReminderPreflight = { ok: true; note: NoteRecord } | { ok: false; reason: ReminderPreflightError }
+
+export type ReminderPreflightInput = {
+  checklist_item_id: string | null
+  recurrence?: ReminderRecurrence | null
+  day_of_week?: Weekday | null
+  local_time: string
+  timezone: string
+  next_fire_at?: string | null
+  notes?: NoteRecord | NoteRecord[] | null
+}
+
+/**
+ * Deterministically validates every locally-checkable property of a due reminder
+ * BEFORE its occurrence is claimed. This is what keeps a malformed note/checklist,
+ * invalid timezone, or malformed recurrence / local_time / next_fire_at from ever
+ * consuming an occurrence or aborting the batch:
+ *
+ *   - note missing / soft-deleted  → 'invalid-reminder'   (disable, never fire)
+ *   - referenced checklist item gone → 'invalid-reminder' (disable, never fire)
+ *   - note/checklist shape unusable  → 'malformed-note'   (disable)
+ *   - recurrence not one of the enum → 'invalid-recurrence'
+ *   - local_time not HH:MM           → 'invalid-local-time'
+ *   - timezone not a usable IANA zone→ 'invalid-timezone' (never claim)
+ *   - next_fire_at unparseable       → 'invalid-next-fire-at'
+ *   - weekly day_of_week unknown     → 'invalid-weekday'
+ *
+ * A failure always means "do not claim": the invalid timezone can never convert
+ * to a date AFTER the occurrence was claimed, so no occurrence is ever lost.
+ */
+export function preflightReminder(reminder: ReminderPreflightInput): ReminderPreflight {
+  const note = normalizeNote(reminder.notes)
+  if (note == null) return { ok: false, reason: 'invalid-reminder' }
+  if (typeof note !== 'object' || Array.isArray(note)) return { ok: false, reason: 'malformed-note' }
+
+  const checklist = note.checklist
+  if (checklist != null) {
+    if (!Array.isArray(checklist)) return { ok: false, reason: 'malformed-note' }
+    if (checklist.some((entry) => entry === null || Array.isArray(entry) || typeof entry !== 'object')) {
+      return { ok: false, reason: 'malformed-note' }
+    }
+  }
+
+  if (note.deleted_at !== null) return { ok: false, reason: 'invalid-reminder' }
+  if (!isReminderValid(reminder, note)) return { ok: false, reason: 'invalid-reminder' }
+
+  const recurrence = reminder.recurrence ?? 'daily'
+  if (!REMINDER_RECURRENCES.includes(recurrence)) return { ok: false, reason: 'invalid-recurrence' }
+
+  if (!isValidReminderTime(reminder.local_time)) return { ok: false, reason: 'invalid-local-time' }
+
+  if (!isValidTimezone(reminder.timezone)) return { ok: false, reason: 'invalid-timezone' }
+
+  if (reminder.next_fire_at != null && Number.isNaN(new Date(reminder.next_fire_at).getTime())) {
+    return { ok: false, reason: 'invalid-next-fire-at' }
+  }
+
+  if (recurrence === 'weekly' && reminder.day_of_week != null && !(reminder.day_of_week in WEEKDAY_TO_NUMBER)) {
+    return { ok: false, reason: 'invalid-weekday' }
+  }
+
+  return { ok: true, note }
 }
 
 /**

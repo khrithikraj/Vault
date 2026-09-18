@@ -26,6 +26,7 @@
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.31.0",
     "@playwright/test": "^1.63.0",
+    "@supabase/server": "^1.7.0",
     "@tailwindcss/vite": "^4.1.11",
     "@types/node": "^22.15.30",
     "@types/react": "^18.3.23",

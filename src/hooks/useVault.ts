@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { describeSupabaseError, fallbackFieldSchema, getErrorMessage, normalizeCategory } from '../lib/fields'
+import {
+  advanceSessionGeneration,
+  createSessionGeneration,
+  emptyVaultState,
+  isCurrentSessionGeneration,
+} from '../lib/sessionGeneration'
 import { supabase, supabaseConfigured, vaultBucket } from '../lib/supabase'
 import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { AuthPresentationState } from '../types/auth'
@@ -55,6 +61,11 @@ export function useVault() {
   const [dailyCompletions, setDailyCompletions] = useState<DailyChecklistCompletion[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
 
+  // Tracks which session the in-memory state belongs to. Every session boundary
+  // bumps the generation, invalidating any in-flight loadVault() from an earlier
+  // session so it can never write into the current user's state.
+  const sessionGenerationRef = useRef(createSessionGeneration())
+
   useEffect(() => {
     // Supabase redirects auth errors (e.g. an expired/already-used reset link) back as
     // #error=...&error_description=... instead of throwing, so surface it ourselves.
@@ -83,6 +94,41 @@ export function useVault() {
 
     let mounted = true
 
+    // Single funnel for every session transition (the initial getSession() restore and
+    // every onAuthStateChange event). On a session boundary it bumps the generation
+    // FIRST and synchronously clears ALL private state, so a previous user's data is
+    // gone before any async load for the next user can start (no stale flash), and any
+    // still-in-flight load from the previous session is rendered inert by the guard.
+    const applySession = (nextSession: Session | null) => {
+      const nextUserId = nextSession?.user?.id ?? null
+      const { next, changed } = advanceSessionGeneration(sessionGenerationRef.current, nextUserId)
+      sessionGenerationRef.current = next
+      if (changed) {
+        const cleared = emptyVaultState()
+        setCategories(cleared.categories)
+        setItems(cleared.items)
+        setNotes(cleared.notes)
+        setTrashedItems(cleared.trashedItems)
+        setTrashedNotes(cleared.trashedNotes)
+        setReminders(cleared.reminders)
+        setDailyCompletions(cleared.dailyCompletions)
+        setSelectedCategoryId(cleared.selectedCategoryId)
+        // Transient state reset belongs to the same private-session boundary. A load
+        // started for the previous user is now stale and its finally block will refuse
+        // to clear these flags, so without an explicit reset the signed-out/next-user
+        // session could keep loadingData=true (or an old message) forever.
+        setLoadingData(false)
+        setMessage('')
+      }
+      setSession(nextSession)
+      // Only a real session boundary starts a load. Same-user events (token refresh,
+      // the duplicate INITIAL_SESSION restore after getSession(), etc.) must not trigger
+      // a second loadVault() — the generation, state, and any in-flight load stay put.
+      if (changed && nextUserId) {
+        void loadVault(nextUserId)
+      }
+    }
+
     const init = async () => {
       const { data, error } = await supabase.auth.getSession()
       if (!mounted) {
@@ -93,10 +139,7 @@ export function useVault() {
         setAuthState({ kind: 'error', message: getAuthErrorMessage(error.message) })
       }
 
-      setSession(data.session ?? null)
-      if (data.session?.user?.id) {
-        void loadVault(data.session.user.id)
-      }
+      applySession(data.session ?? null)
       setCheckingSession(false)
     }
 
@@ -108,16 +151,7 @@ export function useVault() {
           setPasswordRecovery(true)
           setAuthState({ kind: 'idle' })
         }
-        setSession(nextSession)
-        if (nextSession?.user?.id) {
-          void loadVault(nextSession.user.id)
-        } else {
-          setCategories([])
-          setItems([])
-          setTrashedItems([])
-          setTrashedNotes([])
-          setSelectedCategoryId(null)
-        }
+        applySession(nextSession)
       },
     )
 
@@ -150,14 +184,21 @@ export function useVault() {
   )
 
   const loadVault = async (userId: string) => {
+    const startedGeneration = sessionGenerationRef.current.generation
+    const stale = () => !isCurrentSessionGeneration(sessionGenerationRef.current, startedGeneration)
+
     setLoadingData(true)
     setMessage('')
 
     // Seeding failure (e.g. DB migration not applied yet) must not block loading
     // whatever categories/items already exist.
     await ensureDefaultCategories(userId).catch((seedError) => {
+      if (stale()) return
       setMessage(describeSupabaseError({ message: getErrorMessage(seedError) }))
     })
+    if (stale()) {
+      return
+    }
 
     try {
       const [
@@ -185,6 +226,12 @@ export function useVault() {
         supabase.from('reminders').select('*').eq('user_id', userId),
         supabase.from('daily_checklist_completions').select('*'),
       ])
+
+      // The session moved on while this request was in flight — drop every write so a
+      // response for a previous user can never populate the current session's state.
+      if (stale()) {
+        return
+      }
 
       if (categoryError) {
         throw categoryError
@@ -215,9 +262,14 @@ export function useVault() {
       // Default view is "Everything" (selectedCategoryId stays null) rather than
       // auto-selecting the first category — see homepage-default decision in plan.
     } catch (error) {
+      if (stale()) {
+        return
+      }
       setMessage(describeSupabaseError({ message: getErrorMessage(error) }))
     } finally {
-      setLoadingData(false)
+      if (!stale()) {
+        setLoadingData(false)
+      }
     }
   }
 

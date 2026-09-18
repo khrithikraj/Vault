@@ -7,9 +7,15 @@
  *   - local state updated after confirmed server operations
  *
  * This hook is separate from useVault() to keep both hooks focused.
+ *
+ * `sessionUserId` is the id of the user currently signed in (null when signed out).
+ * Documents and trashedDocuments are exposed only while that id matches the owner the
+ * stored arrays were loaded for, so a previous user's documents can never be returned
+ * (and therefore rendered) under the next user's session — even on the single render
+ * between the session state update and App's reset() effect.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import {
   listDocuments,
   uploadDocument,
@@ -17,36 +23,94 @@ import {
   deleteDocument,
   validateDocumentFile,
 } from '../lib/documents'
+import {
+  advanceSessionGeneration,
+  createSessionGeneration,
+  emptyDocumentState,
+  isSessionStateVisible,
+  type SessionGeneration,
+} from '../lib/sessionGeneration'
 import { supabase } from '../lib/supabase'
 import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { DocumentCategory, VaultDocument } from '../types/app'
 
-export function useDocuments() {
+export function useDocuments(sessionUserId: string | null) {
   const [documents, setDocuments] = useState<VaultDocument[]>([])
   const [trashedDocuments, setTrashedDocuments] = useState<VaultDocument[]>([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
 
+  // The session owner is claimed directly from the passed sessionUserId rather than
+  // only via App's reset() effect, so the boundary is established from the prop before
+  // any load effect can capture a stale, unclaimed generation (owner null).
+  const sessionGenerationRef = useRef<SessionGeneration>(
+    advanceSessionGeneration(createSessionGeneration(), sessionUserId).next,
+  )
+
+  // Render-time privacy gate. The stored arrays may belong to an older session until
+  // reset() runs after the user change — before that starts, report them as empty so a
+  // previous user's documents are logically invisible from the very first render.
+  const docsVisible = isSessionStateVisible(sessionGenerationRef.current.owner, sessionUserId)
+  const visibleDocuments = docsVisible ? documents : []
+  const visibleTrashedDocuments = docsVisible ? trashedDocuments : []
+
+  /**
+   * Advance the session boundary (App calls this on any auth user change). Bumps the
+   * generation and synchronously clears documents so a previous user's documents can
+   * never bleed into the next session, and in-flight loads from the old session go stale.
+   */
+  const reset = useCallback((userId: string | null) => {
+    const { next, changed } = advanceSessionGeneration(sessionGenerationRef.current, userId)
+    sessionGenerationRef.current = next
+    if (!changed) {
+      return
+    }
+    const cleared = emptyDocumentState()
+    setDocuments(cleared.documents)
+    setTrashedDocuments(cleared.trashedDocuments)
+    setLoading(false)
+    setMessage('')
+  }, [])
+
   // ---------------------------------------------------------------------------
   // Load
   // ---------------------------------------------------------------------------
 
   const load = useCallback(async () => {
+    // Staleness is identity-based: a load may only write while the owner of the stored
+    // document state is still the session user this load was started for. This keeps an
+    // initial signed-in load current even when the boundary reset for the SAME user runs
+    // after the load starts (cold signed-in: load → reset claims user A → still current),
+    // while a load belonging to a previous user or the signed-out state goes stale the
+    // moment the owner changes.
+    const startedForUser = sessionUserId
+    const stale = () => sessionGenerationRef.current.owner !== startedForUser
+
     setLoading(true)
     setMessage('')
     try {
       // Fetched unfiltered and split client-side: deleted rows stay restorable
       // without needing a `.not('deleted_at','is',null)` filter query.
       const docs = await listDocuments()
+      // The session moved on while this request was in flight — drop the response so
+      // a previous user's documents can never populate the current session.
+      if (stale()) {
+        return
+      }
       setDocuments(docs.filter((doc) => !doc.deleted_at))
       setTrashedDocuments(sortTrashedByDeletedAt(docs.filter((doc) => doc.deleted_at)))
     } catch (err) {
+      if (stale()) {
+        return
+      }
       setMessage(err instanceof Error ? err.message : 'Failed to load documents.')
     } finally {
-      setLoading(false)
+      if (!stale()) {
+        setLoading(false)
+      }
     }
-  }, [])
+  }, [sessionUserId])
 
   // ---------------------------------------------------------------------------
   // Add
@@ -198,12 +262,13 @@ export function useDocuments() {
   }, [])
 
   return {
-    documents,
-    trashedDocuments,
+    documents: visibleDocuments,
+    trashedDocuments: visibleTrashedDocuments,
     loading,
     uploading,
     message,
     setMessage,
+    reset,
     load,
     addDocument,
     updateDocument,

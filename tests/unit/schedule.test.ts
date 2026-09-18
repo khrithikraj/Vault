@@ -6,9 +6,12 @@ import {
   hasCompletionOnDate,
   isReminderValid,
   isSubscriptionGone,
+  isValidReminderTime,
+  isValidTimezone,
   nextFireAt,
   nextFireAtForRecurrence,
   normalizeNote,
+  preflightReminder,
   zonedDateStr,
   zonedWallClockToUtc,
 } from '../../supabase/functions/send-reminders/schedule'
@@ -222,6 +225,91 @@ describe('isReminderValid', () => {
     expect(isReminderValid({ checklist_item_id: 'c2' }, activeNote)).toBe(false)
     expect(isReminderValid({ checklist_item_id: 'c1' }, { ...activeNote, deleted_at: '2026-09-15T00:00:00Z' })).toBe(false)
     expect(isReminderValid({ checklist_item_id: 'c1' }, undefined)).toBe(false)
+  })
+})
+
+describe('isValidTimezone', () => {
+  it('accepts usable IANA zones and rejects invalid/empty ones without throwing', () => {
+    expect(isValidTimezone(KOLKATA)).toBe(true)
+    expect(isValidTimezone(NEW_YORK)).toBe(true)
+    expect(isValidTimezone('UTC')).toBe(true)
+    expect(isValidTimezone('Mars/Olympus')).toBe(false)
+    expect(isValidTimezone('')).toBe(false)
+    expect(isValidTimezone(undefined)).toBe(false)
+  })
+})
+
+describe('isValidReminderTime', () => {
+  it('accepts HH:MM and the HH:MM:SS form returned by Postgres time columns', () => {
+    expect(isValidReminderTime('09:00')).toBe(true)
+    expect(isValidReminderTime('09:47')).toBe(true)
+    expect(isValidReminderTime('23:59')).toBe(true)
+    expect(isValidReminderTime('00:00')).toBe(true)
+    expect(isValidReminderTime('09:00:00')).toBe(true)
+    expect(isValidReminderTime('9:00')).toBe(false)
+    expect(isValidReminderTime('24:00')).toBe(false)
+    expect(isValidReminderTime('noon')).toBe(false)
+    expect(isValidReminderTime(undefined)).toBe(false)
+  })
+})
+
+describe('preflightReminder', () => {
+  const base = {
+    checklist_item_id: 'c1' as string | null,
+    local_time: '09:00',
+    timezone: KOLKATA,
+    next_fire_at: null as string | null,
+    notes: {
+      title: 'Grocery List',
+      deleted_at: null as string | null,
+      checklist: [{ id: 'c1', text: 'Buy milk', done: false }],
+    },
+  }
+
+  function reasonFor(reminder: Parameters<typeof preflightReminder>[0]): string | null {
+    const result = preflightReminder(reminder)
+    return result.ok ? null : result.reason
+  }
+
+  it('accepts a valid active reminder and returns the normalized note', () => {
+    const result = preflightReminder(base)
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.note.title).toBe('Grocery List')
+    }
+  })
+
+  it('accepts a valid note-level reminder without a checklist', () => {
+    const noteLevel = { ...base, checklist_item_id: null, notes: { title: 'Ideas', deleted_at: null } }
+    const result = preflightReminder(noteLevel)
+    expect(result.ok).toBe(true)
+  })
+
+  it('rejects a missing note, a soft-deleted note, and a removed checklist item', () => {
+    expect(reasonFor({ ...base, notes: undefined })).toBe('invalid-reminder')
+    expect(reasonFor({ ...base, notes: { ...base.notes, deleted_at: '2026-09-15T00:00:00Z' } })).toBe('invalid-reminder')
+    expect(reasonFor({ ...base, checklist_item_id: 'c2' })).toBe('invalid-reminder')
+  })
+
+  it('rejects a malformed note/checklist shape that would otherwise crash content generation', () => {
+    expect(reasonFor({ ...base, notes: { title: 'x', deleted_at: null, checklist: {} as unknown as typeof base.notes.checklist } }))
+      .toBe('malformed-note')
+    expect(reasonFor({ ...base, notes: { title: 'x', deleted_at: null, checklist: [null] as unknown as typeof base.notes.checklist } }))
+      .toBe('malformed-note')
+  })
+
+  it('rejects invalid recurrence, local_time, timezone, next_fire_at, and weekly weekday', () => {
+    expect(reasonFor({ ...base, recurrence: 'hourly' as never })).toBe('invalid-recurrence')
+    expect(reasonFor({ ...base, local_time: 'noon' })).toBe('invalid-local-time')
+    expect(reasonFor({ ...base, timezone: 'Mars/Olympus' })).toBe('invalid-timezone')
+    expect(reasonFor({ ...base, next_fire_at: 'not-a-date' })).toBe('invalid-next-fire-at')
+    expect(reasonFor({ ...base, next_fire_at: null })).toBe(null)
+    expect(reasonFor({ ...base, recurrence: 'weekly', day_of_week: 'funday' as never })).toBe('invalid-weekday')
+    expect(reasonFor({ ...base, recurrence: 'weekly', day_of_week: 'monday' as never })).toBe(null)
+  })
+
+  it('accepts the HH:MM:SS local_time form returned by Postgres', () => {
+    expect(reasonFor({ ...base, local_time: '09:00:00' })).toBe(null)
   })
 })
 
