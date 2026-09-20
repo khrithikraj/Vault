@@ -45,7 +45,7 @@ export function NotesPanel({ notes, onOpenNote, onDeleteNote, onToggleFavorite }
           description="Create a note to keep text and checklists together."
         />
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {sortNotes(notes, sortKey).map((note, index) => (
             <NoteCard
               key={note.id}

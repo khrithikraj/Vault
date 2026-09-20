@@ -136,7 +136,7 @@ export function SearchResults({
                 <GroupHeader icon={NotebookPen} label="Notes" />
               </>
             ) : null}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
               {results.notes.map((hit, index) => (
                 <NoteCard
                   key={hit.note.id}
@@ -162,7 +162,7 @@ export function SearchResults({
                 <GroupHeader icon={FolderLock} label="Documents" />
               </>
             ) : null}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
               {results.documents.map((doc, index) => (
                 <DocumentCard
                   key={doc.id}
