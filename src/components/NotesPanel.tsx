@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
 import { NoteCard } from './NoteCard'
 import { SortMenu } from './ui/SortMenu'
 import { VaultEmptyState } from './ui/VaultEmptyState'
@@ -10,15 +9,15 @@ import type { Note } from '../types/app'
 
 type NotesPanelProps = {
   notes: Note[]
-  onAddNote: () => Promise<Note | null | undefined>
   onOpenNote: (noteId: string) => void
   onDeleteNote: (noteId: string) => void
   onToggleFavorite: (note: Note) => void
 }
 
 /** Dedicated notes section — separate from the category vault — for freeform text and
- * checklists. Grid view shows every note as a card; tapping one opens the note editor overlay. */
-export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote, onToggleFavorite }: NotesPanelProps) {
+ * checklists. Grid view shows every note as a card; tapping one opens the note editor overlay.
+ * New notes are created through the global quick-add control, not a section button. */
+export function NotesPanel({ notes, onOpenNote, onDeleteNote, onToggleFavorite }: NotesPanelProps) {
   const [sortKey, setSortKey] = useState<NoteSortKey>(() => {
     if (typeof window === 'undefined') return 'newest'
     return (window.localStorage.getItem('vault:noteSort') as NoteSortKey | null) ?? 'newest'
@@ -26,13 +25,6 @@ export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote, onToggl
   useEffect(() => {
     window.localStorage.setItem('vault:noteSort', sortKey)
   }, [sortKey])
-
-  const handleAdd = async () => {
-    const note = await onAddNote()
-    if (note) {
-      onOpenNote(note.id)
-    }
-  }
 
   return (
     <VaultSection
@@ -43,13 +35,6 @@ export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote, onToggl
       right={
         <div className="flex items-center gap-2">
           <SortMenu value={sortKey} options={NOTE_SORT_OPTIONS} onChange={setSortKey} />
-          <button
-            type="button"
-            onClick={() => void handleAdd()}
-            className="vault-btn-solid rounded-full px-4 py-2 text-xs sm:text-sm font-semibold uppercase tracking-wide flex items-center gap-1.5"
-          >
-            <Plus size={15} /> New note
-          </button>
         </div>
       }
     >
@@ -60,7 +45,7 @@ export function NotesPanel({ notes, onAddNote, onOpenNote, onDeleteNote, onToggl
           description="Create a note to keep text and checklists together."
         />
       ) : (
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           {sortNotes(notes, sortKey).map((note, index) => (
             <NoteCard
               key={note.id}

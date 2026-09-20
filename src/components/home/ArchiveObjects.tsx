@@ -61,7 +61,7 @@ export function ArchiveObjects({
       // "position" only — full layout mode projects scale corrections onto every
       // nested motion child (e.g. DoneStamp), hijacking their own mount animations.
       layout="position"
-      className="grid grid-cols-1 gap-4 sm:grid-cols-12"
+      className="grid grid-cols-2 gap-3 sm:grid-cols-12 sm:gap-4"
       style={{ overflowX: 'clip' }}
     >
       <AnimatePresence initial={false}>

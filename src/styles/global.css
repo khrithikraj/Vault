@@ -524,12 +524,7 @@ button {
     }
  
     .vault-section-header {
-      grid-template-columns: auto minmax(0, 1fr);
-    }
- 
-    .vault-section-actions {
-      grid-column: 2;
-      justify-content: flex-start;
+      gap: var(--space-2);
     }
   }
  
@@ -850,23 +845,26 @@ button {
     0 8px 32px -8px rgba(196, 72, 0, 0.2);
 }
  
-/* V2 — Archive object surface */
-.archive-object {
+/* V2 — Shared card family (Items, Notes, Documents, Trash).
+   ONE container language: the same surface, border, radius and hover across
+   every section card. Content stays per-card; the shell never varies. */
+.vault-card {
   position: relative;
   height: 100%;
-  background: var(--accession-surface-wash);
-  border: 1px solid var(--accession-ink-faint);
+  background: var(--color-cloud-alt);
+  border: 1px solid var(--color-border-dash);
+  border-radius: var(--radius);
   transition:
     background-color var(--duration-base) var(--ease-smooth),
     border-color var(--duration-base) var(--ease-smooth);
 }
- 
-.archive-object:hover {
-  background: var(--accession-cloud-panel);
+
+.vault-card:hover {
+  background: var(--color-surface-soft);
   border-color: var(--accession-ink-soft);
 }
- 
- 
+
+
 /* V2 — Category index row */
 .index-row {
   border-bottom: 1px solid rgba(46, 37, 29, 0.8);

@@ -159,7 +159,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
       />
 
       <header className="accession-running-head" aria-label="Catalogue header">
-        <span><i aria-hidden="true" />Raj&apos;s Vault — Accession 01</span>
+        <span><i aria-hidden="true" />Raj&apos;s Vault — Catalogue 01</span>
         <button type="button" onClick={openRegister} disabled={leaving}>Sign in</button>
       </header>
 
@@ -207,11 +207,6 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           >
             <div className="lot-heading">
               <span>Lot 001</span>
-              <motion.span
-                initial={reducedMotion ? false : { opacity: 0, rotate: -8, scale: 1.35 }}
-                animate={{ opacity: 1, rotate: -2, scale: 1 }}
-                transition={{ delay: reducedMotion ? 0 : 0.7, duration: 0.42 }}
-              >Serial #{entry.serial}</motion.span>
             </div>
             <div className="lot-content" onAnimationEnd={() => setFiling(false)}>
               <div className="lot-plate" aria-hidden="true">
@@ -227,7 +222,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
               >
                 <h2>{entry.title}</h2>
                 <p className="lot-descriptor">A note, in the hand of the collector.</p>
-                <p>Filed {formatFiledAt(entry.filedAt)}. Serial #{entry.serial}.</p>
+                <p>Filed {formatFiledAt(entry.filedAt)}.</p>
                 <dl>
                   <div><dt>Condition</dt><dd>As found</dd></div>
                   <div><dt>Department</dt><dd>Unclassified</dd></div>
@@ -255,14 +250,14 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
       >
         <header className="frame-heading">
           <span>Conditions · 02</span>
-          <span>Unaccessioned</span>
+          <span>Unfiled</span>
         </header>
         <div className="condition-composition">
           <p id="conditions-title">
             An unfiled thing has no lot number, no date, and no location. It is not lost. It is
             simply unaccounted for.
           </p>
-          <div className="unfiled-plate" aria-label="An unaccessioned screenshot">
+          <div className="unfiled-plate" aria-label="An unfiled screenshot">
             <span>Untitled object</span>
             <strong>?</strong>
             <small>Provisional · origin unknown</small>
@@ -300,7 +295,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <figcaption>Food study, colour · 700 × 875 px</figcaption>
           </motion.figure>
           <motion.ol
-            aria-label="Parts of an accessioned entry"
+            aria-label="Parts of a filed entry"
             style={reducedMotion ? undefined : { y: anatomyDetailsY, opacity: anatomyDetailsOpacity }}
           >
             <li><span>01</span><strong>Title</strong><small>The thing as you remember it</small></li>
@@ -403,7 +398,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           <span>Private by default</span>
         </header>
         <div>
-          <p>Accession 01</p>
+          <p>Catalogue 01</p>
           <h2 id="invitation-title">Begin with one thing you don&apos;t want to lose.</h2>
           <button type="button" onClick={openRegister} disabled={leaving}>Open the register</button>
           <figure className="invitation-plate">

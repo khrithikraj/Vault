@@ -2,14 +2,13 @@
  * DocumentsPanel — the main Documents section.
  *
  * Structure mirrors NotesPanel exactly:
- *   - Header with section title + "Add Document" button (opens the uploader lifted to App)
+ *   - Header with section title + sort menu (uploads go through the global quick-add)
  *   - Category filter pills
  *   - Grid of DocumentCard components
  *   - Empty state matching Vault's dashed-border aesthetic
  */
 
 import { useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
 import { DocumentCard } from './DocumentCard'
 import { ConfirmDialog } from '../ConfirmDialog'
 import { SortMenu } from '../ui/SortMenu'
@@ -26,8 +25,6 @@ type DocumentsPanelProps = {
   loading: boolean
   message: string
   onOpenDoc: (doc: VaultDocument) => void
-  /** Opens the app-level DocumentUploader (lifted so Quick Add can open it from anywhere). */
-  onOpenUploader: () => void
   onDelete: (doc: VaultDocument) => Promise<boolean>
   onDismissMessage: () => void
   onToggleFavorite: (doc: VaultDocument) => void
@@ -38,7 +35,6 @@ export function DocumentsPanel({
   loading,
   message,
   onOpenDoc,
-  onOpenUploader,
   onDelete,
   onDismissMessage,
   onToggleFavorite,
@@ -78,13 +74,6 @@ export function DocumentsPanel({
       right={
         <div className="flex items-center gap-2">
           <SortMenu value={sortKey} options={DOCUMENT_SORT_OPTIONS} onChange={setSortKey} />
-          <button
-            type="button"
-            onClick={onOpenUploader}
-            className="vault-btn-solid flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide sm:text-sm"
-          >
-            <Plus size={15} /> Add Document
-          </button>
         </div>
       }
     >
@@ -109,7 +98,10 @@ export function DocumentsPanel({
       {/* Category filter pills                                                 */}
       {/* ------------------------------------------------------------------ */}
       {documents.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-1.5">
+        <div
+          className="mb-4 flex items-center gap-1.5 overflow-x-auto py-0.5"
+          style={{ scrollbarWidth: 'none' }}
+        >
           {(['All', ...DOCUMENT_CATEGORIES] as const).map((cat) => {
             const count = cat === 'All'
               ? documents.length
@@ -121,7 +113,7 @@ export function DocumentsPanel({
                 type="button"
                 onClick={() => setFilterCategory(cat)}
                 data-active={filterCategory === cat ? 'true' : undefined}
-                className="vault-chip rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-all"
+                className="vault-chip shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-all"
               >
                 {cat}
                 {count > 0 && (
@@ -138,7 +130,7 @@ export function DocumentsPanel({
       {/* ------------------------------------------------------------------ */}
       {loading && documents.length === 0 ? (
         /* Skeleton state */
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {[0, 1, 2].map((key) => (
             <VaultSkeleton key={key} className="h-28" />
           ))}
@@ -159,7 +151,7 @@ export function DocumentsPanel({
         />
       ) : (
         /* Document grid */
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           {filteredDocs.map((doc, index) => (
             <DocumentCard
               key={doc.id}

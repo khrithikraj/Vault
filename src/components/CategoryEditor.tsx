@@ -304,14 +304,14 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                   </div>
                 </div>
               ) : (
-                <div className="grid gap-3">
+                <div className="grid w-full max-w-full gap-3">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-ink-soft">
                       Define the custom fields captured when adding items to this category.
                     </p>
                   </div>
 
-                  <div className="grid gap-2.5">
+                  <div className="grid w-full max-w-full min-w-0 gap-2.5">
                     {fields.map((field, index) => (
                       <motion.div
                         layout
@@ -328,10 +328,10 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                             moveField(index, 1)
                           }
                         }}
-                        className="vault-surface-soft grid gap-2 rounded border border-ink/15 p-3"
+                        className="vault-surface-soft grid w-full max-w-full min-w-0 gap-2 rounded border border-ink/15 p-3"
                       >
                         {/* Top row: Label & order controls */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
                           <input
                             value={field.label}
                             onChange={(event) => updateField(index, { label: event.target.value })}
@@ -375,8 +375,8 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                         </div>
 
                         {/* Bottom row: Type selector & Required toggle */}
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="w-40">
+                        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                          <div className="w-full max-w-40">
                             <VaultSelect<FieldType>
                               options={FIELD_TYPE_OPTIONS}
                               value={field.type}

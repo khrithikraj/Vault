@@ -18,7 +18,7 @@ export function HomeCanvas({ activeCategory }: HomeCanvasProps) {
       <div className="home-ledger" />
       <div className="home-category-glow" />
       <div className="home-edge-warmth" />
-      <div className="home-watermark">THE ACCESSION</div>
+      <div className="home-watermark">RAJ&apos;S VAULT</div>
       <div className="home-vignette" />
     </div>
   )

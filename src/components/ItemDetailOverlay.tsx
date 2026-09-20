@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
-import { Check, Plus, Trash2, X } from 'lucide-react'
+import { Check, Copy, Pencil, Plus, Share2, Trash2, X } from 'lucide-react'
 import { ConfirmDialog } from './ConfirmDialog'
+import { CompletionControl } from './CompletionControl'
 import { FieldQuickActions } from './FieldQuickActions'
 import { StarRating } from './ui/StarRating'
 import { VaultDialog } from './ui/VaultDialog'
 import { ItemIdentitySection } from './item-detail/ItemIdentitySection'
 import { ItemPhotoSection } from './item-detail/ItemPhotoSection'
 import { ShareStatusPanel } from './ShareStatusPanel'
+import type { MoreActionItem } from './ui/MoreActionsMenu'
 import { VaultButton, VaultIconButton } from './ui/VaultButton'
 import { VaultInput, VaultTextarea } from './ui/VaultInput'
 import { createSharedItem } from '../lib/share'
@@ -20,6 +22,14 @@ import {
 } from '../lib/ratings'
 import type { Category, FieldDefinition, VaultItem } from '../types/app'
 import { FoodSpotBranches } from './item-detail/FoodSpotBranches'
+
+/** Editorial metadata date — DD MMM (18 SEP), matching the Notes metadata line. */
+const META_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function formatMetaDate(iso: string): string {
+  const date = new Date(iso)
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${day} ${META_MONTHS[date.getMonth()]}`
+}
 
 type ItemDetailOverlayProps = {
   item: VaultItem | null
@@ -78,6 +88,7 @@ export function ItemDetailOverlay({
   const [addingTried, setAddingTried] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const handleShare = async () => {
     if (!item || shareState === 'sharing') return
@@ -108,6 +119,32 @@ export function ItemDetailOverlay({
     }
   }
 
+  const handleCopyItem = async () => {
+    if (!item || copied) return
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(item.title)
+      } else {
+        const textarea = document.createElement('textarea')
+        textarea.value = item.title
+        textarea.setAttribute('readonly', '')
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.select()
+        try {
+          document.execCommand('copy')
+        } finally {
+          document.body.removeChild(textarea)
+        }
+      }
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard unavailable — stay quiet.
+    }
+  }
+
   useEffect(() => {
     if (item) {
       setIsEditing(false)
@@ -133,6 +170,7 @@ export function ItemDetailOverlay({
       setAddingTried(false)
       setDeleteConfirmOpen(false)
       setDeleting(false)
+      setCopied(false)
     }
   }, [item])
 
@@ -212,6 +250,31 @@ export function ItemDetailOverlay({
     }
   }
 
+  const moreItems: MoreActionItem[] = [
+    { id: 'edit', label: 'Edit', icon: Pencil, onSelect: () => setIsEditing(true) },
+    {
+      id: 'share',
+      label: 'Share',
+      icon: Share2,
+      disabled: shareState === 'sharing',
+      onSelect: () => void handleShare(),
+    },
+    {
+      id: 'copy',
+      label: copied ? 'Copied' : 'Copy',
+      icon: copied ? Check : Copy,
+      onSelect: () => void handleCopyItem(),
+    },
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: Trash2,
+      danger: true,
+      divider: true,
+      onSelect: () => setDeleteConfirmOpen(true),
+    },
+  ]
+
   return (
     <>
       <VaultDialog
@@ -244,12 +307,11 @@ export function ItemDetailOverlay({
                 editing={isEditing}
                 title={editTitle}
                 categoryId={editCategoryId}
-                shareState={shareState}
+                metaDate={formatMetaDate(item.created_at)}
                 onTitleChange={setEditTitle}
                 onCategoryChange={setEditCategoryId}
                 onToggleFavorite={() => onToggleFavorite(item)}
-                onShare={() => void handleShare()}
-                onEdit={() => setIsEditing(true)}
+                moreItems={moreItems}
               />
 
               {!isEditing ? (
@@ -441,17 +503,14 @@ export function ItemDetailOverlay({
                   {/* Folio metadata row */}
                   <p className="folio mt-5 flex items-center justify-between border-t border-dashed border-ink/20 pt-3 text-xs text-ink-soft/70">
                     <span>Saved {prettyDateTime.format(new Date(item.created_at))}</span>
-                    <span className="tracking-[0.2em] text-ink-soft/40">
-                      #{item.id.slice(0, 4).toUpperCase()}
-                    </span>
                   </p>
                 </>
               )}
 
               {/* Bottom Buttons */}
-              <div className="mt-5 flex flex-wrap gap-2 pt-1 border-t border-ink/15">
+              <div className="mt-5 border-t border-ink/15 pt-1">
                 {isEditing ? (
-                  <>
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={handleSave}
@@ -467,26 +526,16 @@ export function ItemDetailOverlay({
                     >
                       Cancel
                     </button>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => onToggle(item)}
-                      className={`vault-btn-solid flex-1 rounded-full px-4 py-2.5 text-xs sm:text-sm font-medium uppercase tracking-wide ${
-                        item.status === 'done' ? 'opacity-70' : ''
-                      }`}
-                    >
-                      {item.status === 'done' ? 'Marked as done' : 'Mark as done'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirmOpen(true)}
-                      className="border-ink/30 rounded-outline border px-4 py-2.5 text-xs sm:text-sm font-medium uppercase tracking-wide text-red-400 hover:text-red-300 flex items-center gap-1"
-                    >
-                      <Trash2 size={13} /> Delete
-                    </button>
-                  </>
+                  <div className="flex justify-end">
+                    <CompletionControl
+                      done={item.status === 'done'}
+                      actionLabel={`Mark ${item.title} as done`}
+                      doneLabel={`Mark ${item.title} as saved`}
+                      onToggle={() => onToggle(item)}
+                    />
+                  </div>
                 )}
               </div>
             </motion.div>

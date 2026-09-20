@@ -203,7 +203,7 @@ export function CustomTimePicker({
               disabled={disabled}
               onClick={() => handleHourStep(1)}
               aria-label="Increase hour"
-              className="rounded p-1 text-ink-soft hover:text-ink hover:bg-ink/10 active:scale-95 transition-all"
+              className="inline-flex h-10 w-10 items-center justify-center rounded text-ink-soft hover:text-ink hover:bg-ink/10 active:scale-95 transition-all"
             >
               <ChevronUp size={16} />
             </button>
@@ -226,7 +226,7 @@ export function CustomTimePicker({
               disabled={disabled}
               onClick={() => handleHourStep(-1)}
               aria-label="Decrease hour"
-              className="rounded p-1 text-ink-soft hover:text-ink hover:bg-ink/10 active:scale-95 transition-all"
+              className="inline-flex h-10 w-10 items-center justify-center rounded text-ink-soft hover:text-ink hover:bg-ink/10 active:scale-95 transition-all"
             >
               <ChevronDown size={16} />
             </button>
@@ -244,7 +244,7 @@ export function CustomTimePicker({
               disabled={disabled}
               onClick={() => handleMinuteStep(1)}
               aria-label="Increase minute"
-              className="rounded p-1 text-ink-soft hover:text-ink hover:bg-ink/10 active:scale-95 transition-all"
+              className="inline-flex h-10 w-10 items-center justify-center rounded text-ink-soft hover:text-ink hover:bg-ink/10 active:scale-95 transition-all"
             >
               <ChevronUp size={16} />
             </button>
@@ -267,7 +267,7 @@ export function CustomTimePicker({
               disabled={disabled}
               onClick={() => handleMinuteStep(-1)}
               aria-label="Decrease minute"
-              className="rounded p-1 text-ink-soft hover:text-ink hover:bg-ink/10 active:scale-95 transition-all"
+              className="inline-flex h-10 w-10 items-center justify-center rounded text-ink-soft hover:text-ink hover:bg-ink/10 active:scale-95 transition-all"
             >
               <ChevronDown size={16} />
             </button>
@@ -282,7 +282,7 @@ export function CustomTimePicker({
               type="button"
               disabled={disabled}
               onClick={() => handlePeriodToggle('AM')}
-              className={`rounded px-2.5 py-1 text-xs font-bold transition-all ${
+              className={`inline-flex h-10 items-center justify-center rounded px-2.5 text-xs font-bold transition-all ${
                 draftPeriod === 'AM' && isSet
                   ? 'bg-accent text-white shadow-sm'
                   : draftPeriod === 'AM'
@@ -296,7 +296,7 @@ export function CustomTimePicker({
               type="button"
               disabled={disabled}
               onClick={() => handlePeriodToggle('PM')}
-              className={`rounded px-2.5 py-1 text-xs font-bold transition-all ${
+              className={`inline-flex h-10 items-center justify-center rounded px-2.5 text-xs font-bold transition-all ${
                 draftPeriod === 'PM' && isSet
                   ? 'bg-accent text-white shadow-sm'
                   : draftPeriod === 'PM'

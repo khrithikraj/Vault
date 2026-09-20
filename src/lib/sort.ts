@@ -10,26 +10,26 @@ export type NoteSortKey = 'name-asc' | 'name-desc' | 'newest' | 'oldest'
 export type DocumentSortKey = 'name-asc' | 'name-desc' | 'newest' | 'oldest' | 'size-asc' | 'size-desc'
  
 export const ITEM_SORT_OPTIONS: { value: ItemSortKey; label: string }[] = [
-  { value: 'newest', label: 'Newest added' },
-  { value: 'oldest', label: 'Oldest added' },
-  { value: 'name-asc', label: 'Name (A–Z)' },
-  { value: 'name-desc', label: 'Name (Z–A)' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'name-asc', label: 'A–Z' },
+  { value: 'name-desc', label: 'Z–A' },
 ]
- 
+
 export const NOTE_SORT_OPTIONS: { value: NoteSortKey; label: string }[] = [
-  { value: 'newest', label: 'Recently updated' },
-  { value: 'oldest', label: 'Oldest updated' },
-  { value: 'name-asc', label: 'Name (A–Z)' },
-  { value: 'name-desc', label: 'Name (Z–A)' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'name-asc', label: 'A–Z' },
+  { value: 'name-desc', label: 'Z–A' },
 ]
- 
+
 export const DOCUMENT_SORT_OPTIONS: { value: DocumentSortKey; label: string }[] = [
-  { value: 'newest', label: 'Newest added' },
-  { value: 'oldest', label: 'Oldest added' },
-  { value: 'name-asc', label: 'Name (A–Z)' },
-  { value: 'name-desc', label: 'Name (Z–A)' },
-  { value: 'size-asc', label: 'Size (smallest)' },
-  { value: 'size-desc', label: 'Size (largest)' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'name-asc', label: 'A–Z' },
+  { value: 'name-desc', label: 'Z–A' },
+  { value: 'size-asc', label: 'Smallest' },
+  { value: 'size-desc', label: 'Largest' },
 ]
  
 function byName(a: string, b: string): number {
