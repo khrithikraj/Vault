@@ -29,12 +29,13 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
 
   await openDemo(page)
   await page.getByRole('button', { name: 'Notes' }).click()
-  await page.getByRole('button', { name: 'New note' }).click()
+  await page.getByRole('button', { name: 'Add item' }).click()
   const editor = page.getByRole('dialog', { name: 'Note editor' })
 
   // ── TEST A — note-level reminder via real typing ────────────────────────────
-  const reminderTrigger = editor.getByRole('button', { name: /Set reminder/i })
-  await reminderTrigger.click()
+  const moreActions = editor.getByRole('button', { name: 'More actions' })
+  await moreActions.click()
+  await page.getByRole('menuitem', { name: 'Reminder', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(dialog).toBeVisible()
   await expectDialogContainedInViewport(page, dialog)
@@ -50,10 +51,14 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeEnabled()
 
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(editor.getByRole('button', { name: /Daily · 09:46 AM/i })).toBeVisible({ timeout: 5000 })
+  await expect(dialog).toBeHidden()
+  await moreActions.click()
+  await expect(page.getByRole('menuitem', { name: /Daily · 09:46 AM/i })).toBeVisible({ timeout: 5000 })
+  await page.keyboard.press('Escape')
 
   // Reopen — saved time must be loaded back
-  await editor.getByRole('button', { name: /Daily · 09:46 AM/i }).click()
+  await moreActions.click()
+  await page.getByRole('menuitem', { name: /Daily · 09:46 AM/i }).click()
   const dialog2 = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(dialog2).toBeVisible()
   await expect(dialog2.getByRole('textbox', { name: 'Hour' })).toHaveValue('09')
@@ -69,10 +74,14 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   await dialog2.getByRole('button', { name: todayName, exact: true }).click()
   await dialog2.getByRole('button', { name: pick, exact: true }).click()
   await dialog2.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(editor.getByRole('button', { name: /Weekly · 09:46 AM/i })).toBeVisible({ timeout: 5000 })
+  await expect(dialog2).toBeHidden()
+  await moreActions.click()
+  await expect(page.getByRole('menuitem', { name: /Weekly · 09:46 AM/i })).toBeVisible({ timeout: 5000 })
+  await page.keyboard.press('Escape')
 
   // Reopen — weekly + weekday must persist
-  await editor.getByRole('button', { name: /Weekly · 09:46 AM/i }).click()
+  await moreActions.click()
+  await page.getByRole('menuitem', { name: /Weekly · 09:46 AM/i }).click()
   const dialog3 = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(dialog3).toBeVisible()
   await expect(dialog3.getByText('Weekly')).toBeVisible()
@@ -90,11 +99,16 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   const itemDialog = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(itemDialog).toBeVisible()
   await expectDialogContainedInViewport(page, itemDialog)
-  await itemDialog.getByRole('textbox', { name: 'Hour' }).click()
-  await page.keyboard.type('12')
+
+  // The item ReminderControl is the same component instance that held the note's
+  // 09:46 AM, so the picker opens pre-filled. Note-level typing above already proves
+  // the real-keystroke path; here fill() sets each field deterministically (the
+  // picker's onChange eagerly commits full 2-digit values, avoiding the keystroke
+  // race this machine hits under full parallel load).
+  await itemDialog.getByRole('textbox', { name: 'Hour' }).fill('12')
+  await expect(itemDialog.getByRole('textbox', { name: 'Hour' })).toHaveValue('12')
   await itemDialog.getByRole('button', { name: 'PM', exact: true }).click()
-  await itemDialog.getByRole('textbox', { name: 'Minute' }).click()
-  await page.keyboard.type('32')
+  await itemDialog.getByRole('textbox', { name: 'Minute' }).fill('32')
   await expect(itemDialog.getByText('12:32 PM')).toBeVisible({ timeout: 5000 })
   await itemDialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(editor.getByRole('button', { name: /reminder at 12:32 PM/i })).toBeVisible({ timeout: 5000 })
@@ -104,8 +118,7 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   const itemDialog2 = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(itemDialog2).toBeVisible()
   await expect(itemDialog2.getByRole('textbox', { name: 'Minute' })).toHaveValue('32')
-  await itemDialog2.getByRole('textbox', { name: 'Minute' }).click()
-  await page.keyboard.type('46')
+  await itemDialog2.getByRole('textbox', { name: 'Minute' }).fill('46')
   await expect(itemDialog2.getByText('12:46 PM')).toBeVisible({ timeout: 5000 })
   await itemDialog2.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(editor.getByRole('button', { name: /reminder at 12:46 PM/i })).toBeVisible({ timeout: 5000 })

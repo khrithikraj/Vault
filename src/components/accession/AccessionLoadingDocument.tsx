@@ -16,7 +16,7 @@ export function AccessionLoadingDocument({
     <main className="accession-shell" aria-label="Loading sign-in">
       <FilmGrain />
       <header className="accession-running-head" aria-label="Page header">
-        <span><i aria-hidden="true" />Raj&apos;s Vault — Accession 01</span>
+        <span><i aria-hidden="true" />Raj&apos;s Vault — Catalogue 01</span>
         <span>{frame}</span>
       </header>
       <section className="catalogue-frame">

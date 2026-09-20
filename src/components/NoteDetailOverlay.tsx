@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import type { ChecklistReminder, DailyChecklistCompletion, Note, Weekday } from '../types/app'
 import type { ReminderRecurrence } from '../lib/reminders'
 import { NoteEditor } from './NoteEditor'
@@ -28,10 +29,17 @@ export function NoteDetailOverlay({
   onEnableNotifications: () => Promise<{ message?: string }>
   onDisableNotifications: () => Promise<{ message?: string }>
 }) {
+  // The editor may claim the close (e.g. discarding an empty note) before we dismiss.
+  const closeHandlerRef = useRef<(() => boolean) | null>(null)
+  const handleClose = () => {
+    if (closeHandlerRef.current?.() === true) return
+    onClose()
+  }
+
   return (
     <VaultDialog
       open={note !== null}
-      onClose={onClose}
+      onClose={handleClose}
       title="Note editor"
       showClose
       className="max-w-2xl"
@@ -40,11 +48,13 @@ export function NoteDetailOverlay({
       {note ? (
         <NoteEditor
           note={note}
-          onBack={onClose}
           onDelete={onDelete}
           onUpdate={onUpdate}
           reminders={reminders}
           dailyCompletions={dailyCompletions}
+          registerCloseHandler={(handler) => {
+            closeHandlerRef.current = handler
+          }}
           onUpsertReminder={(input) => onUpsertReminder({ ...input, noteId: note.id })}
           onRemoveReminder={onRemoveReminder}
           onToggleDailyCompletion={onToggleDailyCompletion}

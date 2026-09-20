@@ -6,6 +6,8 @@ type FavoriteButtonProps = {
   onToggle: () => void
   size?: number
   className?: string
+  /** Compact control box for tight card action rows (defaults to the roomy 40px). */
+  boxClassName?: string
 }
 
 export function FavoriteButton({
@@ -14,6 +16,7 @@ export function FavoriteButton({
   onToggle,
   size = 15,
   className = '',
+  boxClassName = 'h-10 w-10',
 }: FavoriteButtonProps) {
   return (
     <button
@@ -22,9 +25,9 @@ export function FavoriteButton({
         event.stopPropagation()
         onToggle()
       }}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+      className={`inline-flex items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
         active ? 'text-red-400' : 'text-ink-soft/30 hover:text-red-400'
-      } ${className}`}
+      } ${boxClassName} ${className}`}
       aria-label={label}
       aria-pressed={active}
     >

@@ -1,8 +1,7 @@
 import { motion } from 'motion/react'
-import { NotebookPen, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
+import { RotateCcw, Trash2 } from 'lucide-react'
 import { VaultEmptyState } from './ui/VaultEmptyState'
 import { VaultSection } from './ui/VaultSection'
-import { deletedLabel } from '../lib/trash'
 import { buildTrashRows } from '../lib/trashRows'
 import type { TrashRow } from '../lib/trashRows'
 import type { TrashKind } from '../lib/trash'
@@ -10,10 +9,16 @@ import type { Category, Note, VaultDocument, VaultItem } from '../types/app'
 
 export type { TrashRow }
 
-function KindIcon({ kind }: { kind: TrashKind }) {
-  if (kind === 'note') return <NotebookPen size={16} className="shrink-0 text-warn" />
-  if (kind === 'document') return <Sparkles size={16} className="shrink-0 text-accent" />
-  return <Sparkles size={16} className="shrink-0 text-accent" />
+const deletedDate = new Intl.DateTimeFormat('en-IN', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+})
+
+function restoreLabel(kind: TrashKind): string {
+  if (kind === 'note') return 'Restore note'
+  if (kind === 'document') return 'Restore document'
+  return 'Restore item'
 }
 
 type TrashListProps = {
@@ -22,7 +27,9 @@ type TrashListProps = {
   onPurge: (row: TrashRow) => void
 }
 
-/** Shared list used by the Trash section and by trash-scoped search results. */
+/** Shared list used by the Trash section and by trash-scoped search results.
+ *  Same `.vault-card` container + top-row actions + divider/footer grammar as
+ *  Items/Notes/Documents — restore and permanent-delete are compact icon-only. */
 export function TrashList({ rows, onRestore, onPurge }: TrashListProps) {
   if (rows.length === 0) {
     return (
@@ -34,42 +41,54 @@ export function TrashList({ rows, onRestore, onPurge }: TrashListProps) {
   }
 
   return (
-    <div className="mt-4 grid gap-2.5">
+    <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
       {rows.map((row) => (
         <motion.div
           key={`${row.kind}-${row.id}`}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="vault-surface vault-brackets flex items-center gap-3 rounded p-3 sm:p-4"
+          className="vault-card flex min-w-0 flex-col overflow-hidden p-4 sm:p-5"
         >
-          <span className="bg-ink/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
-            <KindIcon kind={row.kind} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-display truncate text-sm font-semibold uppercase tracking-tight text-ink">
+          {/* Top row: name + compact actions */}
+          <div className="flex items-start justify-between gap-2">
+            <p className="min-w-0 font-display text-sm font-semibold uppercase leading-snug tracking-tight text-ink">
               {row.name}
             </p>
-            <p className="mt-0.5 text-xs text-ink-soft">
-              {row.meta} · {deletedLabel(row.deletedAt)}
+            <div className="flex shrink-0 items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => onRestore(row)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-soft/40 transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                title={restoreLabel(row.kind)}
+                aria-label={restoreLabel(row.kind)}
+              >
+                <RotateCcw size={13} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onPurge(row)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-soft/30 transition-colors hover:bg-ink/5 hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                title={`Delete ${row.name} permanently`}
+                aria-label={`Delete ${row.name} permanently`}
+              >
+                <Trash2 size={13} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
+          {/* Metadata line */}
+          <div className="min-w-0 flex-1 px-0 pb-3 pt-2">
+            <p className="truncate text-xs text-ink-soft">
+              {row.meta} · Deleted
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => onRestore(row)}
-              className="vault-chip flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink hover:text-ink"
-            >
-              <RotateCcw size={12} /> Restore
-            </button>
-            <button
-              type="button"
-              onClick={() => onPurge(row)}
-              className="vault-chip flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-red-400 hover:text-red-300"
-              aria-label={`Delete ${row.name} permanently`}
-            >
-              <Trash2 size={12} />
-              <span className="hidden sm:inline">Delete forever</span>
-            </button>
+
+          {/* Divider + deletion date */}
+          <div className="mx-0 h-px bg-ink/[0.07]" />
+          <div className="flex items-center justify-between gap-2 px-0 pt-2.5">
+            <span className="folio text-[10px] text-ink-soft/60">
+              {deletedDate.format(new Date(row.deletedAt))}
+            </span>
           </div>
         </motion.div>
       ))}

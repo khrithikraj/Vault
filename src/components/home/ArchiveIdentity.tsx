@@ -11,11 +11,15 @@ type ArchiveIdentityProps = {
 /**
  * V2 — Archive identity header.
  *
- * Compact editorial brandmark. A two-line wordmark ("RAJ'S" / "VAULT")
- * paired with live tallies and a quiet account/profile entry point.
- * Reads as an expensive archival colophon — not a marketing hero banner.
+ * Two-column hierarchy: each column owns its primary label plus subordinate
+ * metadata tucked underneath it.
  *
- * The lock icon reinforces the private/secure character of the archive.
+ *   RAJ'S VAULT                        ACCOUNT
+ *   Private catalogue                  22 SAVED | 1 DONE
+ *
+ * The brand + lock read as one identity; the tallies are quiet metadata under
+ * the Account entry point, never above the brand. Reads as an expensive
+ * archival colophon — not a marketing hero banner.
  */
 export function ArchiveIdentity({
   savedCount,
@@ -24,8 +28,8 @@ export function ArchiveIdentity({
   preview = false,
 }: ArchiveIdentityProps) {
   return (
-    <header className="flex items-start justify-between gap-4">
-      <div className="flex min-w-0 items-center gap-3.5">
+    <header className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
         <div
           aria-hidden="true"
           className="relative flex h-10 w-10 shrink-0 items-center justify-center"
@@ -38,51 +42,42 @@ export function ArchiveIdentity({
         </div>
 
         <div className="min-w-0">
-          <p className="vault-meta mb-1 text-[9px] text-[var(--accession-text-muted)]">
-            Private catalogue · The Accession
-          </p>
-          <h1 className="min-w-0" aria-label="Raj's Vault">
-          <span
-            className="font-display text-[1.35rem] font-semibold uppercase leading-[0.88] tracking-[0.09em] text-ink sm:text-[1.6rem]"
-          >
-            Raj&apos;s
-          </span>
-          <span className="block font-display text-[1.35rem] font-semibold uppercase leading-[0.88] tracking-[0.22em] text-ink-soft/60 sm:text-[1.6rem]">
-            Vault
-          </span>
+          <h1 className="min-w-0 font-display text-[1.3rem] font-semibold uppercase leading-[0.9] tracking-[0.08em] text-ink sm:text-[1.6rem]" aria-label="Raj's Vault">
+            <span>Raj&apos;s</span>
+            <span className="block tracking-[0.22em] text-ink-soft/60">Vault</span>
           </h1>
+          <p className="vault-meta mt-1.5 text-[9px] tracking-[0.18em] text-ink-soft/60 sm:mt-2">
+            Private catalogue
+          </p>
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-2.5">
-        <div className="flex items-baseline gap-4">
-          <span className="flex items-baseline gap-1.5">
-            <AnimatedNumber
-              value={savedCount}
-              className="font-display text-base font-semibold tabular-nums text-ink sm:text-lg"
-            />
-            <span className="vault-meta text-ink-soft/55">saved</span>
-          </span>
-          <span className="h-4 w-px bg-ink/10 self-center" aria-hidden="true" />
-          <span className="flex items-baseline gap-1.5">
-            <AnimatedNumber
-              value={doneCount}
-              className="font-display text-base font-semibold tabular-nums text-ink sm:text-lg"
-            />
-            <span className="vault-meta text-ink-soft/55">done</span>
-          </span>
-        </div>
-
+      <div className="flex min-w-0 shrink-0 flex-col items-end gap-1.5">
         <button
           type="button"
           onClick={onOpenAccount}
-          className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] text-ink-soft/40 transition-colors hover:text-ink-soft"
+          className="flex items-center gap-1.5 rounded py-1.5 pl-2 pr-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft transition-colors hover:text-ink"
           aria-label={preview ? 'Preview mode account panel' : 'Account settings'}
           data-tour="account"
         >
-          <User size={10} aria-hidden="true" />
+          <User size={12} aria-hidden="true" />
           {preview ? 'Preview' : 'Account'}
         </button>
+
+        {/* Subordinate tallies — noticeably smaller/dimmer than the Account label */}
+        <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.12em] text-ink-soft/55 sm:text-[10px]">
+          <AnimatedNumber
+            value={savedCount}
+            className="font-display text-[10px] font-semibold tabular-nums text-ink sm:text-[11px]"
+          />
+          <span>saved</span>
+          <span className="h-3 w-px bg-ink/10" aria-hidden="true" />
+          <AnimatedNumber
+            value={doneCount}
+            className="font-display text-[10px] font-semibold tabular-nums text-ink sm:text-[11px]"
+          />
+          <span>done</span>
+        </div>
       </div>
     </header>
   )

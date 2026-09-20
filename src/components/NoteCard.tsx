@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import type { Note } from '../types/app'
 import type { ItemFieldHit } from '../lib/search'
 import { isNoteFavorite } from '../lib/favorites'
+import { DoneStamp } from './DoneStamp'
 import { FavoriteButton } from './ui/FavoriteButton'
 
 type NoteCardProps = {
@@ -21,6 +22,8 @@ export function NoteCard({ note, index, matchFields, onClick, onDelete, onToggle
   const doneCount = note.checklist.filter((entry) => entry.done).length
   const allDone = note.checklist.length > 0 && doneCount === note.checklist.length
   const showMatch = matchFields && matchFields.length > 0
+  const titleText = note.title.trim() || 'Untitled note'
+  const favoriteLabel = isNoteFavorite(note) ? `Remove ${note.title || 'note'} from favorites` : `Add ${note.title || 'note'} to favorites`
 
   return (
     <motion.div
@@ -35,34 +38,49 @@ export function NoteCard({ note, index, matchFields, onClick, onDelete, onToggle
       whileTap={{ scale: 0.98 }}
       style={{ transformPerspective: 800 }}
       onClick={onClick}
-      className="vault-surface vault-brackets relative flex flex-col justify-between overflow-hidden rounded p-4 sm:p-5 text-left cursor-pointer group"
+      className="vault-card group flex flex-col overflow-hidden cursor-pointer select-none"
+      role="button"
+      tabIndex={0}
+      aria-label={`Open note ${titleText}`}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        if ((event.target as HTMLElement).closest('button, a, input, textarea, select')) return
+        event.preventDefault()
+        onClick()
+      }}
     >
-      {allDone && (
-        <span className="border-accent text-accent pointer-events-none absolute right-3 top-3 -rotate-12 rounded-sm border-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] opacity-90">
-          Done
-        </span>
-      )}
-
-      <div>
-        <div className="flex items-start justify-between gap-3">
-          <p className="font-display font-semibold uppercase leading-snug text-ink group-hover:text-accent transition-colors text-base truncate">
-            {note.title.trim() || 'Untitled note'}
-          </p>
-          <div className="flex shrink-0 items-center gap-1">
-            <FavoriteButton
-              active={isNoteFavorite(note)}
-              label={isNoteFavorite(note) ? `Remove ${note.title || 'note'} from favorites` : `Add ${note.title || 'note'} to favorites`}
-              onToggle={onToggleFavorite}
-              size={13}
-            />
-            <span className="text-xs text-ink-soft">
-              {prettyDate.format(new Date(note.updated_at || note.created_at))}
-            </span>
-          </div>
+      {/* Header row — title (flexible, wraps) + pinned actions */}
+      <div className="flex items-start justify-between gap-2 px-4 pt-3">
+        <h3 className={`min-w-0 font-display font-semibold uppercase leading-snug tracking-tight text-ink transition-colors group-hover:text-accent text-[0.95rem] sm:text-base ${allDone ? 'pr-1' : ''}`}>
+          {titleText}
+        </h3>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <FavoriteButton
+            active={isNoteFavorite(note)}
+            label={favoriteLabel}
+            onToggle={onToggleFavorite}
+            size={13}
+            boxClassName="h-8 w-8"
+          />
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onDelete()
+            }}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-soft/30 transition-colors hover:bg-ink/5 hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            title={`Delete note ${titleText}`}
+            aria-label={`Delete note ${titleText}`}
+          >
+            <Trash2 size={13} aria-hidden="true" />
+          </button>
         </div>
+      </div>
 
+      {/* Body — search matches or note preview */}
+      <div className="flex-1 px-4 pb-3 pt-2">
         {showMatch && matchFields ? (
-          <div className="mt-2 space-y-0.5">
+          <div className="space-y-0.5">
             {matchFields.slice(0, 2).map((hit, hitIndex) => (
               <p key={`${hit.label}-${hitIndex}`} className="truncate text-xs sm:text-sm text-ink-soft">
                 <span className="font-medium">{hit.label}:</span> {hit.value}
@@ -70,35 +88,29 @@ export function NoteCard({ note, index, matchFields, onClick, onDelete, onToggle
             ))}
           </div>
         ) : note.body.trim() ? (
-          <p className="mt-2 line-clamp-3 text-xs sm:text-sm text-ink-soft leading-relaxed">
+          <p className="line-clamp-2 text-xs sm:text-sm text-ink-soft leading-relaxed">
             {note.body}
           </p>
         ) : (
-          <p className="mt-2 text-xs italic text-ink-soft/50">No text content</p>
+          <p className="text-xs italic text-ink-soft/50">No text content</p>
         )}
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-dashed border-ink/15 pt-2 text-xs text-ink-soft">
-        <div>
+      {/* Divider + footer — date + checklist progress, same slot language as Items */}
+      <div className="mx-4 h-px bg-ink/[0.07]" />
+      <div className="flex items-center justify-between gap-2 px-4 py-2.5">
+        <span className="flex min-w-0 items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-ink-soft/40">
+          <span className="shrink-0">{prettyDate.format(new Date(note.updated_at || note.created_at))}</span>
           {note.checklist.length > 0 ? (
-            <span className="font-medium text-ink-soft">
-              {doneCount}/{note.checklist.length} tasks done
-            </span>
-          ) : (
-            <span>Note</span>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            onDelete()
-          }}
-          className="vault-chip reveal-on-hover rounded-full p-1 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-          title="Delete note"
-        >
-          <Trash2 size={12} />
-        </button>
+            <>
+              <span className="shrink-0 text-ink-soft/30" aria-hidden="true">·</span>
+              <span className="truncate">
+                {doneCount}/{note.checklist.length} tasks
+              </span>
+            </>
+          ) : null}
+        </span>
+        {allDone && <DoneStamp />}
       </div>
     </motion.div>
   )

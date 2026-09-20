@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { Bell, Check, ChevronDown, Trash2, X } from 'lucide-react'
 import type { ChecklistReminder, DailyChecklistCompletion, Weekday } from '../../types/app'
@@ -25,6 +25,15 @@ export type ReminderControlProps = {
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
   variant?: 'chip' | 'item-button'
   triggerClassName?: string
+  /**
+   * Optional controlled state. When provided (with onOpenChange), the trigger below is
+   * hidden and the popover is anchored to `triggerRef` instead — used by surfaces that
+   * surface reminders through an overflow menu (e.g. the Vault editor).
+   */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  triggerRef?: Ref<HTMLButtonElement>
+  hideTrigger?: boolean
 }
 
 const RECURRENCE_OPTIONS: ReminderRecurrence[] = ['once', 'daily', 'weekdays', 'weekly']
@@ -38,8 +47,39 @@ export function ReminderControl({
   onRemoveReminder,
   variant = 'chip',
   triggerClassName,
+  open: openProp,
+  onOpenChange,
+  triggerRef: triggerRefProp,
+  hideTrigger,
 }: ReminderControlProps) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = openProp !== undefined
+  const open = isControlled ? Boolean(openProp) : internalOpen
+
+  const requestOpen = useCallback((next: boolean) => {
+    if (isControlled) onOpenChange?.(next)
+    else setInternalOpen(next)
+  }, [isControlled, onOpenChange])
+
+  const setTriggerRef = (node: HTMLButtonElement | null) => {
+    ;(triggerRef as { current: HTMLButtonElement | null }).current = node
+    if (!triggerRefProp) return
+    if (typeof triggerRefProp === 'function') {
+      ;(triggerRefProp as (node: HTMLButtonElement | null) => void)(node)
+    } else {
+      ;(triggerRefProp as { current: HTMLButtonElement | null }).current = node
+    }
+  }
+
+/** The visible trigger (chip / item button) or, when the trigger is hidden,
+ *  the external element the popover is anchored to (e.g. the ⋯ overflow button). */
+const getTrigger = useCallback((): HTMLButtonElement | null => {
+    if (triggerRef.current) return triggerRef.current
+    if (triggerRefProp && typeof triggerRefProp !== 'function') {
+      return (triggerRefProp as { current: HTMLButtonElement | null }).current
+    }
+    return null
+  }, [triggerRefProp])
   // No default 9:00 AM when creating a new reminder
   const [localTime, setLocalTime] = useState<string>(
     reminder && reminder.enabled ? reminder.local_time.slice(0, 5) : '',
@@ -81,13 +121,14 @@ export function ReminderControl({
     if (!open) return
 
     function handleClickOutside(event: MouseEvent) {
+      const trigger = getTrigger()
       if (
         popoverRef.current &&
         !popoverRef.current.contains(event.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(event.target as Node)
+        trigger &&
+        !trigger.contains(event.target as Node)
       ) {
-        setOpen(false)
+        requestOpen(false)
         setRecurrenceMenuOpen(false)
         setDayMenuOpen(false)
       }
@@ -103,8 +144,8 @@ export function ReminderControl({
           setDayMenuOpen(false)
           return
         }
-        setOpen(false)
-        triggerRef.current?.focus()
+        requestOpen(false)
+        getTrigger()?.focus()
       }
     }
 
@@ -114,7 +155,7 @@ export function ReminderControl({
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [open, recurrenceMenuOpen, dayMenuOpen])
+  }, [open, recurrenceMenuOpen, dayMenuOpen, requestOpen, getTrigger])
 
   // Clamp the popover inside the viewport once it opens. On desktop the popover is a
   // fixed overlay anchored to the trigger so it can never be clipped by the scrollable
@@ -125,7 +166,7 @@ export function ReminderControl({
       return
     }
     const popover = popoverRef.current
-    const trigger = triggerRef.current
+    const trigger = getTrigger()
     if (!popover || !trigger) return
 
     const place = () => {
@@ -156,7 +197,7 @@ export function ReminderControl({
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', place, true)
     }
-  }, [open, recurrenceMenuOpen, dayMenuOpen])
+  }, [open, recurrenceMenuOpen, dayMenuOpen, getTrigger])
 
   const handleSave = () => {
     if (!localTime) return
@@ -165,12 +206,12 @@ export function ReminderControl({
       recurrence,
       recurrence === 'weekly' ? dayOfWeek : null,
     )
-    setOpen(false)
+    requestOpen(false)
   }
 
   const handleRemove = () => {
     onRemoveReminder()
-    setOpen(false)
+    requestOpen(false)
   }
 
   const headerLabel = reminder && reminder.enabled
@@ -182,12 +223,12 @@ export function ReminderControl({
   return (
     <div className="relative inline-block text-left">
       {/* Trigger: Note-level Chip or Item-level Button */}
-      {variant === 'chip' ? (
+      {!hideTrigger && variant === 'chip' ? (
         <button
-          ref={triggerRef}
+          ref={setTriggerRef}
           type="button"
           id="note-reminder-trigger"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={() => requestOpen(!open)}
           aria-expanded={open}
           aria-haspopup="dialog"
           className={
@@ -220,11 +261,11 @@ export function ReminderControl({
             </>
           )}
         </button>
-      ) : (
+      ) : !hideTrigger ? (
         <button
-          ref={triggerRef}
+          ref={setTriggerRef}
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={() => requestOpen(!open)}
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label={
@@ -265,13 +306,13 @@ export function ReminderControl({
             <Bell size={13} />
           )}
         </button>
-      )}
+      ) : null}
 
       {/* Backdrop for Mobile */}
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm sm:hidden"
-          onClick={() => setOpen(false)}
+          onClick={() => requestOpen(false)}
           aria-hidden="true"
         />
       )}
@@ -296,7 +337,7 @@ export function ReminderControl({
             </div>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => requestOpen(false)}
               className="rounded p-1 text-ink-soft hover:text-ink hover:bg-ink/5 transition-colors"
               aria-label="Close"
             >
@@ -423,7 +464,7 @@ export function ReminderControl({
             ) : (
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => requestOpen(false)}
                 className="rounded px-2.5 py-1 text-xs font-medium text-ink-soft hover:text-ink hover:bg-ink/5 transition-colors"
               >
                 Cancel

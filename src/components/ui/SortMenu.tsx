@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowDownUp, Check } from 'lucide-react'
 import { layers } from '../../design/layers'
@@ -12,12 +13,20 @@ type SortMenuProps<T extends string> = {
   onChange: (value: T) => void
 }
 
-/** Small dropdown button used in the toolbar row above Items/Docs/Notes grids. */
+const PANEL_MARGIN = 8
+
+/** Small dropdown button used in the toolbar row above Items/Docs/Notes grids.
+ *  The panel is portaled to <body> with fixed positioning so it can never be
+ *  clipped by a reflowed section header or overflow ancestor, and it stays fully
+ *  inside the viewport: it flips above the trigger when there is no room below,
+ *  and clamps left/right so it never spills off-screen on narrow mobile widths. */
 export function SortMenu<T extends string>({ value, options, onChange }: SortMenuProps<T>) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLUListElement>(null)
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
   const listboxId = useId()
   const reducedMotion = usePrefersReducedMotion()
@@ -32,7 +41,10 @@ export function SortMenu<T extends string>({ value, options, onChange }: SortMen
   useEffect(() => {
     if (!open) return
     const onClickAway = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      const insideRoot = ref.current?.contains(target)
+      const insidePanel = panelRef.current?.contains(target)
+      if (!insideRoot && !insidePanel) setOpen(false)
     }
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Tab') {
@@ -73,9 +85,44 @@ export function SortMenu<T extends string>({ value, options, onChange }: SortMen
 
   useEffect(() => {
     if (!open) return
-    const frame = window.requestAnimationFrame(() => optionRefs.current[activeIndex]?.focus())
-    return () => window.cancelAnimationFrame(frame)
+    optionRefs.current[activeIndex]?.focus()
   }, [activeIndex, open])
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const trigger = triggerRef.current
+    const panel = panelRef.current
+    if (!trigger || !panel) return
+
+    const place = () => {
+      const width = panel.offsetWidth
+      const height = panel.offsetHeight
+      const rect = trigger.getBoundingClientRect()
+
+      let top = rect.bottom + PANEL_MARGIN
+      const above = rect.top - height - PANEL_MARGIN
+      const roomBelow = top + height <= window.innerHeight - PANEL_MARGIN
+      if (!roomBelow && above >= PANEL_MARGIN) top = above
+      top = Math.max(PANEL_MARGIN, Math.min(top, window.innerHeight - height - PANEL_MARGIN))
+
+      // Anchor the menu's right edge to the trigger (matches the old right-aligned
+      // dropdown), then clamp horizontally so it never leaves the viewport.
+      const left = Math.max(
+        PANEL_MARGIN,
+        Math.min(rect.right - width, window.innerWidth - width - PANEL_MARGIN),
+      )
+
+      setPosition({ top: Math.round(top), left: Math.round(left) })
+    }
+
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open, options.length])
 
   return (
     <div ref={ref} className="relative shrink-0">
@@ -105,40 +152,52 @@ export function SortMenu<T extends string>({ value, options, onChange }: SortMen
         <ArrowDownUp size={13} aria-hidden="true" />
         <span className="hidden sm:inline">{current?.label ?? 'Sort'}</span>
       </button>
-      <AnimatePresence>
-        {open ? (
-          <motion.ul
-            id={listboxId}
-            role="listbox"
-            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.97 }}
-            transition={reducedMotion ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' }}
-            className="vault-surface absolute right-0 mt-1.5 w-44 overflow-hidden rounded p-1 shadow-glass"
-            style={{ zIndex: layers.dropdown }}
-          >
-            {options.map((option, index) => (
-              <li key={option.value}>
-                <button
-                  ref={(element) => { optionRefs.current[index] = element }}
-                  type="button"
-                  role="option"
-                  aria-selected={option.value === value}
-                  onClick={() => {
-                    onChange(option.value)
-                    closeMenu(true)
-                  }}
-                  tabIndex={index === activeIndex ? 0 : -1}
-                  className="flex w-full items-center justify-between gap-2 rounded px-2.5 py-1.5 text-left text-xs font-medium text-ink-soft hover:bg-ink/5 hover:text-ink"
-                >
-                  {option.label}
-                  {option.value === value ? <Check size={13} className="text-accent" /> : null}
-                </button>
-              </li>
-            ))}
-          </motion.ul>
-        ) : null}
-      </AnimatePresence>
+
+      {createPortal(
+        <AnimatePresence>
+          {open ? (
+            <motion.ul
+              ref={panelRef}
+              id={listboxId}
+              role="listbox"
+              onMouseDown={(event) => event.stopPropagation()}
+              initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.97 }}
+              transition={reducedMotion ? { duration: 0 } : { duration: 0.15, ease: 'easeOut' }}
+              className="vault-surface w-44 overflow-hidden rounded p-1 shadow-glass"
+              style={{
+                position: 'fixed',
+                top: position?.top ?? 0,
+                left: position?.left ?? 0,
+                visibility: position ? 'visible' : 'hidden',
+                zIndex: layers.dropdown,
+              }}
+            >
+              {options.map((option, index) => (
+                <li key={option.value}>
+                  <button
+                    ref={(element) => { optionRefs.current[index] = element }}
+                    type="button"
+                    role="option"
+                    aria-selected={option.value === value}
+                    onClick={() => {
+                      onChange(option.value)
+                      closeMenu(true)
+                    }}
+                    tabIndex={index === activeIndex ? 0 : -1}
+                    className="flex w-full items-center justify-between gap-2 rounded px-2.5 py-1.5 text-left text-xs font-medium text-ink-soft hover:bg-ink/5 hover:text-ink"
+                  >
+                    {option.label}
+                    {option.value === value ? <Check size={13} className="text-accent" /> : null}
+                  </button>
+                </li>
+              ))}
+            </motion.ul>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   )
 }

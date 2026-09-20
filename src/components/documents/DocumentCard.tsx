@@ -1,17 +1,17 @@
 /**
  * DocumentCard — a single document entry in the Documents grid.
  *
- * Design follows the NotesPanel card pattern exactly:
- *   - .vault-surface .vault-brackets
- *   - Motion lift on hover (3D, same spring as note cards)
- *   - Delete button appears on hover (opacity-0 → opacity-100)
- *   - .font-display uppercase for the document name
- *   - .folio for the date
- *   - No sensitive document content is rendered — only name, category, type, size.
+ * Uses the shared `.vault-card` container + the same action/footer grammar as
+ * Items and Notes: title left, favourite + delete right, metadata underneath,
+ * hairline divider, date-only footer. No Mark Done, no item markers.
+ *
+ * Delete stays in its reserved compact action slot — always visible on touch
+ * (no opacity-0 hover dependency), subtle hover/focus reveal language intact on
+ * pointer devices via the shared `.vault-card` hover.
  */
 
 import { motion } from 'motion/react'
-import { FileText, Image, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import type { VaultDocument } from '../../types/app'
 import { FavoriteButton } from '../ui/FavoriteButton'
 
@@ -41,15 +41,6 @@ function mimeLabel(mimeType: string): string {
   }
 }
 
-function DocTypeIcon({ mimeType, size = 20 }: { mimeType: string; size?: number }) {
-  const isPdf = mimeType === 'application/pdf'
-  const color = isPdf ? 'var(--color-accent)' : 'var(--color-warn)'
-  const filter = `drop-shadow(0 0 5px ${color}80)`
-  return isPdf
-    ? <FileText size={size} strokeWidth={2} style={{ color, filter }} aria-hidden="true" />
-    : <Image size={size} strokeWidth={2} style={{ color, filter }} aria-hidden="true" />
-}
-
 export function DocumentCard({ doc, index, onClick, onDelete, onToggleFavorite }: DocumentCardProps) {
   return (
     <motion.div
@@ -61,50 +52,53 @@ export function DocumentCard({ doc, index, onClick, onDelete, onToggleFavorite }
       whileTap={{ scale: 0.98 }}
       style={{ transformPerspective: 800 }}
       onClick={onClick}
-      className="vault-surface vault-brackets relative flex flex-col justify-between overflow-hidden rounded p-4 sm:p-5 cursor-pointer group"
+      className="vault-card group flex flex-col overflow-hidden cursor-pointer select-none"
       role="button"
       tabIndex={0}
       aria-label={`Open ${doc.name}`}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
     >
-      {/* Header row: icon + name */}
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 shrink-0">
-          <DocTypeIcon mimeType={doc.mime_type} size={22} />
+      {/* Header row: name + actions */}
+      <div className="flex items-start justify-between gap-2 px-4 pt-3">
+        <h3 className="min-w-0 font-display font-semibold uppercase leading-snug tracking-tight text-ink transition-colors group-hover:text-accent text-sm sm:text-base">
+          {doc.name}
+        </h3>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <FavoriteButton
+            active={doc.is_favorite}
+            label={doc.is_favorite ? `Remove ${doc.name} from favorites` : `Add ${doc.name} to favorites`}
+            onToggle={onToggleFavorite}
+            size={13}
+            boxClassName="h-8 w-8"
+          />
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-soft/30 transition-colors hover:bg-ink/5 hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            title="Delete document"
+            aria-label={`Delete ${doc.name}`}
+          >
+            <Trash2 size={13} aria-hidden="true" />
+          </button>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-display font-semibold uppercase leading-snug text-ink group-hover:text-accent transition-colors text-sm sm:text-base truncate">
-            {doc.name}
-          </p>
-          <p className="mt-1 text-xs text-ink-soft">
-            {doc.category} · {mimeLabel(doc.mime_type)} · {formatBytes(doc.file_size)}
-          </p>
-        </div>
-        <FavoriteButton
-          active={doc.is_favorite}
-          label={doc.is_favorite ? `Remove ${doc.name} from favorites` : `Add ${doc.name} to favorites`}
-          onToggle={onToggleFavorite}
-          size={13}
-        />
       </div>
 
-      {/* Footer row: date + delete button */}
-      <div className="mt-4 flex items-center justify-between border-t border-dashed border-ink/15 pt-2">
+      {/* Metadata line */}
+      <div className="flex-1 px-4 pb-3 pt-2">
+        <p className="truncate text-xs text-ink-soft">
+          {doc.category} · {mimeLabel(doc.mime_type)} · {formatBytes(doc.file_size)}
+        </p>
+      </div>
+
+      {/* Divider + date-only footer */}
+      <div className="mx-4 h-px bg-ink/[0.07]" />
+      <div className="flex items-center justify-between gap-2 px-4 py-2.5">
         <span className="folio text-[10px] text-ink-soft/60">
           {prettyDate.format(new Date(doc.created_at))}
         </span>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          className="vault-chip reveal-on-hover rounded-full p-1 text-ink-soft/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-          title="Delete document"
-          aria-label={`Delete ${doc.name}`}
-        >
-          <Trash2 size={13} />
-        </button>
       </div>
     </motion.div>
   )

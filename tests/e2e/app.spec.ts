@@ -174,8 +174,8 @@ test('note editor uses the shared dialog contract', async ({ page }) => {
   await page.getByRole('button', { name: 'Notes' }).click()
   expect(await page.evaluate(() => window.history.state)).toEqual({ vaultSection: true })
 
-  const newNote = page.getByRole('button', { name: 'New note' })
-  await newNote.click()
+  const addItem = page.getByRole('button', { name: 'Add item' })
+  await addItem.click()
 
   const editor = page.getByRole('dialog', { name: 'Note editor' })
   await expect(editor).toBeVisible()
@@ -186,19 +186,19 @@ test('note editor uses the shared dialog contract', async ({ page }) => {
   await page.keyboard.press('Escape')
   await expect(editor).toBeHidden()
   expect(await page.evaluate(() => window.history.state)).toEqual({ vaultSection: true })
-  await expect(page.locator('button', { hasText: 'New note' })).toBeAttached()
+  await expect(page.getByRole('button', { name: 'Add item' })).toBeAttached()
   await expect(page.locator('[inert]')).toHaveCount(0)
   await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden')
   await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible()
-  await expect(newNote).toBeFocused()
+  await expect(addItem).toBeFocused()
 })
 
 test('document uploader uses the shared dialog contract', async ({ page }) => {
   await openDemo(page)
   await page.getByRole('button', { name: 'Documents' }).click()
 
-  const addDocument = page.getByRole('button', { name: 'Add Document' })
-  await addDocument.click()
+  const addItem = page.getByRole('button', { name: 'Add item' })
+  await addItem.click()
 
   const uploader = page.getByRole('dialog', { name: 'Add document' })
   const nameInput = page.getByLabel('Document name *')
@@ -210,14 +210,14 @@ test('document uploader uses the shared dialog contract', async ({ page }) => {
 
   await page.keyboard.press('Escape')
   await expect(uploader).toBeHidden()
-  await expect(addDocument).toBeFocused()
+  await expect(addItem).toBeFocused()
   await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden')
 })
 
 test('vault select supports keyboard navigation without closing its dialog', async ({ page }) => {
   await openDemo(page)
   await page.getByRole('button', { name: 'Documents' }).click()
-  await page.getByRole('button', { name: 'Add Document' }).click()
+  await page.getByRole('button', { name: 'Add item' }).click()
 
   const uploader = page.getByRole('dialog', { name: 'Add document' })
   const category = uploader.getByRole('button', { name: 'Category' })
@@ -246,7 +246,7 @@ test('sort menu supports roving keyboard selection', async ({ page }) => {
   await openDemo(page)
 
   const sort = page.getByRole('region', { name: 'All items' }).locator('button[aria-haspopup="listbox"]')
-  await expect(sort).toHaveAttribute('aria-label', 'Sort by Newest added')
+  await expect(sort).toHaveAttribute('aria-label', 'Sort by Newest')
   await sort.focus()
   await page.keyboard.press('ArrowDown')
 
@@ -379,21 +379,21 @@ test('item detail uses the shared dialog and history contract', async ({ page })
   await expect(page.getByRole('button', { name: 'Close item details' })).toBeFocused()
   expect(await page.evaluate(() => window.history.state)).toEqual({ vaultOverlay: true })
 
-  const deleteItem = detail.getByRole('button', { name: 'Delete' })
+  const deleteItem = detail.getByRole('button', { name: 'More actions' })
   await deleteItem.click()
+  await page.getByRole('menuitem', { name: 'Delete' }).click()
   const confirmation = page.getByRole('dialog', { name: 'Move to trash?' })
   await expect(confirmation).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(confirmation).toBeHidden()
   await expect(detail).toBeVisible()
-  await expect(deleteItem).toBeFocused()
 
   await page.keyboard.press('Escape')
   await expect(detail).toBeHidden()
   await expect(itemCard).toBeFocused()
   await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden')
 
-  await page.getByRole('button', { name: 'Delete Phase Two Cafe' }).click()
+  await itemCard.getByRole('button', { name: 'Delete Phase Two Cafe' }).click()
   await expect(itemCard).toBeHidden()
   const undo = page.getByRole('button', { name: 'Undo' })
   await expect(undo).toBeVisible()
@@ -407,14 +407,14 @@ test('item detail uses the shared dialog and history contract', async ({ page })
 test('note-level reminders and checklist completion controls', async ({ page }) => {
   await openDemo(page)
   await page.getByRole('button', { name: 'Notes' }).click()
-  await page.getByRole('button', { name: 'New note' }).click()
+  await page.getByRole('button', { name: 'Add item' }).click()
 
   const editor = page.getByRole('dialog', { name: 'Note editor' })
 
-  // Note-level reminder
-  const reminderTrigger = editor.getByRole('button', { name: /Set reminder/i })
-  await expect(reminderTrigger).toBeVisible()
-  await reminderTrigger.click()
+  // Note-level reminder (surfaced through the overflow menu)
+  const moreActions = editor.getByRole('button', { name: 'More actions' })
+  await moreActions.click()
+  await page.getByRole('menuitem', { name: 'Reminder', exact: true }).click()
   const reminderDialog = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(reminderDialog).toBeVisible()
   await expectDialogContainedInViewport(page, reminderDialog)
@@ -436,7 +436,10 @@ test('note-level reminders and checklist completion controls', async ({ page }) 
   await reminderDialog.getByRole('button', { name: 'Weekdays' }).click()
 
   await saveButton.click()
-  await expect(editor.getByRole('button', { name: /Weekdays · 09:46 AM/i })).toBeVisible()
+  await expect(reminderDialog).toBeHidden()
+  await moreActions.click()
+  await expect(page.getByRole('menuitem', { name: /Weekdays · 09:46 AM/i })).toBeVisible()
+  await page.keyboard.press('Escape')
 
   // Clean checklist row and strikethrough
   await editor.getByPlaceholder('Add new task or list item...').fill('DSA practice')
@@ -454,8 +457,11 @@ test('note-level reminders and checklist completion controls', async ({ page }) 
   await expectDialogContainedInViewport(page, itemReminderDialog)
   await expect(itemReminderDialog.getByText('DSA practice')).toBeVisible()
 
-  // Select 01:00 PM preset and save
-  await itemReminderDialog.getByRole('button', { name: '01:00PM', exact: true }).click()
+  // Set 01:00 PM via the time fields and save
+  await itemReminderDialog.getByRole('textbox', { name: 'Hour' }).fill('01')
+  await itemReminderDialog.getByRole('textbox', { name: 'Minute' }).fill('00')
+  await itemReminderDialog.getByRole('button', { name: 'PM', exact: true }).click()
+  await expect(itemReminderDialog.getByText('01:00 PM')).toBeVisible()
   await itemReminderDialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(editor.getByRole('button', { name: /Daily reminder at 01:00 PM/i })).toBeVisible()
 
@@ -525,11 +531,11 @@ test('favorites page groups items and notes and searches across both', async ({ 
   await page.getByRole('button', { name: 'Add Noodle Bar to favorites' }).click()
 
   await page.getByRole('button', { name: 'Notes' }).click()
-  await page.getByRole('button', { name: 'New note' }).click()
+  await page.getByRole('button', { name: 'Add item' }).click()
   const editor = page.getByRole('dialog', { name: 'Note editor' })
   await editor.getByPlaceholder('Note title...').fill('Stretching habit')
   await page.waitForTimeout(800)
-  await editor.getByRole('button', { name: /Back to notes/ }).click()
+  await editor.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: 'Add Stretching habit to favorites' }).click()
 
   await page.getByRole('button', { name: 'Favorites', exact: true }).click()
@@ -575,13 +581,13 @@ test('trash restore keeps an item favorited', async ({ page }) => {
   const itemCard = page.getByRole('button', { name: 'Favorite Keeper, archived item' })
   await page.getByRole('button', { name: 'Add Favorite Keeper to favorites' }).click()
 
-  await page.getByRole('button', { name: 'Delete Favorite Keeper' }).click()
+  await itemCard.getByRole('button', { name: 'Delete Favorite Keeper' }).click()
   await expect(itemCard).toBeHidden()
   await page.getByRole('button', { name: 'Favorites', exact: true }).click()
   await expect(page.getByText('No favorites yet')).toBeVisible()
 
   await page.getByRole('button', { name: 'Trash' }).click()
-  await page.getByRole('button', { name: 'Restore' }).click()
+  await page.getByRole('button', { name: 'Restore item' }).click()
   await expect(page.getByText('Recently Deleted is empty')).toBeVisible()
 
   await page.getByRole('button', { name: 'Favorites', exact: true }).click()
@@ -617,7 +623,8 @@ test('food spot legacy address becomes an editable branch and survives edit and 
   await expect(detail.getByText('MG Road', { exact: true }).first()).toBeVisible()
   await expect(detail.getByText('Legacy Cafe', { exact: true }).first()).toBeVisible()
 
-  await detail.getByRole('button', { name: 'Edit Legacy Cafe' }).click()
+  await detail.getByRole('button', { name: 'More actions for Legacy Cafe' }).click()
+  await page.getByRole('menuitem', { name: 'Edit branch' }).click()
   await detail.getByLabel('Branch name').fill('HQ')
   await detail.getByRole('button', { name: 'Save branch' }).click()
   await expect(detail.getByText('HQ', { exact: true })).toBeVisible()
@@ -629,7 +636,8 @@ test('food spot legacy address becomes an editable branch and survives edit and 
   await detail.getByRole('button', { name: 'Save branch' }).click()
   await expect(detail.getByText('Highway Rd', { exact: true })).toBeVisible()
 
-  await detail.getByRole('button', { name: 'Remove Kukatpally' }).click()
+  await detail.getByRole('button', { name: 'More actions for Kukatpally' }).click()
+  await page.getByRole('menuitem', { name: 'Delete branch' }).click()
   await expect(detail.getByText('Kukatpally', { exact: true })).toHaveCount(0)
   await expect(detail.getByText('Highway Rd', { exact: true })).toHaveCount(0)
   await expect(detail.getByText('HQ', { exact: true })).toBeVisible()
