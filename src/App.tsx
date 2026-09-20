@@ -892,7 +892,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
               <section aria-labelledby="favorite-notes-heading">
                 <h3 id="favorite-notes-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Notes</h3>
                 {vault.notes.filter((note) => note.is_favorite).length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                     {vault.notes.filter((note) => note.is_favorite).map((note, index) => (
                       <NoteCard key={note.id} note={note} index={index} onClick={() => handleOpenNote(note.id)} onDelete={() => void handleDeleteNote(note.id)} onToggleFavorite={() => handleToggleNoteFavorite(note)} />
                     ))}
@@ -902,7 +902,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
               <section aria-labelledby="favorite-documents-heading">
                 <h3 id="favorite-documents-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Documents</h3>
                 {docs.documents.filter((doc) => doc.is_favorite).length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                     {docs.documents.filter((doc) => doc.is_favorite).map((doc, index) => (
                       <DocumentCard key={doc.id} doc={doc} index={index} onClick={() => handleOpenDoc(doc)} onDelete={() => void handleDeleteDocument(doc)} onToggleFavorite={() => handleToggleDocumentFavorite(doc)} />
                     ))}

@@ -130,7 +130,7 @@ export function DocumentsPanel({
       {/* ------------------------------------------------------------------ */}
       {loading && documents.length === 0 ? (
         /* Skeleton state */
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           {[0, 1, 2].map((key) => (
             <VaultSkeleton key={key} className="h-28" />
           ))}
@@ -151,7 +151,7 @@ export function DocumentsPanel({
         />
       ) : (
         /* Document grid */
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {filteredDocs.map((doc, index) => (
             <DocumentCard
               key={doc.id}

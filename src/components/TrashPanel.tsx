@@ -41,7 +41,7 @@ export function TrashList({ rows, onRestore, onPurge }: TrashListProps) {
   }
 
   return (
-    <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
       {rows.map((row) => (
         <motion.div
           key={`${row.kind}-${row.id}`}
