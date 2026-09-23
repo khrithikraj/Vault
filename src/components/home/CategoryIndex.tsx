@@ -13,7 +13,7 @@ type CategoryIndexProps = {
   itemCountByCategory: Map<string, number>
   onSelect: (categoryId: string) => void
   onDelete: (categoryId: string) => void
-  onAdd: (input: { name: string; icon: string; color: string }) => void
+  onAdd: (input: { name: string; description: string; icon: string; color: string }) => void
   onEdit: (category: Category) => void
 }
 
@@ -39,6 +39,7 @@ export function CategoryIndex({
 }: CategoryIndexProps) {
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [icon, setIcon] = useState('✨')
   const [color, setColor] = useState('#c44800')
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
@@ -47,8 +48,9 @@ export function CategoryIndex({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!name.trim()) return
-    onAdd({ name: name.trim(), icon: icon.trim() || '✨', color })
+    onAdd({ name: name.trim(), description: description.trim(), icon: icon.trim() || '✨', color })
     setName('')
+    setDescription('')
     setIcon('✨')
     setShowForm(false)
   }
@@ -207,43 +209,51 @@ export function CategoryIndex({
             animate={{ opacity: 1, y: 0 }}
             transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: 'easeOut' }}
             onSubmit={handleSubmit}
-            className="index-row flex items-center gap-2 px-3 py-3 sm:px-4"
+            className="index-row grid gap-2 px-3 py-3 sm:px-4"
           >
+            <div className="flex items-center gap-2">
+              <input
+                value={icon}
+                onChange={(event) => setIcon(event.target.value)}
+                maxLength={4}
+                aria-label="Category icon"
+                className="vault-input w-11 px-1.5 py-1.5 text-center text-sm"
+              />
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Category name"
+                required
+                autoFocus
+                className="vault-input min-w-0 flex-1 px-2.5 py-1.5 text-sm"
+              />
+              <input
+                type="color"
+                value={color}
+                onChange={(event) => setColor(event.target.value)}
+                aria-label="Category color"
+                className="h-9 w-9 shrink-0 cursor-pointer rounded border border-ink/25 bg-transparent p-1"
+              />
+              <button
+                type="submit"
+                className="shrink-0 bg-accent border border-accent px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink transition-opacity hover:opacity-90"
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="shrink-0 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-soft/50 transition-colors hover:text-ink-soft"
+              >
+                Cancel
+              </button>
+            </div>
             <input
-              value={icon}
-              onChange={(event) => setIcon(event.target.value)}
-              maxLength={4}
-              aria-label="Category icon"
-              className="vault-input w-11 px-1.5 py-1.5 text-center text-sm"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="One-line description (e.g. Receipts I need to track)"
+              className="vault-input w-full rounded-none px-2.5 py-1.5 text-xs text-ink-soft"
             />
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Category name"
-              required
-              autoFocus
-              className="vault-input min-w-0 flex-1 px-2.5 py-1.5 text-sm"
-            />
-            <input
-              type="color"
-              value={color}
-              onChange={(event) => setColor(event.target.value)}
-              aria-label="Category color"
-              className="h-9 w-9 shrink-0 cursor-pointer rounded border border-ink/25 bg-transparent p-1"
-            />
-            <button
-              type="submit"
-              className="shrink-0 bg-accent border border-accent px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink transition-opacity hover:opacity-90"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="shrink-0 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-soft/50 transition-colors hover:text-ink-soft"
-            >
-              Cancel
-            </button>
           </motion.form>
         ) : null}
       </motion.div>

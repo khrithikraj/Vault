@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Camera, CheckCircle2, CopyX, Eye, ImagePlus } from 'lucide-react'
 import { fallbackFieldSchema, getErrorMessage } from '../lib/fields'
+import { activeFields } from '../lib/vault/categorySchema'
 import { buildScreenshotAutofill, extractScreenshotText, type ScreenshotExtraction } from '../lib/screenshotAutofill'
 import { findItemDuplicates } from '../lib/duplicates'
 import { BrandIcon, CategoryIcon } from '../lib/icons'
 import { AddMenu } from './AddMenu'
+import { VaultSelect } from './VaultSelect'
 import { layers } from '../design/layers'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { VaultDialog } from './ui/VaultDialog'
@@ -59,9 +61,18 @@ const stepVariants = {
 }
 
 function fieldInputType(type: FieldDefinition['type']) {
-  if (type === 'number' || type === 'currency') return 'number'
+  if (type === 'number') return 'number'
+  if (type === 'date') return 'date'
   if (type === 'url') return 'url'
   return 'text'
+}
+
+/** Human-readable value for review/preview UI (boolean stored as 'true'/'false'). */
+function formatFieldValue(field: FieldDefinition, value: string | undefined): string {
+  const raw = value?.trim()
+  if (!raw) return '—'
+  if (field.type === 'boolean') return raw === 'true' ? 'Yes' : raw === 'false' ? 'No' : raw
+  return raw
 }
 
 /** The signature capture flow: a smart category picker (skipped when the context already
@@ -223,9 +234,11 @@ export function CaptureFab({
   }, [referenceImagePreview])
 
   const activeCategory = categories.find((category) => category.id === categoryId)
-  const fields: FieldDefinition[] = activeCategory?.field_schema.length
-    ? activeCategory.field_schema
-    : fallbackFieldSchema
+  const fields: FieldDefinition[] = useMemo(() => {
+    const raw = activeCategory?.field_schema.length ? activeCategory.field_schema : fallbackFieldSchema
+    const active = activeFields(raw)
+    return active.length > 0 ? active : raw
+  }, [activeCategory])
   /** Reference Image is a dedicated wizard step inserted immediately before Notes
    *  (or at the end when a category has no notes field). It lives inside the field
    *  step sequence so progress, Back/Continue and jump-to-step stay aligned. */
@@ -781,13 +794,43 @@ export function CaptureFab({
                                       rows={3}
                                       className="vault-input w-full rounded-none px-4 py-3 text-lg text-ink"
                                     />
+                                  ) : fieldAtStep(stepIndex)!.type === 'boolean' ? (
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setFieldValue(fieldAtStep(stepIndex)!.key, 'true')}
+                                        className={`rounded-none border-2 px-4 py-3 text-sm font-semibold uppercase tracking-widest transition-colors ${
+                                          values[fieldAtStep(stepIndex)!.key] === 'true'
+                                            ? 'vault-btn-solid border-ink'
+                                            : 'border-ink/20 text-ink-soft hover:border-ink/50'
+                                        }`}
+                                      >
+                                        Yes
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setFieldValue(fieldAtStep(stepIndex)!.key, 'false')}
+                                        className={`rounded-none border-2 px-4 py-3 text-sm font-semibold uppercase tracking-widest transition-colors ${
+                                          values[fieldAtStep(stepIndex)!.key] === 'false'
+                                            ? 'vault-btn-solid border-ink'
+                                            : 'border-ink/20 text-ink-soft hover:border-ink/50'
+                                        }`}
+                                      >
+                                        No
+                                      </button>
+                                    </div>
+                                  ) : fieldAtStep(stepIndex)!.type === 'select' ? (
+                                    <VaultSelect
+                                      options={(fieldAtStep(stepIndex)!.options ?? []).map((option) => ({
+                                        value: option,
+                                        label: option,
+                                      }))}
+                                      value={values[fieldAtStep(stepIndex)!.key] ?? ''}
+                                      onSelect={(option) => setFieldValue(fieldAtStep(stepIndex)!.key, option)}
+                                      ariaLabel={fieldAtStep(stepIndex)!.label}
+                                    />
                                   ) : (
                                     <div className="relative">
-                                      {fieldAtStep(stepIndex)!.type === 'currency' ? (
-                                        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg text-ink-soft">
-                                          ₹
-                                        </span>
-                                      ) : null}
                                       <input
                                         autoFocus
                                         value={values[fieldAtStep(stepIndex)!.key] ?? ''}
@@ -797,9 +840,7 @@ export function CaptureFab({
                                         type={fieldInputType(fieldAtStep(stepIndex)!.type)}
                                         aria-invalid={fieldError ? true : undefined}
                                         aria-describedby={fieldError ? 'capture-field-error' : undefined}
-                                        className={`vault-input w-full rounded-none py-3 text-lg text-ink ${
-                                          fieldAtStep(stepIndex)!.type === 'currency' ? 'pl-9 pr-4' : 'px-4'
-                                        }`}
+                                        className="vault-input w-full rounded-none px-4 py-3 text-lg text-ink"
                                       />
                                     </div>
                                   )}
@@ -1014,7 +1055,7 @@ export function CaptureFab({
                                 {field.label}
                               </span>
                               <span className="min-w-0 break-words text-sm font-medium text-ink">
-                                {values[field.key]?.trim() || '—'}
+                                {formatFieldValue(field, values[field.key])}
                               </span>
                             </button>
                           ))}

@@ -18,6 +18,7 @@ import { supabase, supabaseConfigured } from './supabase'
 import type { Category, ChecklistItem, Note, VaultItem } from '../types/app'
 import { getBranches } from './branches'
  
+/** Legacy snapshot representation retained for rows created before Phase 2 ('currency' typed fields). */
 export type SharedFieldValue =
   | { kind: 'currency'; value: string }
   | { kind: 'url'; value: string }
@@ -60,13 +61,12 @@ function buildSnapshot(
 ): Omit<SharedItem, 'id' | 'token' | 'created_at'> {
   const fields: SharedItem['fields'] = []
   for (const field of category?.field_schema ?? []) {
+    if (field.deleted_at) continue
     if (field.key === 'title' || field.key === 'notes') continue
     const raw = item.metadata?.[field.key]
     if (raw == null || raw === '') continue
-    const text = String(raw)
-    if (field.type === 'currency') {
-      fields.push({ label: field.label, value: { kind: 'currency', value: text }, required: field.required })
-    } else if (field.type === 'url') {
+    const text = field.type === 'boolean' ? (raw === 'true' ? 'Yes' : raw === 'false' ? 'No' : String(raw)) : String(raw)
+    if (field.type === 'url') {
       fields.push({ label: field.label, value: { kind: 'url', value: text }, required: field.required })
     } else {
       fields.push({ label: field.label, value: { kind: 'text', value: text }, required: field.required })

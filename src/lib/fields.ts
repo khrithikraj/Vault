@@ -1,12 +1,19 @@
 import { defaultCategorySeeds } from './defaults'
+import {
+  normalizeCategorySchemaVersion,
+  normalizeFieldType,
+  normalizeSchemaForSave,
+} from './vault/categorySchema'
 import type { Category, FieldDefinition, FieldType } from '../types/app'
  
 export const FIELD_TYPE_OPTIONS: Array<{ value: FieldType; label: string }> = [
   { value: 'text', label: 'Short text' },
   { value: 'textarea', label: 'Long text' },
-  { value: 'url', label: 'Link' },
   { value: 'number', label: 'Number' },
-  { value: 'currency', label: 'Price' },
+  { value: 'date', label: 'Date' },
+  { value: 'url', label: 'Link' },
+  { value: 'boolean', label: 'Yes / No' },
+  { value: 'select', label: 'Dropdown' },
 ]
  
 /** Fallback schema for brand-new custom categories. */
@@ -16,17 +23,29 @@ export const fallbackFieldSchema: FieldDefinition[] = [
 ]
  
 /**
- * Guarantees a usable field_schema even if the DB row's column is missing/null/empty
- * (e.g. before the field_schema migration has been run) so the UI never crashes on
- * `category.field_schema.find(...)`. Falls back to the known default schema by name,
- * then to the generic title+notes schema.
+ * Guarantees a usable, contract-shaped field_schema even if the DB row's column is
+ * missing/null/empty (e.g. before the field_schema migration has been run) so the UI
+ * never crashes on `category.field_schema.find(...)`. Falls back to the known default
+ * schema by name, then to the generic title+notes schema. Also normalizes every field
+ * to the closed enum (legacy `currency` → `number`) and fills contract defaults so
+ * pre-migration rows behave correctly without any schema-cache reload.
  */
 export function normalizeCategory(category: Category): Category {
-  if (category.field_schema && category.field_schema.length > 0) {
-    return category
+  const source =
+    category.field_schema && category.field_schema.length > 0
+      ? category.field_schema
+      : defaultCategorySeeds.find((entry) => entry.name === category.name)?.field_schema ?? fallbackFieldSchema
+  return {
+    ...category,
+    description:
+      typeof category.description === 'string' && category.description.trim()
+        ? category.description.trim()
+        : category.name,
+    category_schema_version: normalizeCategorySchemaVersion(category.category_schema_version),
+    field_schema: normalizeSchemaForSave(
+      source.map((field) => ({ ...field, type: normalizeFieldType(field.type) ?? field.type })),
+    ),
   }
-  const seed = defaultCategorySeeds.find((entry) => entry.name === category.name)
-  return { ...category, field_schema: seed?.field_schema ?? fallbackFieldSchema }
 }
  
 /** Supabase/PostgREST errors are plain objects, not real `Error` instances — this

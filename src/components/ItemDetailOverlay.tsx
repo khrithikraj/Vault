@@ -12,6 +12,8 @@ import { ShareStatusPanel } from './ShareStatusPanel'
 import type { MoreActionItem } from './ui/MoreActionsMenu'
 import { VaultButton, VaultIconButton } from './ui/VaultButton'
 import { VaultInput, VaultTextarea } from './ui/VaultInput'
+import { VaultSelect } from './VaultSelect'
+import { activeFields } from '../lib/vault/categorySchema'
 import { createSharedItem } from '../lib/share'
 import {
   getTriedEntries,
@@ -179,7 +181,7 @@ export function ItemDetailOverlay({
     category
 
   const currentCategoryFields: FieldDefinition[] = selectedCategory?.field_schema ?? []
-  const metadataFields = currentCategoryFields.filter(
+  const metadataFields = activeFields(currentCategoryFields).filter(
     (field) => field.key !== 'title' && field.key !== 'notes',
   )
 
@@ -345,23 +347,46 @@ export function ItemDetailOverlay({
                           }
                           className="mt-1 rounded-none"
                         />
+                      ) : field.type === 'boolean' ? (
+                        <div className="mt-1 flex gap-2">
+                          {(['true', 'false'] as const).map((option) => (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() =>
+                                setEditMetadata((cur) => ({ ...cur, [field.key]: option }))
+                              }
+                              className={`rounded-none border-2 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest transition-colors ${
+                                editMetadata[field.key] === option
+                                  ? 'vault-btn-solid border-ink'
+                                  : 'border-ink/20 text-ink-soft hover:border-ink/50'
+                              }`}
+                            >
+                              {option === 'true' ? 'Yes' : 'No'}
+                            </button>
+                          ))}
+                        </div>
+                      ) : field.type === 'select' ? (
+                        <div className="mt-1">
+                          <VaultSelect
+                            options={(field.options ?? []).map((option) => ({ value: option, label: option }))}
+                            value={editMetadata[field.key] ?? field.options?.[0] ?? ''}
+                            onSelect={(option) =>
+                              setEditMetadata((cur) => ({ ...cur, [field.key]: option }))
+                            }
+                            ariaLabel={field.label}
+                          />
+                        </div>
                       ) : (
                         <div className="relative mt-1">
-                          {field.type === 'currency' && (
-                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-soft">
-                              ₹
-                            </span>
-                          )}
                           <VaultInput
-                            type={field.type === 'number' || field.type === 'currency' ? 'number' : field.type === 'url' ? 'url' : 'text'}
+                            type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : 'text'}
                             value={editMetadata[field.key] ?? ''}
                             onChange={(e) =>
                               setEditMetadata((cur) => ({ ...cur, [field.key]: e.target.value }))
                             }
                             placeholder={field.placeholder || field.label}
-                            className={`rounded-none py-2 ${
-                              field.type === 'currency' ? 'pl-7 pr-3' : 'px-3'
-                            }`}
+                            className="rounded-none px-3 py-2"
                           />
                         </div>
                       )}
@@ -395,8 +420,13 @@ export function ItemDetailOverlay({
                               {field.label}
                             </dt>
                             <dd className="break-words font-medium text-ink">
-                              {field.type === 'currency' ? '₹' : ''}
-                              {field.type === 'url' ? (() => {
+                              {field.type === 'boolean' ? (
+                                String(item.metadata[field.key]) === 'true'
+                                  ? 'Yes'
+                                  : String(item.metadata[field.key]) === 'false'
+                                    ? 'No'
+                                    : String(item.metadata[field.key])
+                              ) : field.type === 'url' ? (() => {
                                 const rawUrl = String(item.metadata[field.key])
                                 // Only allow http/https — block javascript: and other dangerous schemes
                                 const safeUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`

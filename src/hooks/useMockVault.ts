@@ -2,6 +2,12 @@ import { useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { normalizeCategory } from '../lib/fields'
+import {
+  INITIAL_CATEGORY_SCHEMA_VERSION,
+  nextCategorySchemaVersion,
+  normalizeSchemaForSave,
+  validateCategoryDefinition,
+} from '../lib/vault/categorySchema'
 import { browserTimezone, computeNextFireAt, localDateInTimezone, type ReminderRecurrence } from '../lib/reminders'
 import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { Category, ChecklistItem, ChecklistReminder, DailyChecklistCompletion, FieldDefinition, Note, VaultItem, Weekday } from '../types/app'
@@ -19,9 +25,11 @@ function seedCategories(): Category[] {
       id: makeId(),
       user_id: DEV_USER_ID,
       name: seed.name,
+      description: seed.description,
       color: seed.color,
       icon: seed.icon,
       is_default: seed.is_default,
+      category_schema_version: seed.category_schema_version ?? INITIAL_CATEGORY_SCHEMA_VERSION,
       field_schema: seed.field_schema,
       created_at: new Date().toISOString(),
     }),
@@ -68,6 +76,7 @@ export function useMockVault() {
 
   const addCategory = async (input: {
     name: string
+    description: string
     icon: string
     color: string
     fieldSchema?: FieldDefinition[]
@@ -75,14 +84,25 @@ export function useMockVault() {
     if (!input.name.trim()) {
       return
     }
+    const fieldSchema = normalizeSchemaForSave(input.fieldSchema ?? [])
+    const problems = validateCategoryDefinition(
+      { name: input.name, description: input.description, fields: fieldSchema },
+      { categoryCount: categories.length },
+    )
+    if (problems.length > 0) {
+      setMessage(problems[0])
+      return
+    }
     const next = normalizeCategory({
       id: makeId(),
       user_id: DEV_USER_ID,
       name: input.name.trim(),
+      description: input.description.trim(),
       icon: input.icon.trim() || '✨',
       color: input.color,
       is_default: false,
-      field_schema: input.fieldSchema ?? [],
+      category_schema_version: INITIAL_CATEGORY_SCHEMA_VERSION,
+      field_schema: fieldSchema,
       created_at: new Date().toISOString(),
     })
     setCategories((current) => [...current, next])
@@ -99,7 +119,13 @@ export function useMockVault() {
   const updateCategoryFields = async (categoryId: string, fieldSchema: FieldDefinition[]) => {
     setCategories((current) =>
       current.map((category) =>
-        category.id === categoryId ? { ...category, field_schema: fieldSchema } : category,
+        category.id === categoryId
+          ? {
+              ...category,
+              field_schema: normalizeSchemaForSave(fieldSchema),
+              category_schema_version: nextCategorySchemaVersion(category.category_schema_version),
+            }
+          : category,
       ),
     )
   }
@@ -107,6 +133,7 @@ export function useMockVault() {
   const updateCategory = async (
     categoryId: string,
     name: string,
+    description: string,
     icon: string,
     color: string,
     fieldSchema?: FieldDefinition[],
@@ -121,9 +148,11 @@ export function useMockVault() {
           ? {
               ...category,
               name: trimmedName,
+              description: description.trim(),
               icon: icon.trim() || '✨',
               color,
-              ...(fieldSchema !== undefined ? { field_schema: fieldSchema } : {}),
+              category_schema_version: nextCategorySchemaVersion(category.category_schema_version),
+              ...(fieldSchema !== undefined ? { field_schema: normalizeSchemaForSave(fieldSchema) } : {}),
             }
           : category,
       ),

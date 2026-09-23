@@ -1,4 +1,5 @@
-export type FieldType = 'text' | 'textarea' | 'url' | 'number' | 'currency'
+/** Closed field-type enum (Phase 2 contract). 'currency' is legacy and is normalized to 'number' on read. */
+export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'url' | 'boolean' | 'select'
 
 export type FieldDefinition = {
   /** 'title' and 'notes' are reserved keys mapped to the item's own columns; anything else lives in metadata. */
@@ -7,16 +8,29 @@ export type FieldDefinition = {
   type: FieldType
   required: boolean
   placeholder?: string
+  /** True for the category's single title field (which must also be required). */
+  is_title?: boolean
+  /** For `select` fields: the closed list of selectable options. */
+  options?: string[]
+  /** Always false for user-created fields; only ever set via privileged/internal mechanisms. */
+  visual_evidence_ok?: boolean
+  /** Set to an ISO timestamp when the field is soft-deleted; null/undefined otherwise. */
+  deleted_at?: string | null
+  created_at?: string
 }
 
 export type Category = {
   id: string
   user_id: string
   name: string
+  /** One-line human-readable description required by the category contract. */
+  description?: string | null
   color: string
   icon: string
   is_default: boolean
   field_schema: FieldDefinition[]
+  /** Bumped on every category edit; used for cache invalidation and schema generation. */
+  category_schema_version?: number
   created_at: string
 }
 

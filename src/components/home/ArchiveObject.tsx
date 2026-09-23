@@ -48,7 +48,11 @@ export function ArchiveObject({
   const isDone = item.status === 'done'
 
   const highlightField = category?.field_schema.find(
-    (field) => field.key !== 'title' && field.key !== 'notes' && item.metadata[field.key],
+    (field) =>
+      !field.deleted_at &&
+      field.key !== 'title' &&
+      field.key !== 'notes' &&
+      item.metadata[field.key],
   )
 
   let preview: string | null = null

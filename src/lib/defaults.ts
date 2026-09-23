@@ -4,21 +4,21 @@ const foodFields: FieldDefinition[] = [
   { key: 'title', label: 'Place name', type: 'text', required: true },
   { key: 'dish', label: 'Dish to try', type: 'text', required: true },
   { key: 'address', label: 'Address', type: 'text', required: false },
-  { key: 'price', label: 'Price', type: 'currency', required: false },
+  { key: 'price', label: 'Price', type: 'number', required: false },
   { key: 'notes', label: 'Notes', type: 'textarea', required: false },
 ]
- 
+
 const buyFields: FieldDefinition[] = [
   { key: 'title', label: 'Item name', type: 'text', required: true },
   { key: 'link', label: 'Where to buy / link', type: 'url', required: false },
-  { key: 'price', label: 'Price', type: 'currency', required: false },
+  { key: 'price', label: 'Price', type: 'number', required: false },
   { key: 'notes', label: 'Notes', type: 'textarea', required: false },
 ]
- 
+
 const wishlistFields: FieldDefinition[] = [
   { key: 'title', label: 'Item name', type: 'text', required: true },
   { key: 'brand', label: 'Brand', type: 'text', required: false },
-  { key: 'price', label: 'Price', type: 'currency', required: false },
+  { key: 'price', label: 'Price', type: 'number', required: false },
   { key: 'link', label: 'Link', type: 'url', required: false },
   { key: 'notes', label: 'Notes', type: 'textarea', required: false },
 ]
@@ -52,43 +52,72 @@ const placesFields: FieldDefinition[] = [
 ]
  
 export const defaultCategorySeeds: Array<
-  Pick<Category, 'name' | 'color' | 'icon' | 'is_default' | 'field_schema'>
+  Pick<
+    Category,
+    'name' | 'description' | 'color' | 'icon' | 'is_default' | 'field_schema' | 'category_schema_version'
+  >
 > = [
-  { name: 'Food Spots', color: '#ffd9c3', icon: '🍜', is_default: true, field_schema: foodFields },
+  {
+    name: 'Food Spots',
+    description: 'Restaurants, cafes and dishes worth trying.',
+    color: '#ffd9c3',
+    icon: '🍜',
+    is_default: true,
+    category_schema_version: 1,
+    field_schema: foodFields,
+  },
   {
     name: 'Things To Buy',
+    description: 'Real purchases I want to make or check out.',
     color: '#cfe7ff',
     icon: '🛍️',
     is_default: true,
+    category_schema_version: 1,
     field_schema: buyFields,
   },
   {
     name: 'Shopping Wishlist',
+    description: 'Wishlist items I am watching and comparing.',
     color: '#dbf4cb',
     icon: '⌚',
     is_default: true,
+    category_schema_version: 1,
     field_schema: wishlistFields,
   },
   {
     name: 'Movies & Series',
+    description: 'Shows and films I want to watch.',
     color: '#e4d7ff',
     icon: '🎬',
     is_default: true,
+    category_schema_version: 1,
     field_schema: movieFields,
   },
-  { name: 'Temples', color: '#ffe9b8', icon: '🛕', is_default: true, field_schema: templeFields },
+  {
+    name: 'Temples',
+    description: 'Temples and spiritual places to visit.',
+    color: '#ffe9b8',
+    icon: '🛕',
+    is_default: true,
+    category_schema_version: 1,
+    field_schema: templeFields,
+  },
   {
     name: 'Education Reels',
+    description: 'Reels and links worth learning from.',
     color: '#ccf5ec',
     icon: '📚',
     is_default: true,
+    category_schema_version: 1,
     field_schema: educationFields,
   },
   {
     name: 'Places To Visit',
+    description: 'Destinations and spots on the travel list.',
     color: '#ffd3d8',
     icon: '📍',
     is_default: true,
+    category_schema_version: 1,
     field_schema: placesFields,
   },
 ]

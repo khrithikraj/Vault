@@ -1054,8 +1054,8 @@ export default function App({ onReturnToLanding = () => window.location.assign('
           key={editingCategoryId ?? 'none'}
           category={editingCategory}
           onClose={() => setEditingCategoryId(null)}
-          onSave={(id, name, icon, color, fields) =>
-            void vault.updateCategory(id, name, icon, color, fields)
+          onSave={(id, name, description, icon, color, fields) =>
+            void vault.updateCategory(id, name, description, icon, color, fields)
           }
         />
  

@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { ArrowDown, ArrowUp, Plus, Trash2, Sliders, Palette, Check } from 'lucide-react'
-import { FIELD_TYPE_OPTIONS, makeFieldKey } from '../lib/fields'
+import { ArrowDown, ArrowUp, Plus, RotateCcw, Trash2, Sliders, Palette, Check } from 'lucide-react'
+import { FIELD_TYPE_OPTIONS } from '../lib/fields'
+import {
+  MAX_FIELDS_PER_CATEGORY,
+  MAX_LABEL_LENGTH,
+  activeFields,
+  isFieldSoftDeleted,
+  restoreField,
+  slugifyToKey,
+  softDeleteField,
+  validateCategoryDefinition,
+} from '../lib/vault/categorySchema'
 import { CategoryIcon } from '../lib/icons'
 import { VaultSelect } from './VaultSelect'
 import { VaultButton } from './ui/VaultButton'
@@ -16,6 +26,7 @@ export type CategoryEditorProps = {
   onSave: (
     id: string,
     name: string,
+    description: string,
     icon: string,
     color: string,
     fieldSchema: FieldDefinition[],
@@ -40,9 +51,11 @@ const PRESET_COLORS = [
 export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProps) {
   const [activeTab, setActiveTab] = useState<'general' | 'fields'>('general')
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [icon, setIcon] = useState('✨')
   const [color, setColor] = useState('#dbe9ff')
   const [fields, setFields] = useState<FieldDefinition[]>([])
+  const [validationMessage, setValidationMessage] = useState('')
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [pendingFieldChange, setPendingFieldChange] = useState<
     | { kind: 'remove'; index: number }
@@ -53,20 +66,23 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
   const initialStateRef = useRef('')
 
   const stateSignature = useMemo(
-    () => JSON.stringify({ name: name.trim(), icon: icon.trim(), color, fields }),
-    [color, fields, icon, name],
+    () => JSON.stringify({ name: name.trim(), description: description.trim(), icon: icon.trim(), color, fields }),
+    [color, description, fields, icon, name],
   )
   const dirty = category !== null && stateSignature !== initialStateRef.current
 
   useEffect(() => {
     if (category) {
       setName(category.name)
+      setDescription(category.description ?? '')
       setIcon(category.icon || '✨')
       setColor(category.color || '#dbe9ff')
       setFields(category.field_schema.length > 0 ? category.field_schema : [])
+      setValidationMessage('')
       setActiveTab('general')
       initialStateRef.current = JSON.stringify({
         name: category.name.trim(),
+        description: (category.description ?? '').trim(),
         icon: (category.icon || '✨').trim(),
         color: category.color || '#dbe9ff',
         fields: category.field_schema.length > 0 ? category.field_schema : [],
@@ -80,13 +96,24 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
     )
   }
 
+  /** Soft-deletes a field: item values under its key are preserved and restored later. */
   const removeField = (index: number) => {
-    setFields((current) => current.filter((_, i) => i !== index))
+    setFields((current) =>
+      current.map((field, i) => (i === index ? softDeleteField(field) : field)),
+    )
+  }
+
+  const restoreRemovedField = (index: number) => {
+    setFields((current) =>
+      current.map((field, i) => (i === index ? restoreField(field) : field)),
+    )
   }
 
   const requestRemoveField = (index: number) => {
     setPendingFieldChange({ kind: 'remove', index })
   }
+
+  const activeFieldCount = activeFields(fields).length
 
   const requestTypeChange = (index: number, type: FieldType) => {
     if (fields[index].type === type) return
@@ -107,15 +134,28 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
   }
 
   const addField = () => {
+    setValidationMessage('')
+    if (activeFieldCount >= MAX_FIELDS_PER_CATEGORY) return
     setFields((current) => [
       ...current,
       {
-        key: makeFieldKey(`Field ${current.length + 1}`, current),
+        key: slugifyToKey(`Field ${current.length + 1}`, current.map((field) => field.key)),
         label: '',
         type: 'text' as FieldType,
         required: false,
+        visual_evidence_ok: false,
+        created_at: new Date().toISOString(),
       },
     ])
+  }
+
+  const addSelectOption = (index: number, raw: string) => {
+    const option = raw.trim()
+    const current = fields[index]
+    if (!option) return
+    const options = current.options ?? []
+    if (options.includes(option)) return
+    updateField(index, { options: [...options, option] })
   }
 
   const handleSave = () => {
@@ -124,9 +164,21 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
       .map((field) => ({ ...field, label: field.label.trim() || 'Untitled field' }))
       .filter((field) => field.key === 'title' || field.label.length > 0)
 
+    const problems = validateCategoryDefinition({
+      name,
+      description,
+      fields: cleanedFields,
+    })
+    if (problems.length > 0) {
+      setValidationMessage(problems[0])
+      setActiveTab(problems.some((problem) => /field/i.test(problem)) ? 'fields' : 'general')
+      return
+    }
+
     onSave(
       category.id,
-      name.trim() || 'Untitled Category',
+      name.trim(),
+      description.trim(),
       icon.trim() || '✨',
       color,
       cleanedFields,
@@ -141,8 +193,19 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
 
   const confirmFieldChange = () => {
     if (!pendingFieldChange) return
-    if (pendingFieldChange.kind === 'remove') removeField(pendingFieldChange.index)
-    else updateField(pendingFieldChange.index, { type: pendingFieldChange.type })
+    if (pendingFieldChange.kind === 'remove') {
+      removeField(pendingFieldChange.index)
+    } else {
+      const { index, type } = pendingFieldChange
+      const current = fields[index]
+      const patch: Partial<FieldDefinition> = { type }
+      if (type === 'select' && current.type !== 'select') {
+        patch.options = ['Option 1']
+      } else if (type !== 'select') {
+        patch.options = undefined
+      }
+      updateField(index, patch)
+    }
     setPendingFieldChange(null)
   }
 
@@ -210,7 +273,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                     : 'border border-ink/20 text-ink-soft hover:text-ink'
                 }`}
               >
-                <Sliders size={13} /> Fields ({fields.length})
+                <Sliders size={13} /> Fields ({activeFieldCount})
               </button>
             </div>
 
@@ -231,6 +294,23 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                       placeholder="e.g. Passwords, Receipts, Ideas"
                       className="mt-1.5 rounded-none text-base font-medium"
                     />
+                  </div>
+
+                  {/* Category Description */}
+                  <div>
+                    <label htmlFor="category-description" className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                      Category description
+                    </label>
+                    <VaultInput
+                      id="category-description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="e.g. Recipes and restaurants I want to try"
+                      className="mt-1.5 rounded-none text-sm"
+                    />
+                    <p className="mt-1 text-xs text-ink-soft/70">
+                      One line of context used to help AI understand what this category collects.
+                    </p>
                   </div>
 
                   {/* Icon Selection */}
@@ -309,10 +389,44 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                     <p className="text-xs text-ink-soft">
                       Define the custom fields captured when adding items to this category.
                     </p>
+                    <span className="shrink-0 text-xs font-semibold text-ink-soft/70">
+                      {activeFieldCount} / {MAX_FIELDS_PER_CATEGORY}
+                    </span>
                   </div>
 
+                  {validationMessage ? (
+                    <p className="vault-meta !text-red-400" role="alert">
+                      {validationMessage}
+                    </p>
+                  ) : null}
+
                   <div className="grid w-full max-w-full min-w-0 gap-2.5">
-                    {fields.map((field, index) => (
+                    {fields.map((field, index) => {
+                      if (isFieldSoftDeleted(field)) {
+                        return (
+                          <div
+                            key={`${field.key}-${index}`}
+                            className="vault-surface-soft flex min-w-0 items-center justify-between gap-2 rounded border border-ink/10 p-3 opacity-60"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm text-ink line-through">{field.label.trim() || 'Untitled field'}</p>
+                              <p className="text-[11px] uppercase tracking-wide text-ink-soft">
+                                Hidden · values kept under “{field.key}”
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => restoreRemovedField(index)}
+                              className="vault-chip rounded-full p-1.5 text-ink-soft hover:text-ink"
+                              aria-label={`Restore field ${field.label || field.key}`}
+                              title="Restore field"
+                            >
+                              <RotateCcw size={14} />
+                            </button>
+                          </div>
+                        )
+                      }
+                      return (
                       <motion.div
                         layout
                         key={`${field.key}-${index}`}
@@ -336,6 +450,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                             value={field.label}
                             onChange={(event) => updateField(index, { label: event.target.value })}
                             placeholder="Field label (e.g. Website, Price, Username)"
+                            maxLength={MAX_LABEL_LENGTH}
                             disabled={field.key === 'title'}
                             className="vault-input min-w-0 flex-1 rounded-none px-2.5 py-1.5 text-sm disabled:opacity-60"
                           />
@@ -399,22 +514,80 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                             Required
                           </label>
                         </div>
+
+                        {field.type === 'select' ? (
+                          <div className="grid min-w-0 gap-1.5 border-t border-ink/10 pt-2">
+                            <div className="flex flex-wrap gap-1.5">
+                              {(field.options ?? []).map((option, optionIndex) => (
+                                <span
+                                  key={option}
+                                  className="flex items-center gap-1 rounded-full border border-ink/20 bg-ink/5 px-2 py-0.5 text-xs text-ink"
+                                >
+                                  {option}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateField(index, {
+                                        options: (field.options ?? []).filter((_, i) => i !== optionIndex),
+                                      })
+                                    }
+                                    className="text-ink-soft hover:text-ink"
+                                    aria-label={`Remove option ${option}`}
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                placeholder="Add an option"
+                                maxLength={MAX_LABEL_LENGTH}
+                                className="vault-input min-w-0 flex-1 rounded-none px-2.5 py-1 text-xs"
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault()
+                                    addSelectOption(index, event.currentTarget.value)
+                                    event.currentTarget.value = ''
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  const input = event.currentTarget.previousElementSibling as HTMLInputElement
+                                  addSelectOption(index, input.value)
+                                  input.value = ''
+                                }}
+                                className="vault-chip rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wide text-ink-soft hover:text-ink"
+                              >
+                                Add
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
                       </motion.div>
-                    ))}
+                      )
+                    })}
                   </div>
 
                   <button
                     type="button"
                     onClick={addField}
-                    className="border-ink/30 rounded-outline mt-2 flex items-center justify-center gap-1.5 border-2 border-dashed py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-soft hover:border-ink/60 hover:text-ink transition-colors"
+                    disabled={activeFieldCount >= MAX_FIELDS_PER_CATEGORY}
+                    className="border-ink/30 rounded-outline mt-2 flex items-center justify-center gap-1.5 border-2 border-dashed py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-soft hover:border-ink/60 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-ink/30 transition-colors"
                   >
-                    <Plus size={14} /> Add new field
+                    <Plus size={14} />
+                    {activeFieldCount >= MAX_FIELDS_PER_CATEGORY
+                      ? `Maximum ${MAX_FIELDS_PER_CATEGORY} fields reached`
+                      : 'Add new field'}
                   </button>
 
                   <div className="mt-2 border-t border-ink/10 pt-4" aria-live="polite">
                     <p className="vault-meta text-[var(--accession-text-muted)]">Capture preview</p>
                     <div className="mt-2 grid gap-2">
-                      {fields.map((field, index) => (
+                      {activeFields(fields).map((field, index) => (
                         <div key={`preview-${field.key}-${index}`} className="flex items-center justify-between gap-4 border-b border-ink/[0.07] py-2">
                           <span className="min-w-0 break-words text-sm text-ink">{field.label.trim() || 'Untitled field'}</span>
                           <span className="shrink-0 text-xs text-ink-soft">
@@ -447,13 +620,13 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
 
       <ConfirmDialog
         open={pendingFieldChange !== null}
-        title={pendingFieldChange?.kind === 'remove' ? 'Remove this field?' : 'Change field type?'}
+        title={pendingFieldChange?.kind === 'remove' ? 'Hide this field?' : 'Change field type?'}
         message={
           pendingFieldChange?.kind === 'remove'
-            ? 'Existing values stored under this field will no longer appear in the category form. This cannot be inferred or reversed after saving.'
+            ? 'The field is hidden from the capture form but its item values are kept under the field’s key and can be restored later.'
             : 'Existing values may not match the new field type. Review affected items after saving.'
         }
-        confirmLabel={pendingFieldChange?.kind === 'remove' ? 'Remove field' : 'Change type'}
+        confirmLabel={pendingFieldChange?.kind === 'remove' ? 'Hide field' : 'Change type'}
         onConfirm={confirmFieldChange}
         onCancel={() => setPendingFieldChange(null)}
       />

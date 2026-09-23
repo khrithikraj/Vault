@@ -39,7 +39,9 @@ export function findItemDuplicates(
  
     let conflicts = false
     const matched: string[] = []
-    const labels = new Map((category.field_schema ?? []).map((f) => [f.key, f.label]))
+    const labels = new Map(
+      (category.field_schema ?? []).filter((f) => !f.deleted_at).map((f) => [f.key, f.label]),
+    )
  
     for (const [key, raw] of Object.entries(input.values)) {
       const typed = normalizeText(raw)

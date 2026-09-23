@@ -10,6 +10,12 @@ import {
 } from '../lib/sessionGeneration'
 import { supabase, supabaseConfigured, vaultBucket } from '../lib/supabase'
 import { sortTrashedByDeletedAt } from '../lib/trash'
+import {
+  INITIAL_CATEGORY_SCHEMA_VERSION,
+  nextCategorySchemaVersion,
+  normalizeSchemaForSave,
+  validateCategoryDefinition,
+} from '../lib/vault/categorySchema'
 import type { AuthPresentationState } from '../types/auth'
 import type { Category, ChecklistItem, ChecklistReminder, DailyChecklistCompletion, FieldDefinition, Note, VaultItem, Weekday } from '../types/app'
 import { browserTimezone, computeNextFireAt, localDateInTimezone, validateReminderTime, type ReminderRecurrence } from '../lib/reminders'
@@ -292,6 +298,10 @@ export function useVault() {
     const { error: seedError } = await supabase.from('categories').upsert(
       defaultCategorySeeds.map((category) => ({
         ...category,
+        description: category.description?.trim() || category.name,
+        category_schema_version:
+          category.category_schema_version ?? INITIAL_CATEGORY_SCHEMA_VERSION,
+        field_schema: normalizeSchemaForSave(category.field_schema),
         user_id: userId,
       })),
       { onConflict: 'user_id,name', ignoreDuplicates: true },
@@ -423,6 +433,7 @@ export function useVault() {
 
   const addCategory = async (input: {
     name: string
+    description: string
     icon: string
     color: string
     fieldSchema?: FieldDefinition[]
@@ -431,13 +442,25 @@ export function useVault() {
       return
     }
 
+    const fieldSchema = normalizeSchemaForSave(input.fieldSchema ?? fallbackFieldSchema)
+    const problems = validateCategoryDefinition(
+      { name: input.name, description: input.description, fields: fieldSchema },
+      { categoryCount: categories.length },
+    )
+    if (problems.length > 0) {
+      setMessage(problems[0])
+      return
+    }
+
     const payload = {
       user_id: session.user.id,
       name: input.name.trim(),
+      description: input.description.trim(),
       icon: input.icon.trim() || '✨',
       color: input.color,
       is_default: false,
-      field_schema: input.fieldSchema ?? fallbackFieldSchema,
+      category_schema_version: INITIAL_CATEGORY_SCHEMA_VERSION,
+      field_schema: fieldSchema,
     }
 
     const { data, error } = await supabase
@@ -456,10 +479,11 @@ export function useVault() {
     setSelectedCategoryId(next.id)
   }
 
-  /** Edit a category's metadata and/or field schema in one call. */
+  /** Edit a category's metadata and/or field schema in one call. Bumps the schema version. */
   const updateCategory = async (
     categoryId: string,
     name: string,
+    description: string,
     icon: string,
     color: string,
     fieldSchema?: FieldDefinition[],
@@ -472,13 +496,25 @@ export function useVault() {
       return
     }
 
-    const payload: { name: string; icon: string; color: string; field_schema?: FieldDefinition[] } = {
+    const existingCategory = categories.find((category) => category.id === categoryId)
+    const schemaVersion = nextCategorySchemaVersion(existingCategory?.category_schema_version)
+
+    const payload: {
+      name: string
+      description: string
+      icon: string
+      color: string
+      category_schema_version: number
+      field_schema?: FieldDefinition[]
+    } = {
       name: trimmedName,
+      description: description.trim(),
       icon: icon.trim() || '✨',
       color,
+      category_schema_version: schemaVersion,
     }
     if (fieldSchema !== undefined) {
-      payload.field_schema = fieldSchema
+      payload.field_schema = normalizeSchemaForSave(fieldSchema)
     }
 
     const { data, error } = await supabase
@@ -498,9 +534,13 @@ export function useVault() {
   }
 
   const updateCategoryFields = async (categoryId: string, fieldSchema: FieldDefinition[]) => {
+    const existingCategory = categories.find((category) => category.id === categoryId)
     const { data, error } = await supabase
       .from('categories')
-      .update({ field_schema: fieldSchema })
+      .update({
+        field_schema: normalizeSchemaForSave(fieldSchema),
+        category_schema_version: nextCategorySchemaVersion(existingCategory?.category_schema_version),
+      })
       .eq('id', categoryId)
       .select('*')
       .single()

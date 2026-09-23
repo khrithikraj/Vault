@@ -106,8 +106,12 @@ function itemFields(item: VaultItem, category: Category | null): ItemFieldHit[] 
   }
   if (item.metadata) {
     const labels = new Map((category?.field_schema ?? []).map((field) => [field.key, field.label]))
+    const deletedKeys = new Set(
+      (category?.field_schema ?? []).filter((field) => field.deleted_at).map((field) => field.key),
+    )
     for (const [key, value] of Object.entries(item.metadata)) {
       if ((INTERNAL_METADATA_KEYS as readonly string[]).includes(key)) continue
+      if (deletedKeys.has(key)) continue
       const text = searchableValue(value)
       if (text) fields.push({ label: labels.get(key) ?? key, value: text })
     }

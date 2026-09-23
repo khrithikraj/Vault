@@ -149,7 +149,7 @@ function inferValueForField(field: FieldDefinition, lines: string[], rawText: st
     return findDish(lines)
   }
  
-  if (/(price|cost|amount|budget|fee|ticket)/i.test(fieldKey) || field.type === 'currency') {
+  if (/(price|cost|amount|budget|fee|ticket)/i.test(fieldKey)) {
     return findPrice(lines)
   }
  
