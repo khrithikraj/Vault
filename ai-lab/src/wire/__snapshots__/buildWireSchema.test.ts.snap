@@ -1,0 +1,1282 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`dynamic catalog behavior > pins the masked structural shape for each provider > cloudflare 1`] = `
+{
+  "$comment": "Vault extraction contract v1. Provider-independent canonical envelope produced by any vision extraction pipeline and consumed by Vault validators. No provider wire-format quirks are allowed in this schema.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "category_schema_version": {
+      "type": "integer",
+    },
+    "items": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "category_candidates": {
+            "$comment": "1..3 candidate categories ordered by descending confidence.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "category_id": {
+                  "enum": [
+                    "<1 values>",
+                  ],
+                  "type": "string",
+                },
+                "confidence": {
+                  "type": "number",
+                },
+              },
+              "required": [
+                "category_id",
+                "confidence",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "fields": {
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "type": "number",
+                    },
+                    "evidence": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "text": {
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "kind",
+                        "text",
+                      ],
+                      "type": "object",
+                    },
+                    "key": {
+                      "enum": [
+                        "<1 values>",
+                      ],
+                      "type": "string",
+                    },
+                    "source": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "status": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "value": {
+                      "enum": [
+                        "<4 values>",
+                      ],
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "verification": {
+                      "$comment": "Owned by the validator: null until a validator has run.",
+                      "oneOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "method": {
+                              "enum": [
+                                "<4 values>",
+                              ],
+                            },
+                            "outcome": {
+                              "enum": [
+                                "<3 values>",
+                              ],
+                            },
+                            "reason": {
+                              "oneOf": [
+                                {
+                                  "enum": [
+                                    "<9 values>",
+                                  ],
+                                },
+                                {
+                                  "type": "null",
+                                },
+                              ],
+                            },
+                            "score": {
+                              "type": [
+                                "number",
+                                "null",
+                              ],
+                            },
+                          },
+                          "required": [
+                            "method",
+                            "score",
+                            "outcome",
+                            "reason",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "type": "null",
+                        },
+                      ],
+                    },
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "type": "object",
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "type": "number",
+                    },
+                    "evidence": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "text": {
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "kind",
+                        "text",
+                      ],
+                      "type": "object",
+                    },
+                    "key": {
+                      "enum": [
+                        "<2 values>",
+                      ],
+                      "type": "string",
+                    },
+                    "source": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "status": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "value": {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "verification": {
+                      "$comment": "Owned by the validator: null until a validator has run.",
+                      "oneOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "method": {
+                              "enum": [
+                                "<4 values>",
+                              ],
+                            },
+                            "outcome": {
+                              "enum": [
+                                "<3 values>",
+                              ],
+                            },
+                            "reason": {
+                              "oneOf": [
+                                {
+                                  "enum": [
+                                    "<9 values>",
+                                  ],
+                                },
+                                {
+                                  "type": "null",
+                                },
+                              ],
+                            },
+                            "score": {
+                              "type": [
+                                "number",
+                                "null",
+                              ],
+                            },
+                          },
+                          "required": [
+                            "method",
+                            "score",
+                            "outcome",
+                            "reason",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "type": "null",
+                        },
+                      ],
+                    },
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "type": "object",
+                },
+              ],
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "category_candidates",
+          "fields",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+    "model_id": {
+      "type": "string",
+    },
+    "ocr_version": {
+      "type": "string",
+    },
+    "prompt_version": {
+      "type": "string",
+    },
+    "result_status": {
+      "enum": [
+        "<3 values>",
+      ],
+    },
+    "schema_version": {
+      "enum": [
+        "<1 values>",
+      ],
+      "type": "string",
+    },
+    "warnings": {
+      "items": {
+        "type": "string",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "schema_version",
+    "prompt_version",
+    "ocr_version",
+    "model_id",
+    "category_schema_version",
+    "result_status",
+    "items",
+    "warnings",
+  ],
+  "title": "Vault Extraction Envelope",
+  "type": "object",
+}
+`;
+
+exports[`dynamic catalog behavior > pins the masked structural shape for each provider > gemini 1`] = `
+{
+  "$comment": "Vault extraction contract v1. Provider-independent canonical envelope produced by any vision extraction pipeline and consumed by Vault validators. No provider wire-format quirks are allowed in this schema.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "category_schema_version": {
+      "type": "NUMBER",
+    },
+    "items": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "category_candidates": {
+            "$comment": "1..3 candidate categories ordered by descending confidence.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "category_id": {
+                  "enum": [
+                    "<1 values>",
+                  ],
+                  "type": "STRING",
+                },
+                "confidence": {
+                  "type": "NUMBER",
+                },
+              },
+              "propertyOrdering": [
+                "category_id",
+                "confidence",
+              ],
+              "required": [
+                "category_id",
+                "confidence",
+              ],
+              "type": "OBJECT",
+            },
+            "type": "ARRAY",
+          },
+          "fields": {
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "type": "NUMBER",
+                    },
+                    "evidence": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "text": {
+                          "nullable": true,
+                          "type": "STRING",
+                        },
+                      },
+                      "propertyOrdering": [
+                        "kind",
+                        "text",
+                      ],
+                      "required": [
+                        "kind",
+                        "text",
+                      ],
+                      "type": "OBJECT",
+                    },
+                    "key": {
+                      "enum": [
+                        "<1 values>",
+                      ],
+                      "type": "STRING",
+                    },
+                    "source": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "status": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "value": {
+                      "enum": [
+                        "<3 values>",
+                      ],
+                      "nullable": true,
+                      "type": "STRING",
+                    },
+                    "verification": {
+                      "$comment": "Owned by the validator: null until a validator has run.",
+                      "additionalProperties": false,
+                      "nullable": true,
+                      "properties": {
+                        "method": {
+                          "enum": [
+                            "<4 values>",
+                          ],
+                        },
+                        "outcome": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "reason": {
+                          "enum": [
+                            "<9 values>",
+                          ],
+                          "nullable": true,
+                        },
+                        "score": {
+                          "nullable": true,
+                          "type": "NUMBER",
+                        },
+                      },
+                      "propertyOrdering": [
+                        "method",
+                        "score",
+                        "outcome",
+                        "reason",
+                      ],
+                      "required": [
+                        "method",
+                        "score",
+                        "outcome",
+                        "reason",
+                      ],
+                      "type": "OBJECT",
+                    },
+                  },
+                  "propertyOrdering": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "required": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "type": "OBJECT",
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "type": "NUMBER",
+                    },
+                    "evidence": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "text": {
+                          "nullable": true,
+                          "type": "STRING",
+                        },
+                      },
+                      "propertyOrdering": [
+                        "kind",
+                        "text",
+                      ],
+                      "required": [
+                        "kind",
+                        "text",
+                      ],
+                      "type": "OBJECT",
+                    },
+                    "key": {
+                      "enum": [
+                        "<2 values>",
+                      ],
+                      "type": "STRING",
+                    },
+                    "source": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "status": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "value": {
+                      "nullable": true,
+                      "type": "STRING",
+                    },
+                    "verification": {
+                      "$comment": "Owned by the validator: null until a validator has run.",
+                      "additionalProperties": false,
+                      "nullable": true,
+                      "properties": {
+                        "method": {
+                          "enum": [
+                            "<4 values>",
+                          ],
+                        },
+                        "outcome": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "reason": {
+                          "enum": [
+                            "<9 values>",
+                          ],
+                          "nullable": true,
+                        },
+                        "score": {
+                          "nullable": true,
+                          "type": "NUMBER",
+                        },
+                      },
+                      "propertyOrdering": [
+                        "method",
+                        "score",
+                        "outcome",
+                        "reason",
+                      ],
+                      "required": [
+                        "method",
+                        "score",
+                        "outcome",
+                        "reason",
+                      ],
+                      "type": "OBJECT",
+                    },
+                  },
+                  "propertyOrdering": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "required": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "type": "OBJECT",
+                },
+              ],
+            },
+            "type": "ARRAY",
+          },
+        },
+        "propertyOrdering": [
+          "category_candidates",
+          "fields",
+        ],
+        "required": [
+          "category_candidates",
+          "fields",
+        ],
+        "type": "OBJECT",
+      },
+      "type": "ARRAY",
+    },
+    "model_id": {
+      "type": "STRING",
+    },
+    "ocr_version": {
+      "type": "STRING",
+    },
+    "prompt_version": {
+      "type": "STRING",
+    },
+    "result_status": {
+      "enum": [
+        "<3 values>",
+      ],
+    },
+    "schema_version": {
+      "enum": [
+        "<1 values>",
+      ],
+      "type": "STRING",
+    },
+    "warnings": {
+      "items": {
+        "type": "STRING",
+      },
+      "type": "ARRAY",
+    },
+  },
+  "propertyOrdering": [
+    "schema_version",
+    "prompt_version",
+    "ocr_version",
+    "model_id",
+    "category_schema_version",
+    "result_status",
+    "items",
+    "warnings",
+  ],
+  "required": [
+    "schema_version",
+    "prompt_version",
+    "ocr_version",
+    "model_id",
+    "category_schema_version",
+    "result_status",
+    "items",
+    "warnings",
+  ],
+  "title": "Vault Extraction Envelope",
+  "type": "OBJECT",
+}
+`;
+
+exports[`dynamic catalog behavior > pins the masked structural shape for each provider > ollama 1`] = `
+{
+  "$comment": "Vault extraction contract v1. Provider-independent canonical envelope produced by any vision extraction pipeline and consumed by Vault validators. No provider wire-format quirks are allowed in this schema.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "format": "json",
+  "properties": {
+    "category_schema_version": {
+      "type": "integer",
+    },
+    "items": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "category_candidates": {
+            "$comment": "1..3 candidate categories ordered by descending confidence.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "category_id": {
+                  "enum": [
+                    "<1 values>",
+                  ],
+                  "type": "string",
+                },
+                "confidence": {
+                  "type": "number",
+                },
+              },
+              "required": [
+                "category_id",
+                "confidence",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "fields": {
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "type": "number",
+                    },
+                    "evidence": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "text": {
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "kind",
+                        "text",
+                      ],
+                      "type": "object",
+                    },
+                    "key": {
+                      "enum": [
+                        "<1 values>",
+                      ],
+                      "type": "string",
+                    },
+                    "source": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "status": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "value": {
+                      "enum": [
+                        "<4 values>",
+                      ],
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "verification": {
+                      "$comment": "Owned by the validator: null until a validator has run.",
+                      "oneOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "method": {
+                              "enum": [
+                                "<4 values>",
+                              ],
+                            },
+                            "outcome": {
+                              "enum": [
+                                "<3 values>",
+                              ],
+                            },
+                            "reason": {
+                              "oneOf": [
+                                {
+                                  "enum": [
+                                    "<9 values>",
+                                  ],
+                                },
+                                {
+                                  "type": "null",
+                                },
+                              ],
+                            },
+                            "score": {
+                              "type": [
+                                "number",
+                                "null",
+                              ],
+                            },
+                          },
+                          "required": [
+                            "method",
+                            "score",
+                            "outcome",
+                            "reason",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "type": "null",
+                        },
+                      ],
+                    },
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "type": "object",
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "type": "number",
+                    },
+                    "evidence": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "text": {
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "kind",
+                        "text",
+                      ],
+                      "type": "object",
+                    },
+                    "key": {
+                      "enum": [
+                        "<2 values>",
+                      ],
+                      "type": "string",
+                    },
+                    "source": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "status": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "value": {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "verification": {
+                      "$comment": "Owned by the validator: null until a validator has run.",
+                      "oneOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "method": {
+                              "enum": [
+                                "<4 values>",
+                              ],
+                            },
+                            "outcome": {
+                              "enum": [
+                                "<3 values>",
+                              ],
+                            },
+                            "reason": {
+                              "oneOf": [
+                                {
+                                  "enum": [
+                                    "<9 values>",
+                                  ],
+                                },
+                                {
+                                  "type": "null",
+                                },
+                              ],
+                            },
+                            "score": {
+                              "type": [
+                                "number",
+                                "null",
+                              ],
+                            },
+                          },
+                          "required": [
+                            "method",
+                            "score",
+                            "outcome",
+                            "reason",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "type": "null",
+                        },
+                      ],
+                    },
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "type": "object",
+                },
+              ],
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "category_candidates",
+          "fields",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+    "model_id": {
+      "type": "string",
+    },
+    "ocr_version": {
+      "type": "string",
+    },
+    "prompt_version": {
+      "type": "string",
+    },
+    "result_status": {
+      "enum": [
+        "<3 values>",
+      ],
+    },
+    "schema_version": {
+      "enum": [
+        "<1 values>",
+      ],
+      "type": "string",
+    },
+    "warnings": {
+      "items": {
+        "type": "string",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "schema_version",
+    "prompt_version",
+    "ocr_version",
+    "model_id",
+    "category_schema_version",
+    "result_status",
+    "items",
+    "warnings",
+  ],
+  "title": "Vault Extraction Envelope",
+  "type": "object",
+}
+`;
+
+exports[`dynamic catalog behavior > pins the masked structural shape for each provider > openai 1`] = `
+{
+  "$comment": "Vault extraction contract v1. Provider-independent canonical envelope produced by any vision extraction pipeline and consumed by Vault validators. No provider wire-format quirks are allowed in this schema.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "category_schema_version": {
+      "type": "integer",
+    },
+    "items": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "category_candidates": {
+            "$comment": "1..3 candidate categories ordered by descending confidence.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "category_id": {
+                  "enum": [
+                    "<1 values>",
+                  ],
+                  "type": "string",
+                },
+                "confidence": {
+                  "type": "number",
+                },
+              },
+              "required": [
+                "category_id",
+                "confidence",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "fields": {
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "type": "number",
+                    },
+                    "evidence": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "text": {
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "kind",
+                        "text",
+                      ],
+                      "type": "object",
+                    },
+                    "key": {
+                      "enum": [
+                        "<1 values>",
+                      ],
+                      "type": "string",
+                    },
+                    "source": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "status": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "value": {
+                      "enum": [
+                        "<4 values>",
+                      ],
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "verification": {
+                      "$comment": "Owned by the validator: null until a validator has run.",
+                      "oneOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "method": {
+                              "enum": [
+                                "<4 values>",
+                              ],
+                            },
+                            "outcome": {
+                              "enum": [
+                                "<3 values>",
+                              ],
+                            },
+                            "reason": {
+                              "oneOf": [
+                                {
+                                  "enum": [
+                                    "<9 values>",
+                                  ],
+                                },
+                                {
+                                  "type": "null",
+                                },
+                              ],
+                            },
+                            "score": {
+                              "type": [
+                                "number",
+                                "null",
+                              ],
+                            },
+                          },
+                          "required": [
+                            "method",
+                            "score",
+                            "outcome",
+                            "reason",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "type": "null",
+                        },
+                      ],
+                    },
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "type": "object",
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "type": "number",
+                    },
+                    "evidence": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "<3 values>",
+                          ],
+                        },
+                        "text": {
+                          "type": [
+                            "string",
+                            "null",
+                          ],
+                        },
+                      },
+                      "required": [
+                        "kind",
+                        "text",
+                      ],
+                      "type": "object",
+                    },
+                    "key": {
+                      "enum": [
+                        "<2 values>",
+                      ],
+                      "type": "string",
+                    },
+                    "source": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "status": {
+                      "enum": [
+                        "<5 values>",
+                      ],
+                    },
+                    "value": {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "verification": {
+                      "$comment": "Owned by the validator: null until a validator has run.",
+                      "oneOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "method": {
+                              "enum": [
+                                "<4 values>",
+                              ],
+                            },
+                            "outcome": {
+                              "enum": [
+                                "<3 values>",
+                              ],
+                            },
+                            "reason": {
+                              "oneOf": [
+                                {
+                                  "enum": [
+                                    "<9 values>",
+                                  ],
+                                },
+                                {
+                                  "type": "null",
+                                },
+                              ],
+                            },
+                            "score": {
+                              "type": [
+                                "number",
+                                "null",
+                              ],
+                            },
+                          },
+                          "required": [
+                            "method",
+                            "score",
+                            "outcome",
+                            "reason",
+                          ],
+                          "type": "object",
+                        },
+                        {
+                          "type": "null",
+                        },
+                      ],
+                    },
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "status",
+                    "confidence",
+                    "source",
+                    "evidence",
+                    "verification",
+                  ],
+                  "type": "object",
+                },
+              ],
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "category_candidates",
+          "fields",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+    "model_id": {
+      "type": "string",
+    },
+    "ocr_version": {
+      "type": "string",
+    },
+    "prompt_version": {
+      "type": "string",
+    },
+    "result_status": {
+      "enum": [
+        "<3 values>",
+      ],
+    },
+    "schema_version": {
+      "enum": [
+        "<1 values>",
+      ],
+      "type": "string",
+    },
+    "warnings": {
+      "items": {
+        "type": "string",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "schema_version",
+    "prompt_version",
+    "ocr_version",
+    "model_id",
+    "category_schema_version",
+    "result_status",
+    "items",
+    "warnings",
+  ],
+  "title": "Vault Extraction Envelope",
+  "type": "object",
+}
+`;
