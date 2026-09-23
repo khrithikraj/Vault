@@ -1,0 +1,3814 @@
+{
+  "phase": 0,
+  "schema_version": 1,
+  "generator": "ai-lab/src/scripts/listModels.ts",
+  "note": "Generated dynamically by `npm run ai:list-models`. Do not hand-edit.",
+  "resolved_at": "2026-09-23T10:46:52.084Z",
+  "summary": {
+    "total_models": 250,
+    "vision_yes": 6,
+    "vision_no": 62,
+    "vision_unknown": 182,
+    "providers_ok": [
+      "gemini",
+      "openai",
+      "cloudflare"
+    ],
+    "providers_failed": [
+      "ollama"
+    ],
+    "providers_skipped": []
+  },
+  "vision_capable_model_ids": [
+    "@cf/llava-hf/llava-1.5-7b-hf",
+    "@cf/microsoft/resnet-50",
+    "@cf/moondream/moondream3.1-9B-A2B",
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+    "gemma-4-26b-a4b-it"
+  ],
+  "missing_credentials": [
+    "TMDB_API_KEY"
+  ],
+  "providers": [
+    {
+      "provider": "gemini",
+      "status": "ok",
+      "model_count": 59,
+      "models": [
+        {
+          "provider": "gemini",
+          "model_id": "antigravity-preview-05-2026",
+          "display_name": "Antigravity Agent Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "0.1",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "antigravity-preview-09-2026",
+          "display_name": "Antigravity Agent Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "0.1",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "antigravity-preview-latest",
+          "display_name": "Antigravity Agent Preview Latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "Antigravity Agent Preview Latest",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "aqa",
+          "display_name": "Model that performs Attributed Question Answering.",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "001",
+            "input_token_limit": 7168,
+            "output_token_limit": 1024,
+            "supported_generation_methods": [
+              "generateAnswer"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "deep-research-max-preview-04-2026",
+          "display_name": "Deep Research Max Preview (Apr-21-2026)",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "deepthink-exp-05-20",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "deep-research-preview-04-2026",
+          "display_name": "Deep Research Preview (Apr-21-2026)",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "deepthink-exp-05-20",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "deep-research-pro-preview-12-2025",
+          "display_name": "Deep Research Pro Preview (Dec-12-2025)",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "deepthink-exp-05-20",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-computer-use-preview-10-2025",
+          "display_name": "Gemini 2.5 Computer Use Preview 10-2025",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "Gemini 2.5 Computer Use Preview 10-2025",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-flash",
+          "display_name": "Gemini 2.5 Flash",
+          "vision_capability": "unknown",
+          "capability_source": "provider_capability_probe",
+          "capability_evidence": "Models.generateContent image-input probe inconclusive (HTTP 404): { \"error\": { \"code\": 404, \"message\": \"This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.6-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-start...",
+          "metadata": {
+            "version": "001",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ],
+            "probe": {
+              "method": "generateContent_1x1_png",
+              "status": "inconclusive"
+            }
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-flash-image",
+          "display_name": "Nano Banana",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "2.0",
+            "input_token_limit": 32768,
+            "output_token_limit": 32768,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-flash-lite",
+          "display_name": "Gemini 2.5 Flash-Lite",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "001",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-flash-native-audio-latest",
+          "display_name": "Gemini 2.5 Flash Native Audio Latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "Gemini 2.5 Flash Native Audio Latest",
+            "input_token_limit": 131072,
+            "output_token_limit": 8192,
+            "supported_generation_methods": [
+              "countTokens",
+              "bidiGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-flash-native-audio-preview-09-2025",
+          "display_name": "Gemini 2.5 Flash Native Audio Preview 09-2025",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "gemini-2.5-flash-preview-native-audio-dialog-2025-05-19",
+            "input_token_limit": 131072,
+            "output_token_limit": 8192,
+            "supported_generation_methods": [
+              "countTokens",
+              "bidiGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-flash-native-audio-preview-12-2025",
+          "display_name": "Gemini 2.5 Flash Native Audio Preview 12-2025",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "12-2025",
+            "input_token_limit": 131072,
+            "output_token_limit": 8192,
+            "supported_generation_methods": [
+              "countTokens",
+              "bidiGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-flash-preview-tts",
+          "display_name": "Gemini 2.5 Flash Preview TTS",
+          "vision_capability": "no",
+          "capability_source": "provider_capability_probe",
+          "capability_evidence": "Models.generateContent rejected inline image input (HTTP 400): { \"error\": { \"code\": 400, \"message\": \"Image input modality is not enabled for models/gemini-2.5-flash-preview-tts\", \"status\": \"INVALID_ARGUMENT\" } }",
+          "metadata": {
+            "version": "gemini-2.5-flash-exp-tts-2025-05-19",
+            "input_token_limit": 8192,
+            "output_token_limit": 16384,
+            "supported_generation_methods": [
+              "countTokens",
+              "generateContent"
+            ],
+            "probe": {
+              "method": "generateContent_1x1_png",
+              "status": "rejected"
+            }
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-pro",
+          "display_name": "Gemini 2.5 Pro",
+          "vision_capability": "unknown",
+          "capability_source": "provider_capability_probe",
+          "capability_evidence": "Models.generateContent image-input probe inconclusive (HTTP 404): { \"error\": { \"code\": 404, \"message\": \"This model models/gemini-2.5-pro is no longer available to new users. Please update your code to use models/gemini-3.1-pro-preview for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-s...",
+          "metadata": {
+            "version": "2.5",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ],
+            "probe": {
+              "method": "generateContent_1x1_png",
+              "status": "inconclusive"
+            }
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-2.5-pro-preview-tts",
+          "display_name": "Gemini 2.5 Pro Preview TTS",
+          "vision_capability": "unknown",
+          "capability_source": "provider_capability_probe",
+          "capability_evidence": "Models.generateContent image-input probe inconclusive (HTTP 429): { \"error\": { \"code\": 429, \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for...",
+          "metadata": {
+            "version": "gemini-2.5-pro-preview-tts-2025-05-19",
+            "input_token_limit": 8192,
+            "output_token_limit": 16384,
+            "supported_generation_methods": [
+              "countTokens",
+              "generateContent",
+              "batchGenerateContent"
+            ],
+            "probe": {
+              "method": "generateContent_1x1_png",
+              "status": "inconclusive"
+            }
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3-flash-preview",
+          "display_name": "Gemini 3 Flash Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3-flash-preview-12-2025",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3-pro-image",
+          "display_name": "Nano Banana Pro",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.0",
+            "input_token_limit": 131072,
+            "output_token_limit": 32768,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3-pro-image-preview",
+          "display_name": "Nano Banana Pro",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.0",
+            "input_token_limit": 131072,
+            "output_token_limit": 32768,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.1-flash-image",
+          "display_name": "Nano Banana 2",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.0",
+            "input_token_limit": 65536,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.1-flash-image-preview",
+          "display_name": "Nano Banana 2",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.0",
+            "input_token_limit": 65536,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.1-flash-lite",
+          "display_name": "Gemini 3.1 Flash Lite",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1-flash-lite-05-2026",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.1-flash-lite-image",
+          "display_name": "Nano Banana 2 Lite",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.0",
+            "input_token_limit": 65536,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.1-flash-lite-preview",
+          "display_name": "Gemini 3.1 Flash Lite Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1-flash-lite-preview-03-2026",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.1-flash-live-preview",
+          "display_name": "Gemini 3.1 Flash Live Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1-flash-live-03-2026",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "bidiGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.1-flash-tts-preview",
+          "display_name": "Gemini 3.1 Flash TTS Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1-flash-tts-preview",
+            "input_token_limit": 8192,
+            "output_token_limit": 16384,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.1-pro-preview",
+          "display_name": "Gemini 3.1 Pro Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1-pro-preview-01-2026",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.1-pro-preview-customtools",
+          "display_name": "Gemini 3.1 Pro Preview Custom Tools",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1-pro-preview-01-2026",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.5-flash",
+          "display_name": "Gemini 3.5 Flash",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.5-flash-05-2026",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.5-flash-lite",
+          "display_name": "Gemini 3.5 Flash Lite",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.5-flash-lite-07-2026",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.5-live-translate-preview",
+          "display_name": "Gemini 3.5 Live Translate Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.5-live-translate-06-2026",
+            "input_token_limit": 16384,
+            "output_token_limit": 32768,
+            "supported_generation_methods": [
+              "bidiGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.5-transcribe",
+          "display_name": "Gemini 3.5 Transcribe",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.5-transcribe-08-2026",
+            "input_token_limit": 98304,
+            "output_token_limit": 32768,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.5-transcribe-live",
+          "display_name": "Gemini 3.5 Transcribe Live",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.5-transcribe-live-08-2026",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "bidiGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.6-flash",
+          "display_name": "Gemini 3.6 Flash",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.6-flash-07-2026",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.7-flash",
+          "display_name": "Gemini 3.7 Flash",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.7-flash-08-2026",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.8-flash",
+          "display_name": "Gemini 3.8 Flash",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.0",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.8-live",
+          "display_name": "Gemini 3.8 Live",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1-flash-live-03-2026",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "bidiGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-3.8-live-extended-thinking",
+          "display_name": "Gemini 3.8 Live Extended Thinking",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1-flash-live-03-2026",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "bidiGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-embedding-001",
+          "display_name": "Gemini Embedding 001",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "001",
+            "input_token_limit": 2048,
+            "output_token_limit": 1,
+            "supported_generation_methods": [
+              "embedContent",
+              "countTextTokens",
+              "countTokens",
+              "asyncBatchEmbedContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-embedding-2",
+          "display_name": "Gemini Embedding 2",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "2",
+            "input_token_limit": 8192,
+            "output_token_limit": 1,
+            "supported_generation_methods": [
+              "embedContent",
+              "countTextTokens",
+              "countTokens",
+              "asyncBatchEmbedContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-embedding-2-preview",
+          "display_name": "Gemini Embedding 2 Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "2",
+            "input_token_limit": 8192,
+            "output_token_limit": 1,
+            "supported_generation_methods": [
+              "embedContent",
+              "countTextTokens",
+              "countTokens",
+              "asyncBatchEmbedContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-flash-latest",
+          "display_name": "Gemini Flash Latest",
+          "vision_capability": "yes",
+          "capability_source": "provider_capability_probe",
+          "capability_evidence": "Models.generateContent accepted an inline 1x1 PNG (HTTP 200); image input verified",
+          "metadata": {
+            "version": "Gemini Flash Latest",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ],
+            "probe": {
+              "method": "generateContent_1x1_png",
+              "status": "accepted"
+            }
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-flash-lite-latest",
+          "display_name": "Gemini Flash-Lite Latest",
+          "vision_capability": "yes",
+          "capability_source": "provider_capability_probe",
+          "capability_evidence": "Models.generateContent accepted an inline 1x1 PNG (HTTP 200); image input verified",
+          "metadata": {
+            "version": "Gemini Flash-Lite Latest",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ],
+            "probe": {
+              "method": "generateContent_1x1_png",
+              "status": "accepted"
+            }
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-omni-1.1-flash",
+          "display_name": "Gemini Omni 1.1 Flash",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "001",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-omni-flash-preview",
+          "display_name": "Gemini Omni Flash Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "001",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-pro-latest",
+          "display_name": "Gemini Pro Latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "Gemini Pro Latest",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-robotics-er-2-preview",
+          "display_name": "Gemini Robotics-ER 2 Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "2-preview",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "createCachedContent",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemini-robotics-er-2-streaming-preview",
+          "display_name": "Gemini Robotics-ER 2 Streaming Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "2-streaming-preview",
+            "input_token_limit": 131072,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "bidiGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemma-4-26b-a4b-it",
+          "display_name": "Gemma 4 26B A4B IT",
+          "vision_capability": "yes",
+          "capability_source": "provider_capability_probe",
+          "capability_evidence": "Models.generateContent accepted an inline 1x1 PNG (HTTP 200); image input verified",
+          "metadata": {
+            "version": "001",
+            "input_token_limit": 262144,
+            "output_token_limit": 32768,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ],
+            "probe": {
+              "method": "generateContent_1x1_png",
+              "status": "accepted"
+            }
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "gemma-4-31b-it",
+          "display_name": "Gemma 4 31B IT",
+          "vision_capability": "unknown",
+          "capability_source": "provider_capability_probe",
+          "capability_evidence": "Models.generateContent image-input probe inconclusive (HTTP 503): { \"error\": { \"code\": 503, \"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\", \"status\": \"UNAVAILABLE\" } }",
+          "metadata": {
+            "version": "001",
+            "input_token_limit": 262144,
+            "output_token_limit": 32768,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ],
+            "probe": {
+              "method": "generateContent_1x1_png",
+              "status": "inconclusive"
+            }
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "lyria-3-clip-preview",
+          "display_name": "Lyria 3 Clip Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "lyria-3-clip-preview",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "lyria-3-pro-preview",
+          "display_name": "Lyria 3 Pro Preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "lyria-3-pro-preview",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "lyria-3.5",
+          "display_name": "Lyria 3.5",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.5",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "lyria-realtime-exp",
+          "display_name": "Lyria Realtime Experimental",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "lyria-realtime-exp",
+            "input_token_limit": 1048576,
+            "output_token_limit": 65536,
+            "supported_generation_methods": [
+              "bidiGenerateMusic"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "nano-banana-pro-preview",
+          "display_name": "Nano Banana Pro",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.0",
+            "input_token_limit": 131072,
+            "output_token_limit": 32768,
+            "supported_generation_methods": [
+              "generateContent",
+              "countTokens",
+              "batchGenerateContent"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "veo-3.1-fast-generate-preview",
+          "display_name": "Veo 3.1 fast",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1",
+            "input_token_limit": 480,
+            "output_token_limit": 8192,
+            "supported_generation_methods": [
+              "predictLongRunning"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "veo-3.1-generate-preview",
+          "display_name": "Veo 3.1",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1",
+            "input_token_limit": 480,
+            "output_token_limit": 8192,
+            "supported_generation_methods": [
+              "predictLongRunning"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "gemini",
+          "model_id": "veo-3.1-lite-generate-preview",
+          "display_name": "Veo 3.1 lite",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Gemini model-list metadata exposed no authoritative image-input signal (checked inputModalities, inputImageTokenLimit, supportsImageInput); no inference from model name",
+          "metadata": {
+            "version": "3.1",
+            "input_token_limit": 480,
+            "output_token_limit": 8192,
+            "supported_generation_methods": [
+              "predictLongRunning"
+            ]
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        }
+      ]
+    },
+    {
+      "provider": "openai",
+      "status": "ok",
+      "model_count": 126,
+      "models": [
+        {
+          "provider": "openai",
+          "model_id": "babbage-002",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1692634615
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "chat-latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1777704602
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "chatgpt-image-latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765925279
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "davinci-002",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1692634301
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-3.5-turbo",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "openai",
+            "created": 1677610602
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-3.5-turbo-0125",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1706048358
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-3.5-turbo-1106",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1698959748
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-3.5-turbo-16k",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "openai-internal",
+            "created": 1683758102
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-3.5-turbo-instruct",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1692901427
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-3.5-turbo-instruct-0914",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1694122472
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4.1",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744316542
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4.1-2025-04-14",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744315746
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4.1-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744318173
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4.1-mini-2025-04-14",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744317547
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4.1-nano",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744321707
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4.1-nano-2025-04-14",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744321025
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1715367049
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-2024-05-13",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1715368132
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-2024-08-06",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1722814719
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-2024-11-20",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1739331543
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1721172741
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini-2024-07-18",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1721172717
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini-search-preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1741391161
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini-search-preview-2025-03-11",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1741390858
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini-transcribe",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1742068596
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini-transcribe-2025-03-20",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765610545
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini-transcribe-2025-12-15",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765610407
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini-tts",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1742403959
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini-tts-2025-03-20",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765610731
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-mini-tts-2025-12-15",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765610837
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-search-preview",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1771905534
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-search-preview-2025-03-11",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1771905621
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-transcribe",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1742068463
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-4o-transcribe-diarize",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1750798887
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1754425777
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-2025-08-07",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1754075360
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-chat-latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1754073306
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-codex",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1757527818
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1754425928
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-mini-2025-08-07",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1754425867
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-nano",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1754426384
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-nano-2025-08-07",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1754426303
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-pro",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1759469822
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-pro-2025-10-06",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1759469707
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-search-api",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1759514629
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5-search-api-2025-10-14",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1760043960
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.1",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1762800673
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.1-2025-11-13",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1762800353
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.1-chat-latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1762547951
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.1-codex",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1762988221
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.1-codex-max",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1763671532
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.1-codex-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1763007109
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.2",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765313051
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.2-2025-12-11",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765313028
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.2-chat-latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765344352
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.2-codex",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1766164985
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.2-pro",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765343983
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.2-pro-2025-12-11",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765343959
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.3-chat-latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1772236571
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.3-codex",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1770537915
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.4",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1772691852
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.4-2026-03-05",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1772654062
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.4-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1773451123
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.4-mini-2026-03-17",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1773451076
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.4-nano",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1773450870
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.4-nano-2026-03-17",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1773450837
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.4-pro",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1772659601
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.4-pro-2026-03-05",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1772659657
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.5",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1776824847
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.5-2026-04-23",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1776839241
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.5-pro",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1776894349
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.5-pro-2026-04-23",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1776894470
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.6-luna",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1782228658
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.6-sol",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1782228018
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-5.6-terra",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1782228459
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-6-astra",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1787853604
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-6-luna",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1789406102
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-6-sol",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1789405937
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-audio",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1756339249
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-audio-1.5",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1771550885
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-audio-2025-08-28",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1756256146
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-audio-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1759512027
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-audio-mini-2025-10-06",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1759512137
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-audio-mini-2025-12-15",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765760008
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-image-1",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1745517030
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-image-1-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1758845821
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-image-1.5",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1764030620
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-image-2",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1776399795
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-image-2-2026-04-21",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1776399994
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-image-2.5-flare",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1788563147
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-image-2.5-flare-2026-09-08",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1788851006
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-image-2.5-sunburst",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1788563162
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-image-2.5-sunburst-2026-09-08",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1788851010
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-live-1",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1788889407
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-live-transcribe",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1785168034
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1756271701
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime-1.5",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1771461469
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime-2",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1778006032
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime-2.1",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1782254687
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime-2.1-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1782254706
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime-2025-08-28",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1756271773
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1759517133
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime-mini-2025-12-15",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1765612007
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime-translate",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1777950216
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-realtime-whisper",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1778012060
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "gpt-transcribe",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1785168027
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "o1",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1734375816
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "o1-2024-12-17",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1734326976
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "o3",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744225308
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "o3-2025-04-16",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744133301
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "o3-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1737146383
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "o3-mini-2025-01-31",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1738010200
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "o4-mini",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744225351
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "o4-mini-2025-04-16",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1744133506
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "omni-moderation-2024-09-26",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1732734466
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "omni-moderation-latest",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1731689265
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "sora-2",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1759708615
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "sora-2-pro",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1759708663
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "text-embedding-3-large",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1705953180
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "text-embedding-3-small",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1705948997
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "text-embedding-ada-002",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "openai-internal",
+            "created": 1671217299
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "tts-1",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "openai-internal",
+            "created": 1681940951
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "tts-1-1106",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1699053241
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "tts-1-hd",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1699046015
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "tts-1-hd-1106",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "system",
+            "created": 1699053533
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "openai",
+          "model_id": "whisper-1",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "OpenAI /v1/models exposes no authoritative vision-capability field; capability intentionally left unknown (never inferred from the model name or id)",
+          "metadata": {
+            "object": "model",
+            "owned_by": "openai-internal",
+            "created": 1677532384
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        }
+      ]
+    },
+    {
+      "provider": "cloudflare",
+      "status": "ok",
+      "model_count": 65,
+      "models": [
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/ai4bharat/indictrans2-en-indic-1B",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Translation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "60920ed4-cf72-449a-a0f3-a38456b78262",
+            "created_at": "2025-09-23T12:49:17.382Z",
+            "task_id": "f57d07cb-9087-487a-bbbf-bc3e17fecc4b",
+            "task_name": "Translation",
+            "description": "IndicTrans2 is the first open-source transformer-based multilingual NMT model that supports high-quality translations across all the 22 scheduled Indic languages"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/aisingapore/gemma-sea-lion-v4-27b-it",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "41ca173f-72d5-4420-8915-49e835d2676e",
+            "created_at": "2025-09-23T13:57:30.468Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "SEA-LION stands for Southeast Asian Languages In One Network, which is a collection of Large Language Models (LLMs) which have been pretrained and instruct-tuned for the Southeast Asia (SEA) region."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/baai/bge-base-en-v1.5",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Embeddings\" does not accept image input",
+          "metadata": {
+            "catalog_id": "429b9e8b-d99e-44de-91ad-706cf8183658",
+            "created_at": "2023-09-25T13:51:11.898Z",
+            "task_id": "0137cdcf-162a-4108-94f2-1ca59e8c65ee",
+            "task_name": "Text Embeddings",
+            "description": "BAAI general embedding (Base) model that transforms any given text into a 768-dimensional vector"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/baai/bge-large-en-v1.5",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Embeddings\" does not accept image input",
+          "metadata": {
+            "catalog_id": "01bc2fb0-4bca-4598-b985-d2584a3f46c0",
+            "created_at": "2023-11-07T10:13:58.042Z",
+            "task_id": "0137cdcf-162a-4108-94f2-1ca59e8c65ee",
+            "task_name": "Text Embeddings",
+            "description": "BAAI general embedding (Large) model that transforms any given text into a 1024-dimensional vector"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/baai/bge-m3",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Embeddings\" does not accept image input",
+          "metadata": {
+            "catalog_id": "eed32bc1-8775-4985-89ce-dd1405508ad8",
+            "created_at": "2024-05-22T13:57:09.781Z",
+            "task_id": "0137cdcf-162a-4108-94f2-1ca59e8c65ee",
+            "task_name": "Text Embeddings",
+            "description": "Multi-Functionality, Multi-Linguality, and Multi-Granularity embeddings model."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/baai/bge-reranker-base",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Classification\" does not accept image input",
+          "metadata": {
+            "catalog_id": "145337e7-cec3-4ebb-8e78-16ddfc75e580",
+            "created_at": "2025-02-14T06:58:19.009Z",
+            "task_id": "19606750-23ed-4371-aab2-c20349b53a60",
+            "task_name": "Text Classification",
+            "description": "Different from embedding model, reranker uses question and document as input and directly output similarity instead of embedding. You can get a relevance score by inputting query and passage to the re..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/baai/bge-small-en-v1.5",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Embeddings\" does not accept image input",
+          "metadata": {
+            "catalog_id": "57fbd08a-a4c4-411c-910d-b9459ff36c20",
+            "created_at": "2023-11-07T10:13:58.042Z",
+            "task_id": "0137cdcf-162a-4108-94f2-1ca59e8c65ee",
+            "task_name": "Text Embeddings",
+            "description": "BAAI general embedding (Small) model that transforms any given text into a 384-dimensional vector"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/black-forest-labs/flux-1-schnell",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "9e087485-23dc-47fa-997d-f5bfafc0c7cc",
+            "created_at": "2024-08-29T11:07:39.541Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "FLUX.1 [schnell] is a 12 billion parameter rectified flow transformer capable of generating images from text descriptions."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/black-forest-labs/flux-2-dev",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "3ae8936e-593e-4fb2-85ee-95dd8a057588",
+            "created_at": "2025-11-24T10:14:06.050Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "FLUX.2 [dev] is an image model from Black Forest Labs where you can generate highly realistic and detailed images, with multi-reference support."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/black-forest-labs/flux-2-klein-4b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "5cdffa8e-1b1e-48e8-85f1-ab9b943cdd32",
+            "created_at": "2026-01-14T07:24:55.024Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "FLUX.2 [klein] is an ultra-fast, distilled image model. It unifies image generation and editing in a single model, delivering state-of-the-art quality enabling interactive workflows, real-time preview..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/black-forest-labs/flux-2-klein-9b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "e580c765-810c-4da3-936c-a2808892f14c",
+            "created_at": "2026-01-14T07:25:54.294Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "FLUX.2 [klein] 9B is a 9 billion parameter model that can generate images from text descriptions and supports multi-reference editing capabilities."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/bytedance/stable-diffusion-xl-lightning",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "7f797b20-3eb0-44fd-b571-6cbbaa3c423b",
+            "created_at": "2024-02-27T12:11:29.578Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "SDXL-Lightning is a lightning-fast text-to-image generation model. It can generate high-quality 1024px images in a few steps."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/deepgram/aura-1",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Speech\" does not accept image input",
+          "metadata": {
+            "catalog_id": "1f55679f-009e-4456-aa4f-049a62b4b6a0",
+            "created_at": "2025-08-26T19:48:18.880Z",
+            "task_id": "b52660a1-9a95-4ab2-8b1d-f232be34604a",
+            "task_name": "Text-to-Speech",
+            "description": "Aura is a context-aware text-to-speech (TTS) model that applies natural pacing, expressiveness, and fillers based on the context of the provided text. The quality of your text input directly impacts t..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/deepgram/aura-2-en",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Speech\" does not accept image input",
+          "metadata": {
+            "catalog_id": "01564c52-8717-47dc-8efd-907a2ca18301",
+            "created_at": "2025-10-09T16:49:34.483Z",
+            "task_id": "b52660a1-9a95-4ab2-8b1d-f232be34604a",
+            "task_name": "Text-to-Speech",
+            "description": "Aura-2 is a context-aware text-to-speech (TTS) model that applies natural pacing, expressiveness, and fillers based on the context of the provided text. The quality of your text input directly impacts..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/deepgram/aura-2-es",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Speech\" does not accept image input",
+          "metadata": {
+            "catalog_id": "c5255b94-2161-4779-bd25-54f061829a2a",
+            "created_at": "2025-10-09T17:12:37.002Z",
+            "task_id": "b52660a1-9a95-4ab2-8b1d-f232be34604a",
+            "task_name": "Text-to-Speech",
+            "description": "Aura-2 is a context-aware text-to-speech (TTS) model that applies natural pacing, expressiveness, and fillers based on the context of the provided text. The quality of your text input directly impacts..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/deepgram/flux",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Automatic Speech Recognition\" does not accept image input",
+          "metadata": {
+            "catalog_id": "a2a2afba-b609-4325-8c41-5791ce962239",
+            "created_at": "2025-09-29T15:37:55.114Z",
+            "task_id": "dfce1c48-2a81-462e-a7fd-de97ce985207",
+            "task_name": "Automatic Speech Recognition",
+            "description": "Flux is the first conversational speech recognition model built specifically for voice agents."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/deepgram/nova-3",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Automatic Speech Recognition\" does not accept image input",
+          "metadata": {
+            "catalog_id": "a226909f-eef8-4265-a3a0-90db0422762e",
+            "created_at": "2025-06-05T10:35:15.199Z",
+            "task_id": "dfce1c48-2a81-462e-a7fd-de97ce985207",
+            "task_name": "Automatic Speech Recognition",
+            "description": "Transcribe audio using Deepgram’s speech-to-text model"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "ad01ab83-baf8-4e7b-8fed-a0a219d4eb45",
+            "created_at": "2025-01-22T14:18:55.776Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "DeepSeek-R1-Distill-Qwen-32B is a model distilled from DeepSeek-R1 based on Qwen2.5. It outperforms OpenAI-o1-mini across various benchmarks, achieving new state-of-the-art results for dense models."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/deepseek-ai/deepseek-v4-flash-0731",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "7276b330-b4ae-4662-81d1-3a8bea8368f8",
+            "created_at": "2026-07-31T08:40:43.440Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "DeepSeek-V4-Flash-0731 is the official release of DeepSeek-V4-Flash, superseding the preview version, with substantially enhanced agentic capabilities."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/deepseek-ai/deepseek-v4-pro-0813",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "2d50837b-2dc7-4994-a690-a38e25c16d74",
+            "created_at": "2026-08-13T11:45:08.489Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "DeepSeek V4 Pro is a high-capability reasoning model from DeepSeek with a one million token context window, built for long-horizon agentic workflows and complex, multi-step problem-solving"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/google/embeddinggemma-300m",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Embeddings\" does not accept image input",
+          "metadata": {
+            "catalog_id": "15631501-2742-4346-a469-22fe202188a2",
+            "created_at": "2025-09-04T11:08:44.980Z",
+            "task_id": "0137cdcf-162a-4108-94f2-1ca59e8c65ee",
+            "task_name": "Text Embeddings",
+            "description": "EmbeddingGemma is a 300M parameter, state-of-the-art for its size, open embedding model from Google, built from Gemma 3 (with T5Gemma initialization) and the same research and technology used to creat..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/google/gemma-2b-it-lora",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "e8e8abe4-a372-4c13-815f-4688ba655c8e",
+            "created_at": "2024-04-01T18:49:34.669Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "This is a Gemma-2B base model that Cloudflare dedicates for inference with LoRA adapters. Gemma is a family of lightweight, state-of-the-art open models from Google, built from the same research and t..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/google/gemma-4-26b-a4b-it",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "328adb49-4a7d-43e3-a2d5-802ae8100fe7",
+            "created_at": "2026-04-02T09:35:22.642Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Gemma 4 is Google's most intelligent family of open models, built from Gemini 3 research to maximize intelligence-per-parameter."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/google/gemma-7b-it-lora",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "337170b7-bd2f-4631-9a57-688b579cf6d3",
+            "created_at": "2024-04-01T18:50:19.633Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "This is a Gemma-7B base model that Cloudflare dedicates for inference with LoRA adapters. Gemma is a family of lightweight, state-of-the-art open models from Google, built from the same research and t..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/huggingface/distilbert-sst-2-int8",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Classification\" does not accept image input",
+          "metadata": {
+            "catalog_id": "eaf31752-a074-441f-8b70-d593255d2811",
+            "created_at": "2023-09-25T13:51:11.898Z",
+            "task_id": "19606750-23ed-4371-aab2-c20349b53a60",
+            "task_name": "Text Classification",
+            "description": "Distilled BERT model that was finetuned on SST-2 for sentiment classification"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/ibm-granite/granite-4.0-h-micro",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "7952d0cc-cb00-4e10-be02-667565c2ee0f",
+            "created_at": "2025-10-07T13:16:29.436Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Granite 4.0 instruct models deliver strong performance across benchmarks, achieving industry-leading results in key agentic tasks like instruction following and function calling. These efficiencies ma..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/leonardo/lucid-origin",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "0e372c11-8720-46c9-a02d-666188a22dae",
+            "created_at": "2025-08-25T13:51:28.770Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "Lucid Origin from Leonardo.AI is their most adaptable and prompt-responsive model to date. Whether you're generating images with sharp graphic design, stunning full-HD renders, or highly specific crea..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/leonardo/phoenix-1.0",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "724608fa-983e-495d-b95c-340d6b7e78be",
+            "created_at": "2025-08-25T12:42:18.073Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "Phoenix 1.0 is a model by Leonardo.Ai that generates images with exceptional prompt adherence and coherent text."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/llava-hf/llava-1.5-7b-hf",
+          "vision_capability": "yes",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Image-to-Text\" takes image input and produces non-image output",
+          "metadata": {
+            "catalog_id": "af274959-cb47-4ba8-9d8e-5a0a58b6b402",
+            "created_at": "2024-05-01T12:30:39.971Z",
+            "task_id": "882a91d1-c331-4eec-bdad-834c919942a8",
+            "task_name": "Image-to-Text",
+            "description": "LLaVA is an open-source chatbot trained by fine-tuning LLaMA/Vicuna on GPT-generated multimodal instruction-following data. It is an auto-regressive language model, based on the transformer architectu..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/lykon/dreamshaper-8-lcm",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "7912c0ab-542e-44b9-b9ee-3113d226a8b5",
+            "created_at": "2024-02-27T12:10:38.881Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "Stable Diffusion model that has been fine-tuned to be better at photorealism without sacrificing range."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/meta-llama/llama-2-7b-chat-hf-lora",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "7ed8d8e8-6040-4680-843a-aef402d6b013",
+            "created_at": "2024-04-01T18:47:18.579Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "This is a Llama2 base model that Cloudflare dedicated for inference with LoRA adapters. Llama 2 is a collection of pretrained and fine-tuned generative text models ranging in scale from 7 billion to 7..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/meta/llama-3.1-8b-instruct-fp8",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "9b9c87c6-d4b7-494c-b177-87feab5904db",
+            "created_at": "2024-07-25T11:58:43.328Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Llama 3.1 8B quantized to FP8 precision"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/meta/llama-3.2-11b-vision-instruct",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "2cbc033b-ded8-4e02-bbb2-47cf05d5cfe5",
+            "created_at": "2024-09-25T00:06:04.547Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "The Llama 3.2-Vision instruction-tuned models are optimized for visual recognition, image reasoning, captioning, and answering general questions about an image."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/meta/llama-3.2-1b-instruct",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "906a57fd-b018-4d6c-a43e-a296d4cc5839",
+            "created_at": "2024-09-25T16:06:32.050Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "The Llama 3.2 instruction-tuned text only models are optimized for multilingual dialogue use cases, including agentic retrieval and summarization tasks."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/meta/llama-3.2-3b-instruct",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "d9dc8363-66f4-4bb0-8641-464ee7bfc131",
+            "created_at": "2024-09-25T14:35:43.986Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "The Llama 3.2 instruction-tuned text only models are optimized for multilingual dialogue use cases, including agentic retrieval and summarization tasks."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "7a143886-c9bb-4a1c-be95-377b1973bc3b",
+            "created_at": "2024-12-06T11:39:18.338Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Llama 3.3 70B quantized to fp8 precision, optimized to be faster."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/meta/llama-4-scout-17b-16e-instruct",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "06455e78-19f7-487b-93cd-c05a3dd07813",
+            "created_at": "2025-04-05T14:55:56.137Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Meta's Llama 4 Scout is a 17 billion parameter model with 16 experts that is natively multimodal. These models leverage a mixture-of-experts architecture to offer industry-leading performance in text ..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/meta/llama-guard-3-8b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "cc80437b-9a8d-4f1a-9c77-9aaf0d226922",
+            "created_at": "2025-01-22T17:56:23.495Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Llama Guard 3 is a Llama-3.1-8B pretrained model, fine-tuned for content safety classification. Similar to previous versions, it can be used to classify content in both LLM inputs (prompt classificati..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/meta/m2m100-1.2b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Translation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "617e7ec3-bf8d-4088-a863-4f89582d91b5",
+            "created_at": "2023-09-25T13:51:11.898Z",
+            "task_id": "f57d07cb-9087-487a-bbbf-bc3e17fecc4b",
+            "task_name": "Translation",
+            "description": "Multilingual encoder-decoder (seq-to-seq) model trained for Many-to-Many multilingual translation"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/microsoft/resnet-50",
+          "vision_capability": "yes",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Image Classification\" takes image input and produces non-image output",
+          "metadata": {
+            "catalog_id": "7f9a76e1-d120-48dd-a565-101d328bbb02",
+            "created_at": "2023-09-25T13:51:11.898Z",
+            "task_id": "00cd182b-bf30-4fc4-8481-84a3ab349657",
+            "task_name": "Image Classification",
+            "description": "50 layers deep image classification CNN trained on more than 1M images from ImageNet"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/mistral/mistral-7b-instruct-v0.2-lora",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "c58c317b-0c15-4bda-abb6-93e275f282d9",
+            "created_at": "2024-04-01T16:44:40.529Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "The Mistral-7B-Instruct-v0.2 Large Language Model (LLM) is an instruct fine-tuned version of the Mistral-7B-v0.2."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/mistralai/mistral-small-3.1-24b-instruct",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "31690291-ebdc-4f98-bcfc-a44844e215b7",
+            "created_at": "2025-03-17T21:58:37.890Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Building upon Mistral Small 3 (2501), Mistral Small 3.1 (2503) adds state-of-the-art vision understanding and enhances long context capabilities up to 128k tokens without compromising text performance..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/moondream/moondream3.1-9B-A2B",
+          "vision_capability": "yes",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Image-to-Text\" takes image input and produces non-image output",
+          "metadata": {
+            "catalog_id": "1161560b-87f9-4795-afb3-a905cf21bcf8",
+            "created_at": "2026-07-07T09:09:02.726Z",
+            "task_id": "882a91d1-c331-4eec-bdad-834c919942a8",
+            "task_name": "Image-to-Text",
+            "description": "Moondream 3 is a fast, efficient 9B mixture-of-experts vision language model (2B active parameters) that delivers frontier-level visual reasoning for tasks like object detection, pointing, OCR, and st..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/moonshotai/kimi-k2.6",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "8a5d00bd-de28-4a28-b37a-ce46d01ebaeb",
+            "created_at": "2026-04-19T20:10:35.001Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Kimi K2.6 is a frontier-scale open-source 1T parameter model with a 262.1k context window, multi-turn tool calling, vision inputs, and structured outputs for agentic workloads."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/moonshotai/kimi-k2.7-code",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "c29c7295-ff20-4b9b-bdcc-25136c19b21d",
+            "created_at": "2026-06-12T06:15:20.582Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Kimi K2.7 is a frontier-scale open-source 1T parameter model with a 262.1k context window, multi-turn tool calling, vision inputs, and structured outputs for agentic workloads."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/myshell-ai/melotts",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Speech\" does not accept image input",
+          "metadata": {
+            "catalog_id": "c837b2ac-4d9b-4d37-8811-34de60f0c44f",
+            "created_at": "2024-07-19T10:21:04.819Z",
+            "task_id": "b52660a1-9a95-4ab2-8b1d-f232be34604a",
+            "task_name": "Text-to-Speech",
+            "description": "MeloTTS is a high-quality multi-lingual text-to-speech library by MyShell.ai."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/nvidia/nemotron-3-120b-a12b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "43dbadb4-2b0a-47e9-8479-34a49b971f1e",
+            "created_at": "2026-02-24T17:52:47.215Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "NVIDIA Nemotron 3 Super is a hybrid MoE model with leading accuracy for multi-agent applications and specialized agentic AI systems."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/openai/gpt-oss-120b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "f9f2250b-1048-4a52-9910-d0bf976616a1",
+            "created_at": "2025-08-05T04:57:29.131Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "OpenAI’s open-weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases – gpt-oss-120b is for production, general purpose, high reasoning use-cases."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/openai/gpt-oss-20b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "188a4e1e-253e-46d0-9616-0bf8c149763f",
+            "created_at": "2025-08-05T05:19:53.265Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "OpenAI’s open-weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases – gpt-oss-20b is for lower latency, and local or specialized use-cases."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/openai/whisper",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Automatic Speech Recognition\" does not accept image input",
+          "metadata": {
+            "catalog_id": "c1c12ce4-c36a-4aa6-8da4-f63ba4b8984d",
+            "created_at": "2023-09-25T13:51:11.898Z",
+            "task_id": "dfce1c48-2a81-462e-a7fd-de97ce985207",
+            "task_name": "Automatic Speech Recognition",
+            "description": "Whisper is a general-purpose speech recognition model. It is trained on a large dataset of diverse audio and is also a multitasking model that can perform multilingual speech recognition, speech trans..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/openai/whisper-large-v3-turbo",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Automatic Speech Recognition\" does not accept image input",
+          "metadata": {
+            "catalog_id": "200f0812-148c-48c1-915d-fb3277a94a08",
+            "created_at": "2024-05-21T18:32:18.656Z",
+            "task_id": "dfce1c48-2a81-462e-a7fd-de97ce985207",
+            "task_name": "Automatic Speech Recognition",
+            "description": "Whisper is a pre-trained model for automatic speech recognition (ASR) and speech translation."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/openai/whisper-tiny-en",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Automatic Speech Recognition\" does not accept image input",
+          "metadata": {
+            "catalog_id": "2169496d-9c0e-4e49-8399-c44ee66bff7d",
+            "created_at": "2024-04-22T15:29:02.731Z",
+            "task_id": "dfce1c48-2a81-462e-a7fd-de97ce985207",
+            "task_name": "Automatic Speech Recognition",
+            "description": "Whisper is a pre-trained model for automatic speech recognition (ASR) and speech translation. Trained on 680k hours of labelled data, Whisper models demonstrate a strong ability to generalize to many ..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/pfnet/plamo-embedding-1b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Embeddings\" does not accept image input",
+          "metadata": {
+            "catalog_id": "bc2b61f6-7eb3-4cdf-94f5-ffc128bd6aa4",
+            "created_at": "2025-09-24T13:12:05.576Z",
+            "task_id": "0137cdcf-162a-4108-94f2-1ca59e8c65ee",
+            "task_name": "Text Embeddings",
+            "description": "PLaMo-Embedding-1B is a Japanese text embedding model developed by Preferred Networks, Inc.\n\nIt can convert Japanese text input into numerical vectors and can be used for a wide range of applications,..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/pipecat-ai/smart-turn-v2",
+          "vision_capability": "unknown",
+          "capability_source": "unknown",
+          "capability_evidence": "Cloudflare catalog exposed no authoritative image-input signal (task \"Dumb Pipe\"); no inference from the model name",
+          "metadata": {
+            "catalog_id": "fe8904cf-e20e-4884-b829-ed7cec0a01cb",
+            "created_at": "2025-08-04T04:38:04.219Z",
+            "task_id": "ccb1ca5a-043d-41a7-8a3b-61017b2796fd",
+            "task_name": "Dumb Pipe",
+            "description": "An open source, community-driven, native audio turn detection model in 2nd version"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/qwen/qwen2.5-coder-32b-instruct",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "51b71d5b-8bc0-4489-a107-95e542b69914",
+            "created_at": "2025-02-26T19:01:43.829Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Qwen2.5-Coder is the latest series of Code-Specific Qwen large language models (formerly known as CodeQwen). As of now, Qwen2.5-Coder has covered six mainstream model sizes, 0.5, 1.5, 3, 7, 14, 32 bil..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/qwen/qwen3-30b-a3b-fp8",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "4090e54c-eee4-4221-b410-10c1c0f92f17",
+            "created_at": "2025-04-30T16:06:10.009Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Qwen3 is the latest generation of large language models in Qwen series, offering a comprehensive suite of dense and mixture-of-experts (MoE) models. Built upon extensive training, Qwen3 delivers groun..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/qwen/qwen3-embedding-0.6b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Embeddings\" does not accept image input",
+          "metadata": {
+            "catalog_id": "cb254e3b-372b-4d4e-8526-ada79940427a",
+            "created_at": "2025-06-18T14:53:22.086Z",
+            "task_id": "0137cdcf-162a-4108-94f2-1ca59e8c65ee",
+            "task_name": "Text Embeddings",
+            "description": "The Qwen3 Embedding model series is the latest proprietary model of the Qwen family, specifically designed for text embedding and ranking tasks."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/qwen/qwen3.8-27b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "22338608-b54d-4f04-884e-ab06f3dbbf3e",
+            "created_at": "2026-08-17T01:43:11.641Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Qwen 3.8 27B is a 27-billion-parameter instruction-tuned language model from Alibaba's Qwen family, designed for vision, efficient general-purpose text generation and agentic workloads."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/qwen/qwq-32b",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "02c16efa-29f5-4304-8e6c-3d188889f875",
+            "created_at": "2025-03-05T16:22:40.974Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "QwQ is the reasoning model of the Qwen series. Compared with conventional instruction-tuned models, QwQ, which is capable of thinking and reasoning, can achieve significantly enhanced performance in d..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/runwayml/stable-diffusion-v1-5-inpainting",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "a9abaef0-3031-47ad-8790-d311d8684c6c",
+            "created_at": "2024-02-27T11:53:57.528Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "Stable Diffusion Inpainting is a latent text-to-image diffusion model capable of generating photo-realistic images given any text input, with the extra capability of inpainting the pictures by using a..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/stabilityai/stable-diffusion-xl-base-1.0",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text-to-Image\" does not accept image input",
+          "metadata": {
+            "catalog_id": "6d52253a-b731-4a03-b203-cde2d4fae871",
+            "created_at": "2023-11-10T05:24:43.694Z",
+            "task_id": "3d6e1f35-341b-4915-a6c8-9a7142a9033a",
+            "task_name": "Text-to-Image",
+            "description": "Diffusion-based text-to-image generative model by Stability AI. Generates and modify images based on text prompts."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/zai-org/glm-4.7-flash",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "86b3e51a-4b05-43fa-a403-0f27821919d2",
+            "created_at": "2026-01-28T10:34:39.346Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "GLM-4.7-Flash is a fast and efficient multilingual text generation model with a 131,072 token context window. Optimized for dialogue, instruction-following, and multi-turn tool calling across 100+ lan..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/zai-org/glm-5.2",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "4edc7dfe-de78-4156-890c-85b79227694e",
+            "created_at": "2026-06-15T04:21:05.921Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "Z.ai's flagship agentic coding model"
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/zai-org/glm-5.3",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "c05fea67-c5a9-49ca-a7ab-446a0d62cb7a",
+            "created_at": "2026-08-14T06:37:32.346Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "GLM-5.3 is Z.ai's flagship agentic coding model, pairing a 1M-token context window with reasoning, function calling, and structured outputs to power multi-step, tool-driven development workflows."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        },
+        {
+          "provider": "cloudflare",
+          "model_id": "@cf/zai-org/glm-5.3-flash",
+          "vision_capability": "no",
+          "capability_source": "provider_model_schema",
+          "capability_evidence": "Cloudflare catalog task \"Text Generation\" does not accept image input",
+          "metadata": {
+            "catalog_id": "95666467-f984-4211-b48a-7c246dd4adb7",
+            "created_at": "2026-08-26T08:51:42.917Z",
+            "task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+            "task_name": "Text Generation",
+            "description": "The first natively multimodal model in the GLM-5 series. With 320B total parameters and just 18B active parameters, it outperforms GLM-5.2 across benchmarks and real-world workloads at one-tenth the p..."
+          },
+          "resolved_at": "2026-09-23T10:46:52.084Z"
+        }
+      ]
+    },
+    {
+      "provider": "ollama",
+      "status": "error",
+      "model_count": 0,
+      "error": "provider request failed: fetch failed",
+      "models": []
+    }
+  ],
+  "plan_target": {
+    "required": 3,
+    "resolved": 6,
+    "met": true,
+    "note": "Plan target satisfied: 6 vision-capable model id(s) resolved (target: 3)."
+  }
+}

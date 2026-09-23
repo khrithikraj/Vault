@@ -39,3 +39,13 @@ supabase/.temp/
 
 playwright-report/
 test-results/
+
+# AI-lab (Phase 0 measurement workspace) local-only artifacts
+# `.env` and golden image fixtures hold real/sensitive data.
+ai-lab/.env
+ai-lab/datasets/golden/images/
+
+# Generated AI-lab result/cache artifacts (source and config files stay tracked)
+ai-lab/results/
+ai-lab/.cache/
+ai-lab/coverage/
