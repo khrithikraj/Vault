@@ -18,5 +18,5 @@
     "types": ["vite/client"]
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["supabase/functions"]
+  "exclude": ["supabase/functions", "ai-lab"]
 }
