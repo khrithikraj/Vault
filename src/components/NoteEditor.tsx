@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { motion, Reorder, useDragControls } from 'motion/react'
-import { Bell, BellOff, Check, Clock, Copy, GripVertical, Loader2, Plus, Share2, Trash2, X } from 'lucide-react'
+import { Bell, BellOff, Check, Clock, Copy, GripVertical, Loader2, Plus, Share2, Trash2 } from 'lucide-react'
 import type { ChecklistItem, ChecklistReminder, DailyChecklistCompletion, Note, Weekday } from '../types/app'
 import { createSharedNote } from '../lib/share'
 import { formatNoteForClipboard } from '../lib/quickActions'
@@ -68,6 +68,7 @@ export function NoteEditor({
   const [notificationBusy, setNotificationBusy] = useState(false)
   const [reminderOpen, setReminderOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [reorderMode, setReorderMode] = useState(false)
   const moreActionsRef = useRef<HTMLButtonElement | null>(null) as MutableRefObject<HTMLButtonElement | null>
   const reminderAnchorRef = useRef<HTMLButtonElement | null>(null) as MutableRefObject<HTMLButtonElement | null>
   const reminderChipMounted = useRef(false)
@@ -101,6 +102,7 @@ export function NoteEditor({
     setShareUrl('')
     setShareError('')
     setReminderOpen(false)
+    setReorderMode(false)
   }
 
   // Closing the editor once kept the "back" semantics: an empty note is discarded
@@ -419,12 +421,24 @@ export function NoteEditor({
           <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
             Checklist ({checklist.filter((i) => i.done).length}/{checklist.length})
           </p>
+          {checklist.length > 1 ? (
+            <button
+              type="button"
+              onClick={() => setReorderMode((mode) => !mode)}
+              aria-pressed={reorderMode}
+              className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
+            >
+              {reorderMode ? (
+                <Check size={11} className="shrink-0 stroke-[2.5]" aria-hidden="true" />
+              ) : (
+                <GripVertical size={11} className="shrink-0" aria-hidden="true" />
+              )}
+              {reorderMode ? 'Done' : 'Reorder'}
+            </button>
+          ) : null}
         </div>
 
         <div className="mt-3 flex min-w-0 flex-col gap-2">
-          {checklist.length > 1 ? (
-            <p className="text-[10px] text-ink-soft/50">Drag the handle to reorder.</p>
-          ) : null}
           <Reorder.Group
             axis="y"
             values={checklist}
@@ -436,6 +450,7 @@ export function NoteEditor({
                 key={item.id}
                 item={item}
                 reducedMotion={reducedMotion}
+                reorderMode={reorderMode && checklist.length > 1}
                 itemReminder={reminderForItem(reminders, note.id, item.id)}
                 dailyCompletions={dailyCompletions}
                 onToggle={() => toggleChecklistItem(item.id)}
@@ -487,12 +502,15 @@ export function NoteEditor({
   )
 }
 
-/** One draggable checklist row — clean by default, with an unobtrusive unified item-level reminder control. */
+/** One checklist row. Normal mode keeps it minimal — checkbox, task text, a subtle
+ *  reminder indicator (when one exists) and a ⋯ menu. Reminder editing and deletion
+ *  live in the ⋯ menu. The drag handle appears only during Reorder mode. */
 function ChecklistRow({
   item,
   reducedMotion,
   itemReminder,
   dailyCompletions,
+  reorderMode,
   onToggle,
   onTextChange,
   onRemove,
@@ -504,6 +522,7 @@ function ChecklistRow({
   reducedMotion: boolean
   itemReminder?: ChecklistReminder
   dailyCompletions: DailyChecklistCompletion[]
+  reorderMode: boolean
   onToggle: () => void
   onTextChange: (text: string) => void
   onRemove: () => void
@@ -512,6 +531,25 @@ function ChecklistRow({
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
 }) {
   const controls = useDragControls()
+  const [reminderOpen, setReminderOpen] = useState(false)
+  const moreButtonRef = useRef<HTMLButtonElement | null>(null)
+
+  const isDoneToday = Boolean(itemReminder?.enabled && isCompletedToday(itemReminder, dailyCompletions))
+  const reminderLabel = itemReminder?.enabled
+    ? isDoneToday
+      ? `Done today · ${formatReminderTime(itemReminder.local_time)}`
+      : `${formatRecurrenceLabel(itemReminder.recurrence)} reminder at ${formatReminderTime(itemReminder.local_time)}`
+    : 'Set item reminder'
+
+  const moreItems: MoreActionItem[] = [
+    {
+      id: 'reminder',
+      label: itemReminder?.enabled ? 'Edit reminder' : 'Set reminder',
+      icon: Bell,
+      onSelect: () => setReminderOpen(true),
+    },
+    { id: 'delete', label: 'Delete', icon: Trash2, danger: true, divider: true, onSelect: onRemove },
+  ]
 
   return (
     <Reorder.Item
@@ -522,14 +560,16 @@ function ChecklistRow({
       transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
       className="vault-input flex w-full min-w-0 max-w-full items-center gap-2 overflow-visible rounded-none px-2 py-1 bg-cloud/50"
     >
-      <button
-        type="button"
-        onPointerDown={(event) => controls.start(event)}
-        className="flex h-10 w-10 shrink-0 cursor-grab touch-none items-center justify-center rounded text-ink-soft/50 hover:bg-ink/5 hover:text-ink active:cursor-grabbing"
-        aria-label="Drag to reorder"
-      >
-        <GripVertical size={15} />
-      </button>
+      {reorderMode ? (
+        <button
+          type="button"
+          onPointerDown={(event) => controls.start(event)}
+          className="flex h-10 w-10 shrink-0 cursor-grab touch-none items-center justify-center rounded text-ink-soft/50 hover:bg-ink/5 hover:text-ink active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical size={15} />
+        </button>
+      ) : null}
       <label className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center">
         <input
           type="checkbox"
@@ -547,33 +587,54 @@ function ChecklistRow({
           item.done ? 'text-ink-soft line-through' : 'text-ink'
         }`}
       />
-      <span className="flex shrink-0 items-center gap-1.5 relative">
-        {/* Unobtrusive unified item-level reminder control */}
-        <ReminderControl
-          reminder={itemReminder}
-          dailyCompletions={dailyCompletions}
-          targetTitle={item.text}
-          targetType="item"
-          variant="item-button"
-          onSaveReminder={onSetItemReminder}
-          onRemoveReminder={onRemoveItemReminder}
-          onToggleDailyCompletion={onToggleDailyCompletion}
-        />
-        {item.done && (
-          <span className="border-accent text-accent rounded-sm border px-1 text-[9px] font-bold uppercase tracking-widest shrink-0">
-            ✓
-          </span>
-        )}
-        {/* Direct delete button */}
-        <button
-          type="button"
-          onClick={onRemove}
-          className="flex h-9 w-9 items-center justify-center rounded text-ink-soft/40 hover:bg-ink/5 hover:text-red-400 transition-colors"
-          aria-label="Remove item"
-        >
-          <X size={14} />
-        </button>
-      </span>
+      {!reorderMode ? (
+        <span className="flex shrink-0 items-center gap-1.5">
+          {itemReminder?.enabled ? (
+            <span
+              aria-label={reminderLabel}
+              title={reminderLabel}
+              className={`inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
+                isDoneToday
+                  ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
+                  : 'border-accent/20 bg-accent/5 text-accent'
+              }`}
+            >
+              {isDoneToday ? (
+                <Check size={10} className="shrink-0 stroke-[2.5]" aria-hidden="true" />
+              ) : (
+                <Clock size={10} className="shrink-0" aria-hidden="true" />
+              )}
+              <span>{formatReminderTime(itemReminder.local_time)}</span>
+            </span>
+          ) : null}
+          {item.done ? (
+            <span className="border-accent text-accent rounded-sm border px-1 text-[9px] font-bold uppercase tracking-widest shrink-0" aria-hidden="true">
+              ✓
+            </span>
+          ) : null}
+          <MoreActionsMenu
+            triggerLabel={`More actions for ${item.text.trim() || 'item'}`}
+            triggerRef={moreButtonRef}
+            items={moreItems}
+            align="right"
+          />
+        </span>
+      ) : null}
+
+      <ReminderControl
+        reminder={itemReminder}
+        dailyCompletions={dailyCompletions}
+        targetTitle={item.text}
+        targetType="item"
+        variant="item-button"
+        open={reminderOpen}
+        onOpenChange={setReminderOpen}
+        triggerRef={moreButtonRef}
+        hideTrigger
+        onSaveReminder={onSetItemReminder}
+        onRemoveReminder={onRemoveItemReminder}
+        onToggleDailyCompletion={onToggleDailyCompletion}
+      />
     </Reorder.Item>
   )
 }

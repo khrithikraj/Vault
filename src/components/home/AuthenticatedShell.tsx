@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import type { Category } from '../../types/app'
 import { reducedMotion } from '../../design/motion'
 import { FilmGrain } from '../FilmGrain'
-import { ProgressiveBlur } from '../ProgressiveBlur'
 import { ScrollProgress } from '../ScrollProgress'
 import { VaultPage } from '../ui/VaultPage'
 import { HomeCanvas } from './HomeCanvas'
@@ -26,7 +25,6 @@ export function AuthenticatedShell({ activeCategory, children }: AuthenticatedSh
       <HomeCanvas activeCategory={activeCategory} />
       <FilmGrain />
       <ScrollProgress />
-      <ProgressiveBlur side="bottom" height={140} />
       {children}
     </main>
   )

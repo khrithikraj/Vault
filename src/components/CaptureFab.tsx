@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Camera, CheckCircle2, CopyX, Eye } from 'lucide-react'
+import { Camera, CheckCircle2, CopyX, Eye, ImagePlus } from 'lucide-react'
 import { fallbackFieldSchema, getErrorMessage } from '../lib/fields'
 import { buildScreenshotAutofill, extractScreenshotText, type ScreenshotExtraction } from '../lib/screenshotAutofill'
 import { findItemDuplicates } from '../lib/duplicates'
@@ -100,10 +100,14 @@ export function CaptureFab({
   const [ocrExtraction, setOcrExtraction] = useState<ScreenshotExtraction | null>(null)
   const [autofillSummary, setAutofillSummary] = useState<{ matchedFields: string[]; confidence: number } | null>(null)
   const [showFullExtraction, setShowFullExtraction] = useState(false)
+  const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null)
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null)
+  const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
   const reducedMotion = usePrefersReducedMotion()
 
   const fabRef = useRef<HTMLButtonElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
+  const referenceImageInputRef = useRef<HTMLInputElement>(null)
   /** When the FAB is tapped for a known category, skip the category picker stage.
    *  Share-target launches reset it so the user still confirms the target. */
   const skipCategoryLaunchRef = useRef(false)
@@ -125,6 +129,7 @@ export function CaptureFab({
     setStepIndex(0)
     setDirection(1)
     clearPhoto()
+    clearReferenceImage()
     if (initialPhotoFile) {
       const error = validatePhotoFile(initialPhotoFile)
       if (error) {
@@ -208,10 +213,28 @@ export function CaptureFab({
     }
   }, [photoPreview])
 
+  // Same lifecycle for the optional reference image preview.
+  useEffect(() => {
+    return () => {
+      if (referenceImagePreview) {
+        URL.revokeObjectURL(referenceImagePreview)
+      }
+    }
+  }, [referenceImagePreview])
+
   const activeCategory = categories.find((category) => category.id === categoryId)
   const fields: FieldDefinition[] = activeCategory?.field_schema.length
     ? activeCategory.field_schema
     : fallbackFieldSchema
+  /** Reference Image is a dedicated wizard step inserted immediately before Notes
+   *  (or at the end when a category has no notes field). It lives inside the field
+   *  step sequence so progress, Back/Continue and jump-to-step stay aligned. */
+  const notesFieldIndex = fields.findIndex((field) => field.key === 'notes')
+  const referenceStepIndex = notesFieldIndex >= 0 ? notesFieldIndex : fields.length
+  const fieldStepCount = fields.length + 1
+  const fieldAtStep = (index: number): FieldDefinition | undefined =>
+    index === referenceStepIndex ? undefined : fields[index > referenceStepIndex ? index - 1 : index]
+  const stepForField = (fieldIndex: number) => fieldIndex + (fieldIndex >= referenceStepIndex ? 1 : 0)
   const autofillPreview = useMemo(() => {
     if (!ocrExtraction || !categoryId) {
       return null
@@ -282,9 +305,45 @@ export function CaptureFab({
     appliedAutofillKey.current = ''
   }
 
+  /** The reference image is the ONLY image a user can deliberately save with an item.
+   *  It's independent of the extraction photo used for OCR, which is temporary. */
+  const clearReferenceImage = () => {
+    setReferenceImageError(null)
+    setReferenceImageFile((current) => {
+      if (current) {
+        setReferenceImagePreview((preview) => {
+          if (preview) {
+            URL.revokeObjectURL(preview)
+          }
+          return null
+        })
+      }
+      return null
+    })
+  }
+
+  const handleReferenceImagePick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) {
+      return
+    }
+    const error = validatePhotoFile(file)
+    if (error) {
+      setReferenceImageError(error)
+      return
+    }
+    setReferenceImageError(null)
+    if (referenceImagePreview) {
+      URL.revokeObjectURL(referenceImagePreview)
+    }
+    setReferenceImageFile(file)
+    setReferenceImagePreview(URL.createObjectURL(file))
+  }
+
   const goNext = () => {
-    const field = fields[stepIndex]
-    if (field.required && !values[field.key]?.trim()) {
+    const field = fieldAtStep(stepIndex)
+    if (field?.required && !values[field.key]?.trim()) {
       setFieldError(`${field.label} is required.`)
       setShakeToken((token) => token + 1)
       return
@@ -296,7 +355,7 @@ export function CaptureFab({
       setStage('review')
       return
     }
-    if (stepIndex < fields.length - 1) {
+    if (stepIndex < fieldStepCount - 1) {
       setDirection(1)
       setStepIndex((index) => index + 1)
     } else {
@@ -329,9 +388,10 @@ export function CaptureFab({
   }
 
   const jumpToStep = (index: number) => {
+    const target = stepForField(index)
     setCameFromReview(true)
-    setDirection(index > stepIndex ? 1 : -1)
-    setStepIndex(index)
+    setDirection(target > stepIndex ? 1 : -1)
+    setStepIndex(target)
     setStage('fields')
   }
 
@@ -374,7 +434,9 @@ export function CaptureFab({
       return
     }
 
-    onSubmit({ categoryId, values, imageFile: photoFile })
+    // Only a deliberately chosen reference image is persistent. The extraction
+    // photo used for OCR stays temporary and is deliberately NOT passed here.
+    onSubmit({ categoryId, values, imageFile: referenceImageFile })
     window.sessionStorage.removeItem(CAPTURE_DRAFT_KEY)
     onSaved?.(categoryId)
     setJustSaved(true)
@@ -384,7 +446,7 @@ export function CaptureFab({
     }, 450)
   }
 
-  const totalSteps = fields.length + 3
+  const totalSteps = fieldStepCount + 3
   const currentStep =
     stage === 'category'
       ? 1
@@ -400,11 +462,18 @@ export function CaptureFab({
     window.requestAnimationFrame(() => fabRef.current?.focus())
   }
 
+  // Stable dialog close handler. The capture wizard re-renders on every keystroke
+  // (values state), and VaultDialog's focus management re-runs when its `onClose`
+  // prop identity changes — which would blur the active title input and dismiss
+  // the mobile keyboard after a single character. Keeping this identity stable is
+  // what lets continuous typing keep focus, exactly like the Note editor.
+  const closeDialog = useCallback(() => setOpen(false), [])
+
   return (
     <>
       <VaultDialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={closeDialog}
         title="Add item"
         showClose
         closeLabel="Cancel item"
@@ -526,7 +595,9 @@ export function CaptureFab({
                         [ ← Back ]
                       </button>
                       <h2 className="font-display mt-2 text-xl font-bold uppercase tracking-tight">Add a photo?</h2>
-                      <p className="mt-1 text-sm text-ink-soft">Totally optional — you can skip this.</p>
+                      <p className="mt-1 text-sm text-ink-soft">
+                        It's used only to auto-fill fields — it won't be saved.
+                      </p>
 
                       <input
                         ref={photoInputRef}
@@ -652,7 +723,7 @@ export function CaptureFab({
                           [ ← Back ]
                         </button>
                         <span className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
-                          [ {stepIndex + 1}/{fields.length} ]
+                          [ {stepIndex + 1}/{fieldStepCount} ]
                         </span>
                       </div>
 
@@ -688,54 +759,109 @@ export function CaptureFab({
                               ) : null}
                               {activeCategory?.name}
                             </p>
-                            <h3 className="font-display mt-2 text-2xl font-bold uppercase leading-snug tracking-tight">
-                              &gt; {fields[stepIndex].label}
-                              {fields[stepIndex].required ? (
-                                <span className="text-ink"> *</span>
-                              ) : (
-                                <span className="text-sm font-normal normal-case text-ink-soft"> (optional)</span>
-                              )}
-                            </h3>
+                            {fieldAtStep(stepIndex) ? (
+                              <>
+                                <h3 className="font-display mt-2 text-2xl font-bold uppercase leading-snug tracking-tight">
+                                  &gt; {fieldAtStep(stepIndex)!.label}
+                                  {fieldAtStep(stepIndex)!.required ? (
+                                    <span className="text-ink"> *</span>
+                                  ) : (
+                                    <span className="text-sm font-normal normal-case text-ink-soft"> (optional)</span>
+                                  )}
+                                </h3>
 
-                            <div className="mt-4">
-                              {fields[stepIndex].type === 'textarea' ? (
-                                <textarea
-                                  autoFocus
-                                  value={values[fields[stepIndex].key] ?? ''}
-                                  onChange={(event) =>
-                                    setFieldValue(fields[stepIndex].key, event.target.value)
-                                  }
-                                  rows={3}
-                                  className="vault-input w-full rounded-none px-4 py-3 text-lg text-ink"
-                                />
-                              ) : (
-                                <div className="relative">
-                                  {fields[stepIndex].type === 'currency' ? (
-                                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg text-ink-soft">
-                                      ₹
-                                    </span>
-                                  ) : null}
-                                  <input
-                                    autoFocus
-                                    value={values[fields[stepIndex].key] ?? ''}
-                                    onChange={(event) =>
-                                      setFieldValue(fields[stepIndex].key, event.target.value)
-                                    }
-                                    type={fieldInputType(fields[stepIndex].type)}
-                                    aria-invalid={fieldError ? true : undefined}
-                                    aria-describedby={fieldError ? 'capture-field-error' : undefined}
-                                    className={`vault-input w-full rounded-none py-3 text-lg text-ink ${
-                                      fields[stepIndex].type === 'currency' ? 'pl-9 pr-4' : 'px-4'
-                                    }`}
-                                  />
+                                <div className="mt-4">
+                                  {fieldAtStep(stepIndex)!.type === 'textarea' ? (
+                                    <textarea
+                                      autoFocus
+                                      value={values[fieldAtStep(stepIndex)!.key] ?? ''}
+                                      onChange={(event) =>
+                                        setFieldValue(fieldAtStep(stepIndex)!.key, event.target.value)
+                                      }
+                                      rows={3}
+                                      className="vault-input w-full rounded-none px-4 py-3 text-lg text-ink"
+                                    />
+                                  ) : (
+                                    <div className="relative">
+                                      {fieldAtStep(stepIndex)!.type === 'currency' ? (
+                                        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg text-ink-soft">
+                                          ₹
+                                        </span>
+                                      ) : null}
+                                      <input
+                                        autoFocus
+                                        value={values[fieldAtStep(stepIndex)!.key] ?? ''}
+                                        onChange={(event) =>
+                                          setFieldValue(fieldAtStep(stepIndex)!.key, event.target.value)
+                                        }
+                                        type={fieldInputType(fieldAtStep(stepIndex)!.type)}
+                                        aria-invalid={fieldError ? true : undefined}
+                                        aria-describedby={fieldError ? 'capture-field-error' : undefined}
+                                        className={`vault-input w-full rounded-none py-3 text-lg text-ink ${
+                                          fieldAtStep(stepIndex)!.type === 'currency' ? 'pl-9 pr-4' : 'px-4'
+                                        }`}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                            {fieldError ? (
-                              <p id="capture-field-error" role="alert" className="mt-2 text-sm text-red-400">
-                                {fieldError}
-                              </p>
-                            ) : null}
+                                {fieldError ? (
+                                  <p id="capture-field-error" role="alert" className="mt-2 text-sm text-red-400">
+                                    {fieldError}
+                                  </p>
+                                ) : null}
+                              </>
+                            ) : (
+                              <>
+                                <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+                                  <h3 className="font-display text-2xl font-bold uppercase leading-snug tracking-tight">
+                                    &gt; Reference Image
+                                  </h3>
+                                  <span className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                                    Optional
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-sm text-ink-soft">Add a photo related to this item.</p>
+
+                                <input
+                                  ref={referenceImageInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleReferenceImagePick}
+                                  className="hidden"
+                                />
+
+                                {referenceImagePreview ? (
+                                  <div className="border-ink/20 relative mt-5 border bg-ink/5">
+                                    <img
+                                      src={referenceImagePreview}
+                                      alt="Reference image preview"
+                                      className="h-auto max-h-56 w-full object-contain"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={clearReferenceImage}
+                                      className="bg-cloud/80 text-ink absolute right-3 top-3 rounded px-3 py-1 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => referenceImageInputRef.current?.click()}
+                                    className="vault-surface-soft border-ink/30 mt-5 flex w-full flex-col items-center justify-center gap-2 rounded border-dashed py-6"
+                                  >
+                                    <BrandIcon icon={ImagePlus} size={22} />
+                                    <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                      Add image
+                                    </span>
+                                  </button>
+                                )}
+                                {referenceImageError ? (
+                                  <p className="mt-2 text-sm text-red-400">{referenceImageError}</p>
+                                ) : null}
+                              </>
+                            )}
                           </motion.div>
                         </motion.div>
                       </AnimatePresence>
@@ -746,7 +872,7 @@ export function CaptureFab({
                         type="submit"
                         className="vault-btn-solid mt-8 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
                       >
-                        {stepIndex === fields.length - 1 ? 'Review →' : 'Continue →'}
+                        {stepIndex === fieldStepCount - 1 ? 'Review →' : 'Continue →'}
                       </motion.button>
                       <p className="mt-2 text-center text-xs text-ink-soft/70">Press Enter ↵</p>
                     </form>
@@ -776,11 +902,19 @@ export function CaptureFab({
                         Ready to save?
                       </h2>
 
-                      {photoPreview ? (
-                        <div className="border-ink/20 mt-4 border bg-ink/5">
-                          <img src={photoPreview} alt="Selected" className="h-auto max-h-56 w-full object-contain" />
+                      {/* Only the deliberately selected reference image is shown here.
+                          The temporary OCR/extraction source image is never offered as
+                          a fallback preview. */}
+                      {referenceImagePreview ? (
+                        <div className="border-ink/20 relative mt-4 border bg-ink/5">
+                          <img
+                            src={referenceImagePreview}
+                            alt="Reference image preview"
+                            className="h-auto max-h-56 w-full object-contain"
+                          />
                         </div>
                       ) : null}
+
                       {ocrExtraction && categoryId ? (
                         <div className="border-ink/20 mt-4 rounded border bg-transparent p-4">
                           <div className="flex items-center justify-between gap-3">
@@ -986,7 +1120,7 @@ export function CaptureFab({
             setOpen(true)
           }}
           whileTap={reducedMotion ? undefined : { scale: 0.96 }}
-          className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-accent/60 bg-cloud shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition-colors hover:bg-cloud-alt"
+          className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-accent/60 bg-cloud shadow-[0_0_0_1px_rgba(196,72,0,0.16),0_8px_24px_-6px_rgba(0,0,0,0.55),0_6px_18px_-8px_rgba(196,72,0,0.25)] transition-colors hover:bg-cloud-alt"
           aria-label="Add item"
           data-tour="capture-fab"
         >

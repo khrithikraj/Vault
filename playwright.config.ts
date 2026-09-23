@@ -3,7 +3,9 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './tests/e2e',
   outputDir: 'test-results',
-  timeout: 60_000,
+  // OCR/capture tests (in-browser tesseract.js on reference images) reach 50-60s
+  // when all projects run in parallel, so keep generous headroom above that.
+  timeout: 90_000,
   fullyParallel: true,
   reporter: [['list'], ['html', { open: 'never' }]],
   expect: {

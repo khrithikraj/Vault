@@ -55,7 +55,9 @@ async function openAdmission(page: Page) {
   await page.goto(configuredOrigin)
   await page.getByRole('button', { name: 'Sign in' }).focus()
   await page.getByRole('button', { name: 'Sign in' }).press('Enter')
-  await expect(page.getByRole('heading', { name: 'Sign in.' })).toBeVisible({ timeout: 15_000 })
+  // The lazy VaultApp chunk is fetched from a cold dev server; under full parallel
+  // load the first load can take well over 15s, so allow more room before failing.
+  await expect(page.getByRole('heading', { name: 'Sign in.' })).toBeVisible({ timeout: 30_000 })
 }
 
 test('Frame 10 keeps one native form with keyboard and password controls', async ({ page }) => {
