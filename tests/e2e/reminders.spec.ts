@@ -33,7 +33,7 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   const editor = page.getByRole('dialog', { name: 'Note editor' })
 
   // ── TEST A — note-level reminder via real typing ────────────────────────────
-  const moreActions = editor.getByRole('button', { name: 'More actions' })
+  const moreActions = editor.getByRole('button', { name: 'More actions', exact: true })
   await moreActions.click()
   await page.getByRole('menuitem', { name: 'Reminder', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Reminder settings' })
@@ -92,10 +92,11 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   // ── TEST B — item-level reminder via real keystrokes, edit, remove ──────────
   await editor.getByPlaceholder('Add new task or list item...').fill('Tower area')
   await editor.getByRole('button', { name: 'Add', exact: true }).click()
-  const itemBtn = editor.getByRole('button', { name: 'Set item reminder' })
-  await expect(itemBtn).toBeVisible()
-  await itemBtn.click()
 
+  // The row is compact: the item reminder lives in the row's ⋯ menu.
+  const rowMore = editor.getByRole('button', { name: 'More actions for Tower area' })
+  await rowMore.click()
+  await page.getByRole('menuitem', { name: 'Set reminder' }).click()
   const itemDialog = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(itemDialog).toBeVisible()
   await expectDialogContainedInViewport(page, itemDialog)
@@ -111,24 +112,28 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   await itemDialog.getByRole('textbox', { name: 'Minute' }).fill('32')
   await expect(itemDialog.getByText('12:32 PM')).toBeVisible({ timeout: 5000 })
   await itemDialog.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(editor.getByRole('button', { name: /reminder at 12:32 PM/i })).toBeVisible({ timeout: 5000 })
+  await expect(editor.locator('[title*="reminder at 12:32 PM"]')).toBeVisible({ timeout: 5000 })
 
-  // Edit to 12:46 PM
-  await editor.getByRole('button', { name: /reminder at 12:32 PM/i }).click()
+  // Edit to 12:46 PM through the row's ⋯ menu
+  await rowMore.click()
+  await page.getByRole('menuitem', { name: 'Edit reminder' }).click()
   const itemDialog2 = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(itemDialog2).toBeVisible()
   await expect(itemDialog2.getByRole('textbox', { name: 'Minute' })).toHaveValue('32')
   await itemDialog2.getByRole('textbox', { name: 'Minute' }).fill('46')
   await expect(itemDialog2.getByText('12:46 PM')).toBeVisible({ timeout: 5000 })
   await itemDialog2.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(editor.getByRole('button', { name: /reminder at 12:46 PM/i })).toBeVisible({ timeout: 5000 })
+  await expect(editor.locator('[title*="reminder at 12:46 PM"]')).toBeVisible({ timeout: 5000 })
 
   // Remove
-  await editor.getByRole('button', { name: /reminder at 12:46 PM/i }).click()
+  await rowMore.click()
+  await page.getByRole('menuitem', { name: 'Edit reminder' }).click()
   const itemDialog3 = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(itemDialog3).toBeVisible()
   await itemDialog3.getByRole('button', { name: 'Remove' }).click()
-  await expect(editor.getByRole('button', { name: 'Set item reminder' })).toBeVisible({ timeout: 5000 })
+  // Scoped to the checklist rows — the note-level chip also carries "reminder at"
+  // in its title, so the assertion must not match the header.
+  await expect(editor.locator('ul [title*="reminder at"]')).toHaveCount(0)
 
   expect(errors).toEqual([])
 })

@@ -9,6 +9,8 @@ export type CustomTimePickerProps = {
   id?: string
 }
 
+type TimeDraft = { hour: string; minute: string; period: 'AM' | 'PM' }
+
 export function CustomTimePicker({
   value,
   onChange,
@@ -27,26 +29,36 @@ export function CustomTimePicker({
   )
   const [draftPeriod, setDraftPeriod] = useState<'AM' | 'PM'>(parsed?.period ?? 'AM')
 
-  // Track which field is focused so useEffect doesn't clobber mid-edit input
-  const hourFocused = useRef(false)
-  const minuteFocused = useRef(false)
+  // Always-latest mirror so blur/step/toggle handlers never act on a stale closure.
+  // Assigned during render and inside commitTime. React flushes state synchronously
+  // between discrete events, so the mirror is current by the time the next handler runs.
+  const draftRef = useRef<TimeDraft>({ hour: draftHour, minute: draftMinute, period: draftPeriod })
+  draftRef.current = { hour: draftHour, minute: draftMinute, period: draftPeriod }
 
-  // Sync draft from external value prop ONLY when not actively editing that field
+  // Set whenever any control inside the picker has focus. The external-value sync
+  // effect must NEVER clobber fields the user is actively editing — previously it
+  // unconditionally reset the AM/PM period, so under load a freshly committed PM
+  // selection could be reverted to AM before the assertion saw it.
+  const pickerFocused = useRef(false)
+
+  // Sync drafts from an external value change (e.g. the dialog reopens with a saved
+  // reminder) only when the user isn't interacting with the picker. All user-driven
+  // commits already update the drafts through commitTime, so this is purely for
+  // outside-in changes while the picker is idle.
   useEffect(() => {
+    if (pickerFocused.current) return
     const p = parseLocalTime(value)
-    if (p) {
-      if (!hourFocused.current) {
-        setDraftHour(String(p.hour12).padStart(2, '0'))
-      }
-      if (!minuteFocused.current) {
-        setDraftMinute(String(p.minute).padStart(2, '0'))
-      }
-      setDraftPeriod(p.period)
-    } else {
-      if (!hourFocused.current) setDraftHour('')
-      if (!minuteFocused.current) setDraftMinute('')
-      setDraftPeriod('AM')
-    }
+    const next: TimeDraft = p
+      ? {
+          hour: String(p.hour12).padStart(2, '0'),
+          minute: String(p.minute).padStart(2, '0'),
+          period: p.period,
+        }
+      : { hour: '', minute: '', period: 'AM' }
+    setDraftHour(next.hour)
+    setDraftMinute(next.minute)
+    setDraftPeriod(next.period)
+    draftRef.current = next
   }, [value])
 
   /** Clamp, normalise, and commit a complete time to the parent. */
@@ -55,9 +67,15 @@ export function CustomTimePicker({
     const m = parseInt(mStr, 10)
     const validH = isNaN(h) ? 9 : Math.max(1, Math.min(12, h))
     const validM = isNaN(m) ? 0 : Math.max(0, Math.min(59, m))
-    setDraftHour(String(validH).padStart(2, '0'))
-    setDraftMinute(String(validM).padStart(2, '0'))
-    setDraftPeriod(period)
+    const next: TimeDraft = {
+      hour: String(validH).padStart(2, '0'),
+      minute: String(validM).padStart(2, '0'),
+      period,
+    }
+    setDraftHour(next.hour)
+    setDraftMinute(next.minute)
+    setDraftPeriod(next.period)
+    draftRef.current = next
     onChange(to24HourTime(validH, validM, period))
   }
 
@@ -72,26 +90,20 @@ export function CustomTimePicker({
     if (raw.length === 2) {
       const num = parseInt(raw, 10)
       if (!isNaN(num) && num >= 1 && num <= 12) {
-        const m = parseInt(draftMinute, 10)
-        const validM = isNaN(m) ? 0 : Math.max(0, Math.min(59, m))
-        onChange(to24HourTime(num, validM, draftPeriod))
+        const { minute, period } = draftRef.current
+        commitTime(String(num), minute, period)
       }
     }
   }
 
   const handleHourFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    hourFocused.current = true
     // Select all on focus so typing immediately replaces the old value
     e.target.select()
   }
 
   const handleHourBlur = () => {
-    hourFocused.current = false
-    const num = parseInt(draftHour, 10)
-    const validH = isNaN(num) ? 9 : Math.max(1, Math.min(12, num))
-    const m = parseInt(draftMinute, 10)
-    const validM = isNaN(m) ? 0 : Math.max(0, Math.min(59, m))
-    commitTime(String(validH), String(validM), draftPeriod)
+    const { hour, minute, period } = draftRef.current
+    commitTime(hour, minute, period)
   }
 
   const handleHourKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -111,26 +123,20 @@ export function CustomTimePicker({
     if (raw.length === 2) {
       const num = parseInt(raw, 10)
       if (!isNaN(num) && num >= 0 && num <= 59) {
-        const h = parseInt(draftHour, 10)
-        const validH = isNaN(h) ? 9 : Math.max(1, Math.min(12, h))
-        onChange(to24HourTime(validH, num, draftPeriod))
+        const { hour, period } = draftRef.current
+        commitTime(hour, String(num), period)
       }
     }
   }
 
   const handleMinuteFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    minuteFocused.current = true
     // Select all on focus so typing immediately replaces the old value
     e.target.select()
   }
 
   const handleMinuteBlur = () => {
-    minuteFocused.current = false
-    const num = parseInt(draftMinute, 10)
-    const validM = isNaN(num) ? 0 : Math.max(0, Math.min(59, num))
-    const h = parseInt(draftHour, 10)
-    const validH = isNaN(h) ? 9 : Math.max(1, Math.min(12, h))
-    commitTime(String(validH), String(validM), draftPeriod)
+    const { hour, minute, period } = draftRef.current
+    commitTime(hour, minute, period)
   }
 
   const handleMinuteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -142,34 +148,38 @@ export function CustomTimePicker({
   // ── Stepper buttons ────────────────────────────────────────────────────────
 
   const handleHourStep = (delta: number) => {
-    const currentH = parseInt(draftHour, 10) || 9
+    const { hour, minute, period } = draftRef.current
+    const currentH = parseInt(hour, 10) || 9
     let next = currentH + delta
     if (next > 12) next = 1
     if (next < 1) next = 12
-    const currentM = parseInt(draftMinute, 10)
-    const validM = isNaN(currentM) ? 0 : currentM
-    commitTime(String(next), String(validM), draftPeriod)
+    commitTime(String(next), minute, period)
   }
 
   const handleMinuteStep = (delta: number) => {
-    const currentM = parseInt(draftMinute, 10)
+    const { hour, minute, period } = draftRef.current
+    const currentM = parseInt(minute, 10)
     const base = isNaN(currentM) ? 0 : currentM
     let next = base + delta
     if (next >= 60) next = 0
     if (next < 0) next = 59
-    const currentH = parseInt(draftHour, 10) || 9
-    commitTime(String(currentH), String(next), draftPeriod)
+    commitTime(hour, String(next), period)
   }
 
   const handlePeriodToggle = (p: 'AM' | 'PM') => {
-    const currentH = parseInt(draftHour, 10) || 9
-    const currentM = parseInt(draftMinute, 10)
-    const validM = isNaN(currentM) ? 0 : currentM
-    commitTime(String(currentH), String(validM), p)
+    const { hour, minute } = draftRef.current
+    commitTime(hour, minute, p)
   }
 
   return (
-    <div className="flex flex-col gap-2.5" id={id}>
+    <div
+      className="flex flex-col gap-2.5"
+      id={id}
+      onFocus={() => { pickerFocused.current = true }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) pickerFocused.current = false
+      }}
+    >
       {/* Time Display Status Card */}
       <div
         className={`flex items-center justify-between rounded-lg px-3 py-2 border transition-all ${
