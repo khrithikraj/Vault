@@ -39,3 +39,7 @@ supabase/.temp/
 
 playwright-report/
 test-results/
+
+# Local AI Lab artifacts — Vision Pipeline work
+ai-lab/datasets/
+ai-lab/results/
