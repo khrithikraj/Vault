@@ -46,6 +46,9 @@ export type ReminderRowForDelivery = {
   checklist_item_id: string | null
   recurrence: ReminderRecurrence
   day_of_week?: Weekday | null
+  /** Exact calendar date for a 'once' reminder; NULL for repeating modes and for
+   *  legacy 'once' rows written before the column existed. */
+  fire_on_date?: string | null
   local_time: string
   timezone: string
   next_fire_at: string | null
@@ -94,6 +97,7 @@ export type DeliveryDeps = {
 export type ReminderDeliveryOutcome =
   | { kind: 'invalid-disabled'; reason: ReminderPreflightError }
   | { kind: 'disable-error'; reason: ReminderPreflightError; error: string }
+  | { kind: 'not-yet-due'; reason: ReminderPreflightError }
   | { kind: 'claim-error'; error: string }
   | { kind: 'not-claimed' }
   | { kind: 'completion-error'; error: string }
@@ -106,8 +110,12 @@ export async function deliverDueReminder(
   reminder: ReminderRowForDelivery,
   deps: DeliveryDeps,
 ): Promise<ReminderDeliveryOutcome> {
-  const preflight = preflightReminder(reminder)
+  const preflight = preflightReminder(reminder, deps.now)
   if (!preflight.ok) {
+    // A retryable preflight failure (an exact-date 'once' reminder whose moment
+    // has not arrived) must leave the row completely alone: not disabled, not
+    // claimed. A later cron tick picks it up when it is genuinely due.
+    if (preflight.retryable) return { kind: 'not-yet-due', reason: preflight.reason }
     const error = await deps.disableInvalid(reminder.id, preflight.reason)
     if (error) return { kind: 'disable-error', reason: preflight.reason, error }
     return { kind: 'invalid-disabled', reason: preflight.reason }
@@ -174,6 +182,7 @@ export type DeliverySummary = {
   subscriptionsRevoked: number
   revokeFailures: number
   skippedCompleted: number
+  skippedNotYetDue: number
   disabledInvalid: number
   disableFailures: number
   claimFailures: number
@@ -201,6 +210,7 @@ export async function runDeliveryBatch(
     subscriptionsRevoked: 0,
     revokeFailures: 0,
     skippedCompleted: 0,
+    skippedNotYetDue: 0,
     disabledInvalid: 0,
     disableFailures: 0,
     claimFailures: 0,
@@ -231,6 +241,9 @@ function tallyOutcome(outcome: ReminderDeliveryOutcome, summary: DeliverySummary
       return
     case 'disable-error':
       summary.disableFailures += 1
+      return
+    case 'not-yet-due':
+      summary.skippedNotYetDue += 1
       return
     case 'claim-error':
       summary.claimFailures += 1

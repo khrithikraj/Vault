@@ -26,7 +26,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Download, FileText, Image, AlertTriangle, Loader2, Trash2, Pencil } from 'lucide-react'
 import { getSignedUrl } from '../../lib/documents'
-import { CopyButton } from '../CopyButton'
 import { ConfirmDialog } from '../ConfirmDialog'
 import { VaultButton } from '../ui/VaultButton'
 import { VaultDialog } from '../ui/VaultDialog'
@@ -34,6 +33,7 @@ import { DocumentEditDialog } from './DocumentEditDialog'
 import { PdfCanvasViewer } from './PdfCanvasViewer'
 import type { DocumentCategory, VaultDocument } from '../../types/app'
 import { FavoriteButton } from '../ui/FavoriteButton'
+import { MoreActionsMenu } from '../ui/MoreActionsMenu'
 
 type DocumentViewerProps = {
   doc: VaultDocument | null
@@ -215,50 +215,41 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate, onToggleFavor
                 </p>
               </div>
 
-              {/* Action buttons */}
+              {/* Action buttons — favorite stays direct (it is a toggle whose state
+                  is worth seeing), everything else lives in the overflow menu so the
+                  header never crowds the filename. */}
               <div className="flex shrink-0 items-center gap-2">
-                <CopyButton text={doc.name} label="Copy" copiedLabel="Copied" />
                 <FavoriteButton
                   active={doc.is_favorite}
                   label={doc.is_favorite ? `Remove ${doc.name} from favorites` : `Add ${doc.name} to favorites`}
                   onToggle={() => onToggleFavorite(doc)}
                 />
-                <VaultButton
-                  type="button"
-                  onClick={() => setEditOpen(true)}
-                  variant="chip"
-                  size="sm"
-                  icon={Pencil}
-                  className="uppercase tracking-wide text-ink-soft hover:text-ink"
-                  aria-label="Edit document"
-                  title="Edit document"
-                >
-                  <span className="hidden sm:inline">Edit</span>
-                </VaultButton>
-                <VaultButton
-                  type="button"
-                  onClick={() => setDeleteConfirmOpen(true)}
-                  variant="danger"
-                  size="sm"
-                  icon={Trash2}
-                  className="uppercase tracking-wide"
-                  aria-label="Delete document"
-                  title="Delete document"
-                >
-                  <span className="hidden sm:inline">Delete</span>
-                </VaultButton>
-                <VaultButton
-                  type="button"
-                  onClick={handleDownload}
-                  disabled={downloading}
-                  variant="solid"
-                  size="sm"
-                  icon={downloading ? Loader2 : Download}
-                  className={`uppercase tracking-wide disabled:opacity-50 ${downloading ? '[&>svg]:animate-spin' : ''}`}
-                  aria-label="Download document"
-                >
-                  <span className="hidden sm:inline">{downloading ? 'Downloading…' : 'Download'}</span>
-                </VaultButton>
+                <MoreActionsMenu
+                  triggerLabel="Document actions"
+                  align="right"
+                  items={[
+                    {
+                      id: 'edit',
+                      label: 'Edit',
+                      icon: Pencil,
+                      onSelect: () => setEditOpen(true),
+                    },
+                    {
+                      id: 'download',
+                      label: downloading ? 'Downloading.' : 'Download',
+                      icon: downloading ? Loader2 : Download,
+                      onSelect: () => { void handleDownload() },
+                    },
+                    {
+                      id: 'delete',
+                      label: 'Delete',
+                      icon: Trash2,
+                      danger: true,
+                      divider: true,
+                      onSelect: () => setDeleteConfirmOpen(true),
+                    },
+                  ]}
+                />
               </div>
             </div>
 

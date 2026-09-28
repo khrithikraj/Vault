@@ -18,6 +18,7 @@ import {
   AuthenticatedShell,
 } from './components/home/AuthenticatedShell'
 import { ArchiveIdentity } from './components/home/ArchiveIdentity'
+import { VaultStatusCapsule } from './components/home/VaultStatusCapsule'
 import { CommandSearch } from './components/home/CommandSearch'
 import { ArchiveObjects } from './components/home/ArchiveObjects'
 import { CategoryIndex } from './components/home/CategoryIndex'
@@ -750,6 +751,9 @@ export default function App({ onReturnToLanding = () => window.location.assign('
             onOpenAccount={() => setAccountPanelOpen(true)}
             preview={devPreview}
           />
+        }
+        capsule={
+          <VaultStatusCapsule savedCount={vault.items.length} doneCount={vault.doneCount} />
         }
         status={
           <DynamicIsland

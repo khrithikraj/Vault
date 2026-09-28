@@ -23,7 +23,7 @@ export function NoteDetailOverlay({
   onUpdate: (patch: Partial<Pick<Note, 'title' | 'body' | 'checklist' | 'is_favorite'>>) => Promise<void>
   reminders: ChecklistReminder[]
   dailyCompletions: DailyChecklistCompletion[]
-  onUpsertReminder: (input: { noteId: string; checklistItemId?: string | null; localTime: string; enabled: boolean; recurrence?: ReminderRecurrence; dayOfWeek?: Weekday | null; timezone?: string }) => void
+  onUpsertReminder: (input: { noteId: string; checklistItemId?: string | null; localTime: string; enabled: boolean; recurrence?: ReminderRecurrence; dayOfWeek?: Weekday | null; fireOnDate?: string | null; timezone?: string }) => void
   onRemoveReminder: (reminderId: string) => void
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
   onEnableNotifications: () => Promise<{ message?: string }>

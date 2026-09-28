@@ -40,7 +40,10 @@ export function CommandSearch({ value, onChange, placeholder }: CommandSearchPro
         layout="size"
         transition={reducedMotion({ type: 'spring', stiffness: 320, damping: 32 })}
         className={`cmd-surface flex items-center gap-3 rounded px-4 sm:px-5 ${
-          focused ? 'py-4' : 'py-3'
+          // The phone field keeps `py-4` at rest and on focus so the header it
+          // sits in does not change height every time the search takes focus;
+          // wide screens keep the original focus growth.
+          focused ? 'py-4' : 'py-4 sm:py-3'
         }`}
       >
         {/* Search icon — brightens on focus */}
@@ -100,7 +103,8 @@ export function CommandSearch({ value, onChange, placeholder }: CommandSearchPro
         </motion.button>
       </motion.div>
 
-      {/* "Enter the archive" hint — appears on focus */}
+      {/* "Enter the archive" hint — appears on focus. Phones drop it: it is a
+          keyboard affordance with no meaning on touch. */}
       <AnimatePresence>
         {focused ? (
           <motion.div
@@ -108,7 +112,7 @@ export function CommandSearch({ value, onChange, placeholder }: CommandSearchPro
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={reducedMotion({ duration: 0.18, ease: 'easeOut' })}
-            className="mt-2.5 flex items-center justify-center gap-3"
+            className="mt-2.5 hidden items-center justify-center gap-3 sm:flex"
           >
             <span aria-hidden="true" className="h-px flex-1 max-w-[3rem] bg-ink/10" />
             <span className="folio text-[9px] tracking-[0.28em] text-ink-soft/30">

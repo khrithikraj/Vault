@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { defaultCategorySeeds } from '../lib/defaults'
 import { normalizeCategory } from '../lib/fields'
-import { browserTimezone, computeNextFireAt, localDateInTimezone, type ReminderRecurrence } from '../lib/reminders'
+import { browserTimezone, isValidFireOnDate, localDateInTimezone, resolveNextFireAt, type ReminderRecurrence } from '../lib/reminders'
 import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { Category, ChecklistItem, ChecklistReminder, DailyChecklistCompletion, FieldDefinition, Note, VaultItem, Weekday } from '../types/app'
 import type { AuthPresentationState } from '../types/auth'
@@ -278,14 +278,25 @@ export function useMockVault() {
     enabled: boolean
     recurrence?: ReminderRecurrence
     dayOfWeek?: Weekday | null
+    /** Exact calendar date ("YYYY-MM-DD") for a 'once' reminder. */
+    fireOnDate?: string | null
     timezone?: string
   }) => {
     const targetItemId = input.checklistItemId ?? null
     const timezone = input.timezone ?? browserTimezone()
     const recurrence = input.recurrence ?? 'daily'
     const dayOfWeek = recurrence === 'weekly' ? (input.dayOfWeek ?? null) : null
+    const fireOnDate = recurrence === 'once' && isValidFireOnDate(input.fireOnDate)
+      ? (input.fireOnDate as string)
+      : null
     const nextFireAt = input.enabled
-      ? computeNextFireAt(input.localTime, recurrence, timezone, dayOfWeek)
+      ? resolveNextFireAt({
+          localTime: input.localTime,
+          recurrence,
+          timezone,
+          dayOfWeek,
+          fireOnDate,
+        })
       : null
     const existing = reminders.find(
       (entry) =>
@@ -300,6 +311,7 @@ export function useMockVault() {
       enabled: input.enabled,
       recurrence,
       day_of_week: dayOfWeek,
+      fire_on_date: fireOnDate,
       local_time: input.localTime,
       timezone,
       next_fire_at: nextFireAt,

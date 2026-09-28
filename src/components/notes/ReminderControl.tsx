@@ -5,22 +5,35 @@ import type { ChecklistReminder, DailyChecklistCompletion, Weekday } from '../..
 import {
   browserTimezone,
   formatRecurrenceLabel,
+  formatReminderDate,
   formatReminderTime,
   formatWeekdayLabel,
   isCompletedToday,
+  isValidFireOnDate,
   type ReminderRecurrence,
   WEEKDAYS,
+  zonedDateStr,
   zonedWeekday,
 } from '../../lib/reminders'
 import { CustomTimePicker } from '../ui/CustomTimePicker'
-import { layers } from '../../design/layers'
+import { CustomDatePicker } from '../ui/CustomDatePicker'
+import { layers, nestedLayerSelector } from '../../design/layers'
 
 export type ReminderControlProps = {
   reminder?: ChecklistReminder
   dailyCompletions: DailyChecklistCompletion[]
   targetTitle?: string
   targetType?: 'note' | 'item'
-  onSaveReminder: (localTime: string, recurrence?: ReminderRecurrence, dayOfWeek?: Weekday | null) => void
+  /**
+   * `fireOnDate` ("YYYY-MM-DD") is only meaningful for a 'once' reminder; the
+   * parent is expected to store it as NULL for every repeating mode.
+   */
+  onSaveReminder: (
+    localTime: string,
+    recurrence?: ReminderRecurrence,
+    dayOfWeek?: Weekday | null,
+    fireOnDate?: string | null,
+  ) => void
   onRemoveReminder: () => void
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
   variant?: 'chip' | 'item-button'
@@ -91,6 +104,15 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
     if (reminder?.day_of_week) return reminder.day_of_week
     return zonedWeekday(new Date(), reminder?.timezone ?? browserTimezone())
   })
+  // Exact calendar date for a 'once' reminder. Restored from the saved reminder
+  // when one exists; otherwise seeded with the reminder timezone's "today", so
+  // switching into Once always lands on a selectable, non-past date.
+  const reminderTimezone = reminder?.timezone || browserTimezone()
+  const [fireOnDate, setFireOnDate] = useState<string>(() =>
+    isValidFireOnDate(reminder?.fire_on_date)
+      ? (reminder?.fire_on_date as string)
+      : zonedDateStr(new Date(), reminder?.timezone || browserTimezone()),
+  )
 
   const [recurrenceMenuOpen, setRecurrenceMenuOpen] = useState(false)
   const [dayMenuOpen, setDayMenuOpen] = useState(false)
@@ -101,6 +123,10 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
 
   const isDoneToday = Boolean(reminder && isCompletedToday(reminder, dailyCompletions))
 
+  const isOnce = recurrence === 'once'
+  const dateMissing = isOnce && !isValidFireOnDate(fireOnDate)
+  const cannotSave = !localTime || dateMissing
+
   useEffect(() => {
     if (reminder && reminder.enabled) {
       setLocalTime(reminder.local_time.slice(0, 5))
@@ -110,23 +136,52 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
       } else {
         setDayOfWeek(zonedWeekday(new Date(), reminder.timezone || browserTimezone()))
       }
+      // Restore the saved date. A 'once' reminder always has one; if a legacy row
+      // somehow lacks it, fall back to today so the field is never blank.
+      setFireOnDate(
+        isValidFireOnDate(reminder.fire_on_date)
+          ? (reminder.fire_on_date as string)
+          : zonedDateStr(new Date(), reminder.timezone || browserTimezone()),
+      )
     } else if (!open) {
       setLocalTime('')
       setRecurrence('daily')
       setDayOfWeek(zonedWeekday(new Date(), browserTimezone()))
+      setFireOnDate(zonedDateStr(new Date(), browserTimezone()))
     }
   }, [reminder, open])
+
+  /**
+   * Switching recurrence moves the date with it: leaving 'once' clears the date
+   * so a repeating reminder can never be saved carrying a stale one, and entering
+   * 'once' re-seeds today's date (keeping an existing selection if the user is
+   * just toggling back and forth within the dialog).
+   */
+  const handleRecurrenceChange = (next: ReminderRecurrence) => {
+    setRecurrence(next)
+    setRecurrenceMenuOpen(false)
+    if (next !== 'once') {
+      setFireOnDate('')
+    } else if (!isValidFireOnDate(fireOnDate)) {
+      setFireOnDate(zonedDateStr(new Date(), reminderTimezone))
+    }
+  }
 
   useEffect(() => {
     if (!open) return
 
     function handleClickOutside(event: MouseEvent) {
       const trigger = getTrigger()
+      const target = event.target as Node
+      // The date picker renders as a sibling portal (see NESTED_LAYER_ATTR): a
+      // click inside it is a click *inside* this popover, and must not dismiss it.
+      const insideNestedLayer = target instanceof Element && target.closest(nestedLayerSelector) !== null
       if (
         popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node) &&
+        !popoverRef.current.contains(target) &&
+        !insideNestedLayer &&
         trigger &&
-        !trigger.contains(event.target as Node)
+        !trigger.contains(target)
       ) {
         requestOpen(false)
         setRecurrenceMenuOpen(false)
@@ -197,14 +252,16 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', place, true)
     }
-  }, [open, recurrenceMenuOpen, dayMenuOpen, getTrigger])
+  }, [open, recurrenceMenuOpen, dayMenuOpen, getTrigger, isOnce])
 
   const handleSave = () => {
-    if (!localTime) return
+    if (cannotSave) return
     onSaveReminder(
       localTime,
       recurrence,
       recurrence === 'weekly' ? dayOfWeek : null,
+      // Only 'once' carries a date. Every repeating mode is saved as NULL.
+      isOnce ? fireOnDate : null,
     )
     requestOpen(false)
   }
@@ -217,8 +274,20 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
   const headerLabel = reminder && reminder.enabled
     ? isDoneToday
       ? `Done today · ${formatReminderTime(reminder.local_time)}`
-      : `${formatRecurrenceLabel(reminder.recurrence)} · ${formatReminderTime(reminder.local_time)}`
+      : reminder.recurrence === 'once' && isValidFireOnDate(reminder.fire_on_date)
+        // Surface the chosen date in the chip so an exact-date reminder is
+        // unmistakable at a glance.
+        ? `Once · ${formatReminderDate(reminder.fire_on_date)} · ${formatReminderTime(reminder.local_time)}`
+        : `${formatRecurrenceLabel(reminder.recurrence)} · ${formatReminderTime(reminder.local_time)}`
     : 'Set reminder'
+
+  const itemTriggerLabel = reminder && reminder.enabled
+    ? isDoneToday
+      ? `Done today · ${formatReminderTime(reminder.local_time)}`
+      : reminder.recurrence === 'once' && isValidFireOnDate(reminder.fire_on_date)
+        ? `Once on ${formatReminderDate(reminder.fire_on_date)} at ${formatReminderTime(reminder.local_time)}`
+        : `${formatRecurrenceLabel(reminder.recurrence)} reminder at ${formatReminderTime(reminder.local_time)}`
+    : 'Set item reminder'
 
   return (
     <div className="relative inline-block text-left">
@@ -268,18 +337,8 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
           onClick={() => requestOpen(!open)}
           aria-expanded={open}
           aria-haspopup="dialog"
-          aria-label={
-            reminder && reminder.enabled
-              ? isDoneToday
-                ? `Done today · ${formatReminderTime(reminder.local_time)}`
-                : `${formatRecurrenceLabel(reminder.recurrence)} reminder at ${formatReminderTime(reminder.local_time)}`
-              : 'Set item reminder'
-          }
-          title={
-            reminder && reminder.enabled
-              ? `${formatRecurrenceLabel(reminder.recurrence)} reminder at ${formatReminderTime(reminder.local_time)}`
-              : 'Set item reminder'
-          }
+          aria-label={itemTriggerLabel}
+          title={itemTriggerLabel}
           className={
             triggerClassName ||
             (reminder && reminder.enabled
@@ -299,6 +358,9 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
                 <Bell size={11} />
               )}
               <span className="font-mono text-[10px]">
+                {reminder.recurrence === 'once' && isValidFireOnDate(reminder.fire_on_date)
+                  ? `${formatReminderDate(reminder.fire_on_date).slice(0, 6)} `
+                  : ''}
                 {formatReminderTime(reminder.local_time)}
               </span>
             </>
@@ -387,10 +449,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
                   <button
                     key={opt}
                     type="button"
-                    onClick={() => {
-                      setRecurrence(opt)
-                      setRecurrenceMenuOpen(false)
-                    }}
+                    onClick={() => handleRecurrenceChange(opt)}
                     className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left transition-colors ${
                       recurrence === opt
                         ? 'bg-accent/15 text-accent font-bold'
@@ -404,6 +463,16 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
               </div>
             )}
           </div>
+
+          {/* Date Selector (only when recurrence is Once) — the exact calendar
+              day, in the reminder's own timezone. */}
+          {isOnce && (
+            <CustomDatePicker
+              value={fireOnDate}
+              onChange={setFireOnDate}
+              min={zonedDateStr(new Date(), reminderTimezone)}
+            />
+          )}
 
           {/* Day Selector (only when recurrence is Weekly) */}
           {recurrence === 'weekly' && (
@@ -473,11 +542,12 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
 
             <button
               type="button"
-              disabled={!localTime}
+              disabled={cannotSave}
               onClick={handleSave}
               className={`vault-btn-solid rounded-full px-4 py-1 text-xs font-bold uppercase tracking-wide transition-opacity ${
-                !localTime ? 'opacity-40 cursor-not-allowed' : ''
+                cannotSave ? 'opacity-40 cursor-not-allowed' : ''
               }`}
+              title={dateMissing ? 'Pick a date for a one-time reminder' : undefined}
             >
               Save
             </button>

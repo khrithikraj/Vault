@@ -114,27 +114,93 @@ export function zonedWallClockToUtc(localDate: string, localTime: string, zone: 
   return new Date(instant)
 }
 
-/**
- * Recurrence-aware initial or updated next_fire_at calculation (client-side).
- *
- * `once`     → first future occurrence at the given local time (today or tomorrow).
- * `daily`    → same as once (first future today/tomorrow).
- * `weekdays` → first future Mon–Fri occurrence.
- * `weekly`   → first future occurrence on the specified `dayOfWeek` (or today's weekday if omitted).
- *
- * Always returns strictly after `now`.
- */
-export function computeNextFireAt(
-  localTime: string,
-  recurrence: ReminderRecurrence,
-  timezone: string,
-  dayOfWeek?: Weekday | null,
-  now = new Date(),
-): string {
-  const zone = timezone || browserTimezone()
-  const time = localTime.slice(0, 5)
+/** Strict, allocation-free "YYYY-MM-DD" parser. Returns null for anything that is
+ *  not a real calendar date (so "2026-02-30" and "2026-13-01" are rejected).
+ *  Deliberately never constructs a `Date` from the string: a bare
+ *  `new Date('2026-10-14')` is parsed as UTC midnight and silently shifts a day
+ *  for anyone west of Greenwich. */
+export function parseFireOnDate(value: string | null | undefined): { year: number; month: number; day: number } | null {
+  if (!value) return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  // Round-trip through a UTC calendar date to reject overflow days like 2026-02-30.
+  const probe = new Date(Date.UTC(year, month - 1, day))
+  if (probe.getUTCFullYear() !== year || probe.getUTCMonth() !== month - 1 || probe.getUTCDate() !== day) {
+    return null
+  }
+  return { year, month, day }
+}
 
-  if (recurrence === 'once' || recurrence === 'daily') {
+/** True when `value` is a usable "YYYY-MM-DD" calendar date. */
+export function isValidFireOnDate(value: string | null | undefined): boolean {
+  return parseFireOnDate(value) !== null
+}
+
+export const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+/** Renders a "YYYY-MM-DD" fire date as "14 Oct 2026" for display. Pure string
+ *  handling — no `Date`, so the shown day can never drift from the stored day.
+ *  Single-digit days stay unpadded, matching `formatReminderTime`. */
+export function formatReminderDate(value: string | null | undefined): string {
+  const parsed = parseFireOnDate(value)
+  if (!parsed) return ''
+  return `${parsed.day} ${MONTH_NAMES[parsed.month - 1].slice(0, 3)} ${parsed.year}`
+}
+
+export type ReminderScheduleInput = {
+  localTime: string
+  recurrence: ReminderRecurrence
+  timezone?: string | null
+  dayOfWeek?: Weekday | null
+  /** Exact calendar date for a 'once' reminder ("YYYY-MM-DD"). Ignored otherwise. */
+  fireOnDate?: string | null
+  now?: Date
+}
+
+/**
+ * Recurrence-aware next_fire_at calculation. The single source of truth for
+ * client scheduling.
+ *
+ * `once`     → the EXACT instant for `fireOnDate` + `localTime` in the reminder
+ *               timezone, never advanced. With no `fireOnDate` (legacy rows) it
+ *               falls back to the first future occurrence today or tomorrow.
+ * `daily`    → first future occurrence today/tomorrow.
+ * `weekdays` → first future Mon–Fri occurrence.
+ * `weekly`   → first future occurrence on the specified `dayOfWeek` (or today's
+ *               weekday if omitted).
+ */
+export function resolveNextFireAt(input: ReminderScheduleInput): string {
+  const { recurrence, dayOfWeek, fireOnDate } = input
+  const now = input.now ?? new Date()
+  const zone = input.timezone || browserTimezone()
+  const time = input.localTime.slice(0, 5)
+
+  if (recurrence === 'once') {
+    // An explicit date means the user chose this exact calendar day, so the
+    // occurrence is derived straight from it. `zonedWallClockToUtc` reads the
+    // date as a wall-clock value IN the reminder's timezone, which is what keeps
+    // the UTC instant correct instead of being shifted by the machine's own zone.
+    if (isValidFireOnDate(fireOnDate)) {
+      return zonedWallClockToUtc(fireOnDate as string, time, zone).toISOString()
+    }
+
+    let localDate = zonedDateStr(now, zone)
+    let candidate = zonedWallClockToUtc(localDate, time, zone)
+    if (candidate.getTime() <= now.getTime()) {
+      localDate = addDay(localDate)
+      candidate = zonedWallClockToUtc(localDate, time, zone)
+    }
+    return candidate.toISOString()
+  }
+
+  if (recurrence === 'daily') {
     let localDate = zonedDateStr(now, zone)
     let candidate = zonedWallClockToUtc(localDate, time, zone)
     if (candidate.getTime() <= now.getTime()) {
@@ -181,6 +247,29 @@ export function computeNextFireAt(
     candidate = zonedWallClockToUtc(localDate, time, zone)
   }
   return candidate.toISOString()
+}
+
+/**
+ * Recurrence-aware initial or updated next_fire_at calculation (client-side).
+ *
+ * Positional wrapper over {@link resolveNextFireAt}, kept for the existing call
+ * sites. `fireOnDate` is last so the historical `(localTime, recurrence, timezone,
+ * dayOfWeek, now)` argument order stays valid.
+ *
+ * Always returns strictly after `now` for every REPEATING mode. A 'once'
+ * reminder that carries an explicit `fireOnDate` is the one exception: it
+ * returns that exact instant verbatim, because silently rolling a chosen date
+ * forward to tomorrow is precisely the behaviour the date picker exists to stop.
+ */
+export function computeNextFireAt(
+  localTime: string,
+  recurrence: ReminderRecurrence,
+  timezone: string,
+  dayOfWeek?: Weekday | null,
+  now = new Date(),
+  fireOnDate?: string | null,
+): string {
+  return resolveNextFireAt({ localTime, recurrence, timezone, dayOfWeek, now, fireOnDate })
 }
 
 export function isCompletedToday(

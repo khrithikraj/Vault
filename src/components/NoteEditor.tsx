@@ -9,7 +9,7 @@ import { ShareStatusPanel } from './ShareStatusPanel'
 import { FavoriteButton } from './ui/FavoriteButton'
 import { MoreActionsMenu, type MoreActionItem } from './ui/MoreActionsMenu'
 import { isNoteFavorite } from '../lib/favorites'
-import { browserTimezone, formatRecurrenceLabel, formatReminderTime, isCompletedToday, noteReminder, reminderForItem, type ReminderRecurrence } from '../lib/reminders'
+import { browserTimezone, formatRecurrenceLabel, formatReminderDate, formatReminderTime, isCompletedToday, isValidFireOnDate, noteReminder, reminderForItem, type ReminderRecurrence } from '../lib/reminders'
 import { getNotificationStatus, type NotificationStatus } from '../lib/notifications'
 import { cn } from '../design/cn'
 import { NoteReminderControl } from './notes/NoteReminderControl'
@@ -43,7 +43,7 @@ export function NoteEditor({
   onUpdate: (patch: Partial<Pick<Note, 'title' | 'body' | 'checklist' | 'is_favorite'>>) => Promise<void>
   reminders: ChecklistReminder[]
   dailyCompletions: DailyChecklistCompletion[]
-  onUpsertReminder: (input: { checklistItemId?: string | null; localTime: string; enabled: boolean; recurrence?: ReminderRecurrence; dayOfWeek?: Weekday | null; timezone?: string }) => void
+  onUpsertReminder: (input: { checklistItemId?: string | null; localTime: string; enabled: boolean; recurrence?: ReminderRecurrence; dayOfWeek?: Weekday | null; fireOnDate?: string | null; timezone?: string }) => void
   onRemoveReminder: (reminderId: string) => void
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
   onEnableNotifications: () => Promise<{ message?: string }>
@@ -234,16 +234,25 @@ export function NoteEditor({
     }
   }
 
+  // An exact-date "Once" reminder spells its date out in the label, so the chosen
+  // day is visible without opening the dialog.
+  const onceDate = currentNoteReminder?.recurrence === 'once' && isValidFireOnDate(currentNoteReminder.fire_on_date)
+    ? formatReminderDate(currentNoteReminder.fire_on_date)
+    : null
   const reminderTrailing = currentNoteReminder?.enabled
     ? isReminderDoneToday
       ? `Done today · ${formatReminderTime(currentNoteReminder.local_time)}`
-      : `${formatRecurrenceLabel(currentNoteReminder.recurrence)} · ${formatReminderTime(currentNoteReminder.local_time)}`
+      : onceDate
+        ? `Once · ${onceDate} · ${formatReminderTime(currentNoteReminder.local_time)}`
+        : `${formatRecurrenceLabel(currentNoteReminder.recurrence)} · ${formatReminderTime(currentNoteReminder.local_time)}`
     : undefined
   const reminderTime = currentNoteReminder?.enabled ? formatReminderTime(currentNoteReminder.local_time) : undefined
   const reminderChipLabel = currentNoteReminder?.enabled
     ? isReminderDoneToday
       ? `Done today · ${reminderTime}`
-      : `${formatRecurrenceLabel(currentNoteReminder.recurrence)} reminder at ${reminderTime}`
+      : onceDate
+        ? `Once on ${onceDate} at ${reminderTime}`
+        : `${formatRecurrenceLabel(currentNoteReminder.recurrence)} reminder at ${reminderTime}`
     : 'Set reminder'
 
   const notificationsItem: MoreActionItem = (() => {
@@ -372,13 +381,14 @@ export function NoteEditor({
           onOpenChange={setReminderOpen}
           triggerRef={reminderAnchorRef}
           hideTrigger
-          onSaveReminder={(localTime, recurrence, dayOfWeek) =>
+          onSaveReminder={(localTime, recurrence, dayOfWeek, fireOnDate) =>
             onUpsertReminder({
               checklistItemId: null,
               localTime,
               enabled: true,
               recurrence,
               dayOfWeek,
+              fireOnDate,
               timezone: browserTimezone(),
             })
           }
@@ -456,13 +466,14 @@ export function NoteEditor({
                 onToggle={() => toggleChecklistItem(item.id)}
                 onTextChange={(text) => updateChecklistItemText(item.id, text)}
                 onRemove={() => removeChecklistItem(item.id)}
-                onSetItemReminder={(localTime, recurrence, dayOfWeek) =>
+                onSetItemReminder={(localTime, recurrence, dayOfWeek, fireOnDate) =>
                   onUpsertReminder({
                     checklistItemId: item.id,
                     localTime,
                     enabled: true,
                     recurrence,
                     dayOfWeek,
+                    fireOnDate,
                     timezone: reminderForItem(reminders, note.id, item.id)?.timezone ?? browserTimezone(),
                   })
                 }
@@ -526,7 +537,7 @@ function ChecklistRow({
   onToggle: () => void
   onTextChange: (text: string) => void
   onRemove: () => void
-  onSetItemReminder: (localTime: string, recurrence?: ReminderRecurrence, dayOfWeek?: Weekday | null) => void
+  onSetItemReminder: (localTime: string, recurrence?: ReminderRecurrence, dayOfWeek?: Weekday | null, fireOnDate?: string | null) => void
   onRemoveItemReminder: () => void
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
 }) {
@@ -535,10 +546,15 @@ function ChecklistRow({
   const moreButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const isDoneToday = Boolean(itemReminder?.enabled && isCompletedToday(itemReminder, dailyCompletions))
+  const itemOnceDate = itemReminder?.recurrence === 'once' && isValidFireOnDate(itemReminder.fire_on_date)
+    ? formatReminderDate(itemReminder.fire_on_date)
+    : null
   const reminderLabel = itemReminder?.enabled
     ? isDoneToday
       ? `Done today · ${formatReminderTime(itemReminder.local_time)}`
-      : `${formatRecurrenceLabel(itemReminder.recurrence)} reminder at ${formatReminderTime(itemReminder.local_time)}`
+      : itemOnceDate
+        ? `Once on ${itemOnceDate} at ${formatReminderTime(itemReminder.local_time)}`
+        : `${formatRecurrenceLabel(itemReminder.recurrence)} reminder at ${formatReminderTime(itemReminder.local_time)}`
     : 'Set item reminder'
 
   const moreItems: MoreActionItem[] = [

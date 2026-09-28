@@ -4,13 +4,17 @@ import {
   buildNotificationContent,
   formatWebPushSubscription,
   hasCompletionOnDate,
+  isOnceOccurrenceDue,
   isReminderValid,
   isSubscriptionGone,
+  isValidFireOnDate,
   isValidReminderTime,
   isValidTimezone,
   nextFireAt,
   nextFireAtForRecurrence,
   normalizeNote,
+  onceFireAt,
+  parseFireOnDate,
   preflightReminder,
   zonedDateStr,
   zonedWallClockToUtc,
@@ -310,6 +314,107 @@ describe('preflightReminder', () => {
 
   it('accepts the HH:MM:SS local_time form returned by Postgres', () => {
     expect(reasonFor({ ...base, local_time: '09:00:00' })).toBe(null)
+  })
+})
+
+describe('exact-date "once" reminders on the server (fire_on_date)', () => {
+  const base = {
+    checklist_item_id: null as string | null,
+    local_time: '09:00',
+    timezone: KOLKATA,
+    next_fire_at: null as string | null,
+    notes: { title: 'Ideas', deleted_at: null as string | null },
+  }
+
+  it('resolves the exact UTC instant from fire_on_date + local_time + timezone', () => {
+    // 09:00 IST (UTC+5:30) on 2026-10-14 = 03:30 UTC the same day.
+    const at = onceFireAt({
+      recurrence: 'once',
+      fire_on_date: '2026-10-14',
+      local_time: '09:00',
+      timezone: KOLKATA,
+    })
+    expect(at?.toISOString()).toBe('2026-10-14T03:30:00.000Z')
+  })
+
+  it('returns null for repeating modes and for a legacy NULL date', () => {
+    expect(
+      onceFireAt({ recurrence: 'daily', fire_on_date: '2026-10-14', local_time: '09:00', timezone: KOLKATA }),
+    ).toBeNull()
+    expect(onceFireAt({ recurrence: 'once', local_time: '09:00', timezone: KOLKATA })).toBeNull()
+  })
+
+  it('is due only once the intended instant has actually arrived', () => {
+    const r = { recurrence: 'once' as const, fire_on_date: '2026-10-14', local_time: '09:00', timezone: KOLKATA }
+    // One minute early -> not due.
+    expect(isOnceOccurrenceDue(r, new Date('2026-10-14T03:29:00.000Z'))).toBe(false)
+    // Exactly at the instant -> due.
+    expect(isOnceOccurrenceDue(r, new Date('2026-10-14T03:30:00.000Z'))).toBe(true)
+    // After -> still due.
+    expect(isOnceOccurrenceDue(r, new Date('2026-10-14T03:31:00.000Z'))).toBe(true)
+  })
+
+  it('treats every reminder without a fire date as due (governed by next_fire_at)', () => {
+    expect(isOnceOccurrenceDue({ local_time: '09:00', timezone: KOLKATA })).toBe(true)
+    expect(isOnceOccurrenceDue({ recurrence: 'daily', local_time: '09:00', timezone: KOLKATA })).toBe(true)
+    expect(isOnceOccurrenceDue({ recurrence: 'once', fire_on_date: null, local_time: '09:00', timezone: KOLKATA })).toBe(true)
+  })
+
+  it('rejects an impossible calendar date on a once reminder', () => {
+    const result = preflightReminder({ ...base, recurrence: 'once', fire_on_date: '2026-02-30' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.reason).toBe('invalid-fire-on-date')
+      // A corrupt date is a permanent defect, not a timing hiccup: it must NOT be
+      // retryable, otherwise the row would never be disabled.
+      expect(result.retryable).toBeFalsy()
+    }
+  })
+
+  it('reports a future exact-date once reminder as RETRYABLE, not invalid', () => {
+    // A stale next_fire_at that would fire early must not disable the row.
+    const result = preflightReminder(
+      { ...base, recurrence: 'once', fire_on_date: '2026-10-14', next_fire_at: '2026-10-01T03:30:00.000Z' },
+      new Date('2026-09-15T08:00:00.000Z'),
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.reason).toBe('once-not-due')
+      expect(result.retryable).toBe(true)
+    }
+  })
+
+  it('accepts a due exact-date once reminder and a legacy NULL-date once reminder', () => {
+    const now = new Date('2026-10-14T04:00:00.000Z')
+    expect(preflightReminder({ ...base, recurrence: 'once', fire_on_date: '2026-10-14' }, now).ok).toBe(true)
+    // No date at all (pre-migration row) is still perfectly valid.
+    expect(preflightReminder({ ...base, recurrence: 'once', fire_on_date: null }, now).ok).toBe(true)
+  })
+
+  it('ignores fire_on_date entirely for repeating modes', () => {
+    const now = new Date('2026-09-15T08:00:00.000Z')
+    expect(
+      preflightReminder({ ...base, recurrence: 'daily', fire_on_date: '2026-12-25' }, now).ok,
+    ).toBe(true)
+    // A nonsense date on a daily reminder is irrelevant and must not reject it.
+    expect(preflightReminder({ ...base, recurrence: 'daily', fire_on_date: 'not-a-date' }, now).ok).toBe(true)
+  })
+
+  it('keeps next_fire_at as the trigger: once still returns null so the caller disables it', () => {
+    expect(
+      nextFireAtForRecurrence(
+        { recurrence: 'once', fire_on_date: '2026-10-14', local_time: '09:00', timezone: KOLKATA, next_fire_at: null },
+        new Date('2026-09-15T08:00:00.000Z'),
+      ),
+    ).toBeNull()
+  })
+
+  it('parses fire dates as plain calendar strings (no UTC-midnight day shift)', () => {
+    expect(parseFireOnDate('2026-10-14')).toEqual({ year: 2026, month: 10, day: 14 })
+    expect(isValidFireOnDate('2026-02-30')).toBe(false)
+    expect(isValidFireOnDate('2026-13-01')).toBe(false)
+    expect(isValidFireOnDate('2024-02-29')).toBe(true)
+    expect(isValidFireOnDate('2026-02-29')).toBe(false)
   })
 })
 

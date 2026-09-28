@@ -12,7 +12,7 @@ import { supabase, supabaseConfigured, vaultBucket } from '../lib/supabase'
 import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { AuthPresentationState } from '../types/auth'
 import type { Category, ChecklistItem, ChecklistReminder, DailyChecklistCompletion, FieldDefinition, Note, VaultItem, Weekday } from '../types/app'
-import { browserTimezone, computeNextFireAt, localDateInTimezone, validateReminderTime, type ReminderRecurrence } from '../lib/reminders'
+import { browserTimezone, isValidFireOnDate, localDateInTimezone, resolveNextFireAt, validateReminderTime, type ReminderRecurrence } from '../lib/reminders'
 
 // The remote `reminders` table may predate migration 20260916000008 (adds the
 // day_of_week column). Writing `day_of_week` to a schema that lacks it fails every
@@ -27,6 +27,21 @@ function remindersSupportDayOfWeek(): Promise<boolean> {
     })().catch(() => false)
   }
   return dayOfWeekColumnProbe
+}
+
+// Same story for `fire_on_date` (migration 20260928000009): a schema that predates
+// it must not start failing every reminder save, so probe before writing it. When
+// the column is absent an exact-date 'once' reminder still saves and still carries
+// the correct next_fire_at, it just cannot be reopened with its date restored.
+let fireOnDateColumnProbe: Promise<boolean> | null = null
+function remindersSupportFireOnDate(): Promise<boolean> {
+  if (!fireOnDateColumnProbe) {
+    fireOnDateColumnProbe = (async () => {
+      const { error } = await supabase.from('reminders').select('fire_on_date').limit(0)
+      return !error
+    })().catch(() => false)
+  }
+  return fireOnDateColumnProbe
 }
 
 function getAuthErrorMessage(message: string) {
@@ -777,6 +792,8 @@ export function useVault() {
     enabled: boolean
     recurrence?: ReminderRecurrence
     dayOfWeek?: Weekday | null
+    /** Exact calendar date ("YYYY-MM-DD") for a 'once' reminder. */
+    fireOnDate?: string | null
     timezone?: string
   }) => {
     if (!session?.user?.id) return
@@ -788,8 +805,24 @@ export function useVault() {
     const timezone = input.timezone ?? browserTimezone()
     const recurrence = input.recurrence ?? 'daily'
     const dayOfWeek = recurrence === 'weekly' ? (input.dayOfWeek ?? null) : null
+    // Only a 'once' reminder carries a date. Every repeating mode is explicitly
+    // stored as NULL so switching Once -> Daily/Weekdays/Weekly can never leave a
+    // stale date behind on a repeating row.
+    const fireOnDate = recurrence === 'once' && isValidFireOnDate(input.fireOnDate)
+      ? (input.fireOnDate as string)
+      : null
+    if (recurrence === 'once' && !fireOnDate) {
+      setMessage('Pick a date for a one-time reminder.')
+      return
+    }
     const nextFireAt = input.enabled
-      ? computeNextFireAt(input.localTime, recurrence, timezone, dayOfWeek)
+      ? resolveNextFireAt({
+          localTime: input.localTime,
+          recurrence,
+          timezone,
+          dayOfWeek,
+          fireOnDate,
+        })
       : null
 
     // Find-then-update-or-insert: partial unique indexes on nullable columns cannot
@@ -802,6 +835,7 @@ export function useVault() {
     )
 
     const includeDayOfWeek = await remindersSupportDayOfWeek()
+    const includeFireOnDate = await remindersSupportFireOnDate()
     const reminderFields = {
       local_time: input.localTime,
       enabled: input.enabled,
@@ -809,6 +843,7 @@ export function useVault() {
       timezone,
       next_fire_at: nextFireAt,
       ...(includeDayOfWeek ? { day_of_week: dayOfWeek } : {}),
+      ...(includeFireOnDate ? { fire_on_date: fireOnDate } : {}),
     }
 
     let data: ChecklistReminder | null = null

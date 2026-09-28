@@ -11,15 +11,20 @@ type ArchiveIdentityProps = {
 /**
  * V2 — Archive identity header.
  *
- * Two-column hierarchy: each column owns its primary label plus subordinate
- * metadata tucked underneath it.
+ * PHONE (< 640px) — one quiet row, nothing crowding it:
+ *
+ *   (o) RAJ'S VAULT                                   (person)
+ *
+ *   The brand is a single unbroken line, "Private catalogue" is gone, and the
+ *   account entry point is the icon alone (its accessible name and tooltip are
+ *   unchanged). The saved/done tallies are NOT here on a phone — they live in
+ *   the `VaultStatusCapsule` under the header.
+ *
+ * WIDE (>= 640px) — unchanged two-column hierarchy, each column owning its
+ * primary label plus subordinate metadata tucked underneath:
  *
  *   RAJ'S VAULT                        ACCOUNT
  *   Private catalogue                  22 SAVED | 1 DONE
- *
- * The brand + lock read as one identity; the tallies are quiet metadata under
- * the Account entry point, never above the brand. Reads as an expensive
- * archival colophon — not a marketing hero banner.
  */
 export function ArchiveIdentity({
   savedCount,
@@ -27,8 +32,10 @@ export function ArchiveIdentity({
   onOpenAccount,
   preview = false,
 }: ArchiveIdentityProps) {
+  const accountLabel = preview ? 'Preview' : 'Account'
+
   return (
-    <header className="flex items-start justify-between gap-3">
+    <header className="flex items-center justify-between gap-3 sm:items-start">
       <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
         <div
           aria-hidden="true"
@@ -42,11 +49,17 @@ export function ArchiveIdentity({
         </div>
 
         <div className="min-w-0">
-          <h1 className="min-w-0 font-display text-[1.3rem] font-semibold uppercase leading-[0.9] tracking-[0.08em] text-ink sm:text-[1.6rem]" aria-label="Raj's Vault">
-            <span>Raj&apos;s</span>
-            <span className="block tracking-[0.22em] text-ink-soft/60">Vault</span>
+          <h1
+            className="min-w-0 font-display text-[1.3rem] font-semibold uppercase leading-[0.9] tracking-[0.08em] text-ink sm:text-[1.6rem]"
+            aria-label="Raj's Vault"
+          >
+            {/* Phone: one single line, never wrapping. */}
+            <span className="block whitespace-nowrap sm:hidden">Raj&apos;s Vault</span>
+            {/* Wide: the original stacked treatment. */}
+            <span className="hidden sm:block">Raj&apos;s</span>
+            <span className="hidden sm:block tracking-[0.22em] text-ink-soft/60">Vault</span>
           </h1>
-          <p className="vault-meta mt-1.5 text-[9px] tracking-[0.18em] text-ink-soft/60 sm:mt-2">
+          <p className="vault-meta mt-1.5 hidden text-[9px] tracking-[0.18em] text-ink-soft/60 sm:mt-2 sm:block">
             Private catalogue
           </p>
         </div>
@@ -58,14 +71,15 @@ export function ArchiveIdentity({
           onClick={onOpenAccount}
           className="flex items-center gap-1.5 rounded py-1.5 pl-2 pr-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft transition-colors hover:text-ink"
           aria-label={preview ? 'Preview mode account panel' : 'Account settings'}
+          title={preview ? 'Preview mode account panel' : 'Account settings'}
           data-tour="account"
         >
           <User size={12} aria-hidden="true" />
-          {preview ? 'Preview' : 'Account'}
+          <span className="hidden sm:inline">{accountLabel}</span>
         </button>
 
-        {/* Subordinate tallies — noticeably smaller/dimmer than the Account label */}
-        <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.12em] text-ink-soft/55 sm:text-[10px]">
+        {/* Subordinate tallies — phone reads them in the status capsule. */}
+        <div className="hidden items-center gap-1.5 text-[9px] uppercase tracking-[0.12em] text-ink-soft/55 sm:flex sm:text-[10px]">
           <AnimatedNumber
             value={savedCount}
             className="font-display text-[10px] font-semibold tabular-nums text-ink sm:text-[11px]"

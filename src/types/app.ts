@@ -62,6 +62,9 @@ export type ChecklistReminder = {
   enabled: boolean
   recurrence: 'once' | 'daily' | 'weekdays' | 'weekly'
   day_of_week?: Weekday | null
+  /** 'YYYY-MM-DD' calendar date the user picked for a 'once' reminder. NULL for
+   *  every repeating mode. The exact UTC instant still lives in next_fire_at. */
+  fire_on_date?: string | null
   local_time: string
   timezone: string
   next_fire_at: string | null

@@ -26,5 +26,18 @@ export const layers = {
 } as const
  
 export type Layer = keyof typeof layers
- 
+
 export const z = (layer: Layer): number => layers[layer]
+
+/**
+ * Marks a portaled surface that logically belongs to an open dialog/popover but
+ * has to render as a sibling of it on <body> — otherwise a transformed ancestor
+ * (e.g. the centred popover's `translate`) would become its containing block and
+ * clip it. Because the two are DOM siblings rather than parent/child, a
+ * dismissal handler that only checks `ref.contains(event.target)` reads a click
+ * inside the child as "outside" and closes the very dialog it belongs to. Any
+ * surface carrying this attribute is treated as part of its opener.
+ */
+export const NESTED_LAYER_ATTR = 'data-vault-nested-layer'
+
+export const nestedLayerSelector = `[${NESTED_LAYER_ATTR}]`

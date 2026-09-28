@@ -476,7 +476,15 @@ button {
     z-index: var(--z-content);
     width: min(calc(100% - 2.5rem), var(--accession-document-width));
     margin-inline: auto;
-    padding-top: var(--accession-space-4);
+    /* The page's top inset, i.e. the breathing room between the top of the
+       viewport and the identity row. `--safe-top` is `env(safe-area-inset-top)`
+       and keeps the header clear of a notch or the browser's own top chrome on
+       a phone; the spacing token supplies the deliberate air below it. The inset
+       resolves to 0px in a desktop browser, so this changes nothing on a wide
+       viewport. The header is in normal flow below, so it contributes its own
+       height to the layout — this padding is an inset, not a reserved band for
+       a header that would otherwise overlap the content. */
+    padding-top: calc(var(--safe-top) + var(--accession-space-4));
   }
  
   .vault-section {
@@ -520,7 +528,7 @@ button {
   @media (max-width: 420px) {
     .vault-page {
       width: min(calc(100% - 2rem), var(--accession-document-width));
-      padding-top: var(--accession-space-3);
+      padding-top: calc(var(--safe-top) + var(--accession-space-3));
     }
  
     .vault-section-header {
@@ -528,7 +536,61 @@ button {
     }
   }
  
+  /* ----------------------------------------------------------------------
+     TOP VAULT CHROME
+     The header — identity row, status capsule, search field — is ordinary
+     document flow, at every width. It is a plain child of `.vault-page`, so it
+     takes its width and centring from the page, occupies the top of the page,
+     pushes the catalogue down by its own height, and scrolls away with it: the
+     browser's page scroll moves the header and the content as one. Deliberately
+     absent here: any `position: fixed` / `sticky`, any header height constant
+     the page would have to reserve, and any background of the chrome's own —
+     the Vault canvas behind the page is already the surface the header wants,
+     so the header and the cards read as one continuous field rather than a
+     panel sitting on top of it. The only bordered things in the header are the
+     objects that are borders in their own right: the status capsule and the
+     search field.
+     ---------------------------------------------------------------------- */
+  .vault-chrome {
+    /* The one thing the chrome still owns: air between the search field and
+       the catalogue's first rule. A phone header is three stacked pieces tall,
+       so without it the section header crowds the field. A wide screen keeps
+       the spacing it always had. */
+    padding-bottom: var(--accession-space-2);
+  }
+
+  @media (min-width: 640px) {
+    .vault-chrome {
+      padding-bottom: 0;
+    }
+  }
+ 
+  /* Fixed Vault status capsule — a small, always-present status object. Quieter
+     and flatter than `.island`: a dark pill, a hairline rim and a whisper of
+     depth, with no accent halo. It is an object in its own right, so it keeps
+     its own surface and rim even though the header around it has none. */
+  .vault-capsule {
+    background: rgba(20, 14, 9, 0.86);
+    border: 1px solid rgba(245, 234, 216, 0.08);
+    box-shadow:
+      0 0 0 1px rgba(196, 72, 0, 0.06),
+      0 12px 30px -16px rgba(0, 0, 0, 0.9),
+      inset 0 1px 0 rgba(245, 234, 216, 0.05);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  }
+
+  /* The capsule's count labels sit on the pill's own translucent surface over
+     the Vault canvas, where the shared `.vault-meta` ink-soft (#7a6e60) reads
+     below 4.5:1 and fails WCAG AA. Relight them to a warmer secondary ink
+     (~6:1) that stays clearly dimmer than the numerals. Specificity beats the
+     unlayered `.vault-meta` colour. */
+  .vault-capsule .vault-meta {
+    color: #9a8f80;
+  }
+ 
   /* Fixed film-grain overlay — positioning/opacity only. */
+
   .film-grain {
     position: fixed;
     inset: 0;

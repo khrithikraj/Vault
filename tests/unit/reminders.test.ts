@@ -4,13 +4,17 @@ import {
   addDay,
   computeNextFireAt,
   formatRecurrenceLabel,
+  formatReminderDate,
   formatReminderTime,
   formatWeekdayLabel,
   isCompletedToday,
+  isValidFireOnDate,
   localDateInTimezone,
   noteReminder,
+  parseFireOnDate,
   parseLocalTime,
   reminderForItem,
+  resolveNextFireAt,
   to24HourTime,
   validateReminderTime,
   zonedWeekday,
@@ -372,5 +376,148 @@ describe('Supabase reminder persistence contract and state selector simulation',
 
     expect(reminders.length).toBe(0)
     expect(appMessage).toBe('relation "reminders" does not exist')
+  })
+})
+
+describe('exact-date "Once" reminders (fire_on_date)', () => {
+  // Tuesday 2026-09-15 13:30 IST (08:00 UTC)
+  const now = new Date('2026-09-15T08:00:00.000Z')
+
+  it('A. a future date with a passed time fires on that exact date, not tomorrow', () => {
+    // 10:00 IST has already passed today, but the user picked 2026-09-18, so the
+    // reminder belongs to that day (10:00 IST = 04:30 UTC).
+    expect(
+      resolveNextFireAt({ localTime: '10:00', recurrence: 'once', timezone: ZONE, fireOnDate: '2026-09-18' }),
+    ).toBe('2026-09-18T04:30:00.000Z')
+  })
+
+  it('B. a future date with a time later that same day keeps the chosen date', () => {
+    // 21:00 IST on the chosen day = 15:30 UTC on the chosen day.
+    expect(
+      resolveNextFireAt({ localTime: '21:00', recurrence: 'once', timezone: ZONE, fireOnDate: '2026-09-18' }),
+    ).toBe('2026-09-18T15:30:00.000Z')
+  })
+
+  it('C. an earlier date resolves to that exact date and time (no silent skip)', () => {
+    expect(
+      resolveNextFireAt({ localTime: '09:00', recurrence: 'once', timezone: ZONE, fireOnDate: '2026-09-10' }),
+    ).toBe('2026-09-10T03:30:00.000Z')
+  })
+
+  it('D. respects the reminder timezone, not the machine timezone (DST boundary)', () => {
+    // 2026-10-25 is the US DST end date. 09:00 in New York (UTC-4) = 13:00 UTC.
+    expect(
+      resolveNextFireAt({
+        localTime: '09:00',
+        recurrence: 'once',
+        timezone: 'America/New_York',
+        fireOnDate: '2026-10-25',
+      }),
+    ).toBe('2026-10-25T13:00:00.000Z')
+    // The same wall clock in Los Angeles (UTC-7) is 16:00 UTC — the offset, not the
+    // local clock, is what decides the instant.
+    expect(
+      resolveNextFireAt({
+        localTime: '09:00',
+        recurrence: 'once',
+        timezone: 'America/Los_Angeles',
+        fireOnDate: '2026-10-25',
+      }),
+    ).toBe('2026-10-25T16:00:00.000Z')
+  })
+
+  it('G. accepts a legacy NULL date and keeps the old today/tomorrow behaviour', () => {
+    // No date chosen (pre-migration row): behaves exactly like the original
+    // 'once' implementation — later today, otherwise tomorrow.
+    expect(resolveNextFireAt({ localTime: '14:00', recurrence: 'once', timezone: ZONE, now })).toBe(
+      '2026-09-15T08:30:00.000Z',
+    )
+    expect(resolveNextFireAt({ localTime: '13:00', recurrence: 'once', timezone: ZONE, now })).toBe(
+      '2026-09-16T07:30:00.000Z',
+    )
+  })
+
+  it('ignores the date for every repeating mode (day_of_week stays authoritative)', () => {
+    const daily = resolveNextFireAt({
+      localTime: '10:00',
+      recurrence: 'daily',
+      timezone: ZONE,
+      dayOfWeek: null,
+      fireOnDate: '2026-12-25',
+      now,
+    })
+    // Must match the no-date answer: tomorrow 10:00 IST.
+    expect(daily).toBe('2026-09-16T04:30:00.000Z')
+    expect(
+      resolveNextFireAt({
+        localTime: '10:00',
+        recurrence: 'daily',
+        timezone: ZONE,
+        dayOfWeek: null,
+        fireOnDate: '2026-12-25',
+        now,
+      }),
+    ).toBe(resolveNextFireAt({ localTime: '10:00', recurrence: 'daily', timezone: ZONE, dayOfWeek: null, now }))
+
+    // Weekly still resolves from day_of_week, not the stray date.
+    expect(
+      resolveNextFireAt({
+        localTime: '10:00',
+        recurrence: 'weekly',
+        timezone: ZONE,
+        dayOfWeek: 'wednesday',
+        fireOnDate: '2026-12-25',
+        now,
+      }),
+    ).toBe('2026-09-16T04:30:00.000Z')
+
+    // Weekdays too.
+    expect(
+      resolveNextFireAt({
+        localTime: '10:00',
+        recurrence: 'weekdays',
+        timezone: ZONE,
+        dayOfWeek: null,
+        fireOnDate: '2026-12-25',
+        now,
+      }),
+    ).toBe(resolveNextFireAt({ localTime: '10:00', recurrence: 'weekdays', timezone: ZONE, dayOfWeek: null, now }))
+  })
+
+  it('rejects malformed and impossible calendar dates', () => {
+    // Overflow days, bad months, bad shapes, and non-strings are all rejected.
+    expect(isValidFireOnDate('2026-02-30')).toBe(false)
+    expect(isValidFireOnDate('2026-13-01')).toBe(false)
+    expect(isValidFireOnDate('2026-00-10')).toBe(false)
+    expect(isValidFireOnDate('26-10-14')).toBe(false)
+    expect(isValidFireOnDate('2026/10/14')).toBe(false)
+    expect(isValidFireOnDate('')).toBe(false)
+    expect(isValidFireOnDate(null)).toBe(false)
+    expect(isValidFireOnDate(undefined)).toBe(false)
+    // 2024 is a leap year, so Feb 29 is real.
+    expect(isValidFireOnDate('2024-02-29')).toBe(true)
+    expect(isValidFireOnDate('2026-02-29')).toBe(false)
+    expect(parseFireOnDate('2026-10-14')).toEqual({ year: 2026, month: 10, day: 14 })
+  })
+
+  it('parses the date without letting the day shift across the UTC boundary', () => {
+    // A bare `new Date('2026-10-14')` is UTC midnight, which is the previous day
+    // for anyone west of Greenwich. Parsing must stay string-based.
+    const parsed = parseFireOnDate('2026-10-14')
+    expect(parsed).toEqual({ year: 2026, month: 10, day: 14 })
+    expect(parsed?.day).toBe(14)
+  })
+
+  it('computeNextFireAt stays backward compatible and honours a 6th-argument date', () => {
+    // Old 5-arg calls are untouched.
+    expect(computeNextFireAt('10:00', 'once', ZONE, null, now)).toBe('2026-09-16T04:30:00.000Z')
+    // New date argument changes only the 'once' case.
+    expect(computeNextFireAt('10:00', 'once', ZONE, null, now, '2026-09-18')).toBe('2026-09-18T04:30:00.000Z')
+    expect(computeNextFireAt('10:00', 'daily', ZONE, null, now, '2026-09-18')).toBe('2026-09-16T04:30:00.000Z')
+  })
+
+  it('formats the date for display without a timezone-dependent parse', () => {
+    expect(formatReminderDate('2026-10-14')).toBe('14 Oct 2026')
+    expect(formatReminderDate('2026-01-05')).toBe('5 Jan 2026')
   })
 })

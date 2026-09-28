@@ -15,6 +15,15 @@
  *     schedule still ADVANCES to the next daily occurrence and remains idempotent.
  *   - Hard-deleted notes already cascade-remove their reminders via FK.
  *
+ * EXACT-DATE 'once' REMINDERS (fire_on_date):
+ *   A 'once' reminder may name the calendar date it is for. `next_fire_at` stays
+ *   the index-friendly trigger that selects the row, but the moment actually
+ *   delivered is recomputed here from fire_on_date + local_time + timezone, so
+ *   the client is never the final authority on WHEN. A row whose intended instant
+ *   has not arrived is left completely untouched (not disabled, not claimed) and
+ *   is picked up by a later tick; once it IS due it is claimed through the same
+ *   atomic guarded UPDATE, delivered, and disabled exactly as before.
+ *
  * H2 / M5 / M6 hardening (per-reminder fault tolerance & fail-safe DB policy):
  *   - Every reminder is processed in isolation. A reminder that throws, or whose
  *     DB calls error, is logged and SKIPPED - it never aborts the rest of the batch.
@@ -143,7 +152,7 @@ Deno.serve(
       const nowIso = now.toISOString()
       const { data: reminders, error } = await supabase
         .from('reminders')
-        .select('id,user_id,note_id,checklist_item_id,recurrence,day_of_week,local_time,timezone,next_fire_at,notes!inner(title,deleted_at,checklist)')
+        .select('id,user_id,note_id,checklist_item_id,recurrence,day_of_week,fire_on_date,local_time,timezone,next_fire_at,notes!inner(title,deleted_at,checklist)')
         .eq('enabled', true)
         .or(`next_fire_at.is.null,next_fire_at.lte.${nowIso}`)
         .limit(100)
@@ -242,6 +251,9 @@ Deno.serve(
             case 'disable-error':
               console.error(`[disable-invalid-error] reminderId=${reminderId} reason=${outcome.reason} error=${outcome.error}`)
               break
+            case 'not-yet-due':
+              console.log(`[not-yet-due] reminderId=${reminderId} reason=${outcome.reason}`)
+              break
             case 'claim-error':
               console.error(`[claim-error] reminderId=${reminderId} error=${outcome.error}`)
               break
@@ -262,6 +274,7 @@ Deno.serve(
         pushFailures: summary.pushFailures,
         subscriptionsRevoked: summary.subscriptionsRevoked,
         skippedCompleted: summary.skippedCompleted,
+        skippedNotYetDue: summary.skippedNotYetDue,
         disabledInvalid: summary.disabledInvalid,
         disableFailures: summary.disableFailures,
         claimFailures: summary.claimFailures,
@@ -272,7 +285,7 @@ Deno.serve(
       }
 
       console.log(
-        `[send-reminders-summary] subscriptionsAttempted=${summary.subscriptionsAttempted} sent=${summary.sent} failed=${summary.pushFailures} revoked=${summary.subscriptionsRevoked} processed=${summary.processed} skippedCompleted=${summary.skippedCompleted} disabledInvalid=${summary.disabledInvalid} disableFailures=${summary.disableFailures} claimFailures=${summary.claimFailures} completionErrors=${summary.completionQueryErrors} subscriptionErrors=${summary.subscriptionQueryErrors} revokeFailures=${summary.revokeFailures} processingErrors=${summary.processingErrors.length}`,
+        `[send-reminders-summary] subscriptionsAttempted=${summary.subscriptionsAttempted} sent=${summary.sent} failed=${summary.pushFailures} revoked=${summary.subscriptionsRevoked} processed=${summary.processed} skippedCompleted=${summary.skippedCompleted} skippedNotYetDue=${summary.skippedNotYetDue} disabledInvalid=${summary.disabledInvalid} disableFailures=${summary.disableFailures} claimFailures=${summary.claimFailures} completionErrors=${summary.completionQueryErrors} subscriptionErrors=${summary.subscriptionQueryErrors} revokeFailures=${summary.revokeFailures} processingErrors=${summary.processingErrors.length}`,
       )
 
       return new Response(

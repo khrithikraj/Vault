@@ -1240,6 +1240,209 @@ test('capture review keeps the selected reference image visible and overflow-fre
   }
 })
 
+test('mobile header is normal document flow and scrolls with the catalogue', async ({ page }) => {
+  const readChrome = () =>
+    page.evaluate(() => {
+      const q = (s: string) => document.querySelector(s) as HTMLElement | null
+      const chrome = q('.vault-chrome')!
+      const identity = chrome.querySelector('h1')!
+      const pill = q('.vault-capsule')!
+      const search = q('[data-tour="search"]')!
+      const page_ = q('.vault-page')!
+      const rows = [...document.querySelectorAll('.index-row')] as HTMLElement[]
+      const pos = (e: Element) => getComputedStyle(e).position
+      const box = (e: HTMLElement) => {
+        const b = e.getBoundingClientRect()
+        return { top: +b.top.toFixed(1), bottom: +b.bottom.toFixed(1) }
+      }
+      const alphaOf = (c: string) => {
+        const parts = c.match(/rgba?\(([^)]+)\)/)?.[1].split(',').map((p) => p.trim())
+        if (!parts) return 0
+        return c.startsWith('rgba(') ? +parts[3] : 1
+      }
+      return {
+        scrollY: Math.round(window.scrollY),
+        viewportHeight: window.innerHeight,
+        // The whole point: ordinary content, so `static` — never fixed, never
+        // sticky, at any width.
+        chromePosition: pos(chrome),
+        identityPosition: pos(identity),
+        pillPosition: pos(pill),
+        searchPosition: pos(search),
+        // The header must not paint a surface of its own, or it reads as a panel
+        // bolted onto the page instead of one continuous Vault field.
+        chromeBgAlpha: alphaOf(getComputedStyle(chrome).backgroundColor),
+        scrimContent: getComputedStyle(chrome, '::before').content,
+        chromeBorderWidth: getComputedStyle(chrome).borderTopWidth,
+        chrome: box(chrome),
+        identity: box(identity),
+        pill: box(pill),
+        search: box(search),
+        firstRow: box(rows[0]),
+        lastRow: box(rows[rows.length - 1]),
+        // Air between the top of the viewport and the identity row.
+        topBreathingRoom: box(identity).top,
+        // No reserved band for a header that would otherwise overlap: the
+        // catalogue starts at the chrome's own bottom plus ordinary spacing.
+        pagePaddingTop: parseFloat(getComputedStyle(page_).paddingTop),
+        // The document is the scroller; nothing in the page is a nested pane.
+        scrollerIsDocument: document.scrollingElement === document.documentElement,
+        pageOverflowY: getComputedStyle(page_).overflowY,
+        overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      }
+    })
+
+  // The identity and search rows animate in on mount (translateY + fade), and
+  // unless the browser is emulating reduced motion that can take ~0.5s. Wait
+  // until Motion has resolved both entry transforms to `none`, otherwise a read
+  // taken mid-flight could disagree with a neighbour and be mistaken for settled.
+  const settle = async () => {
+    await page.waitForFunction(() => {
+      const chrome = document.querySelector('.vault-chrome')
+      const identityWrap = chrome?.firstElementChild
+      const searchWrap = chrome?.querySelector('[data-tour="search"]')
+      if (!identityWrap || !searchWrap) return false
+      const flat = (t: string | null) =>
+        t === 'none' || t === 'matrix(1, 0, 0, 1, 0, 0)'
+      return flat(getComputedStyle(identityWrap).transform) && flat(getComputedStyle(searchWrap).transform)
+    })
+    let prev = await readChrome()
+    for (let i = 0; i < 10; i++) {
+      await page.waitForTimeout(400)
+      const next = await readChrome()
+      if (JSON.stringify(next) === JSON.stringify(prev)) return next
+      prev = next
+    }
+    return prev
+  }
+
+  /**
+   * How far a box failed to travel with the page, in px. In normal flow this is
+   * 0 at every depth: a fixed or sticky header returns 0 travelled *plus* the
+   * scroll delta, i.e. its own top never changes.
+   */
+  const travelError = (
+    from: Awaited<ReturnType<typeof readChrome>>,
+    to: Awaited<ReturnType<typeof readChrome>>,
+    piece: 'chrome' | 'identity' | 'pill' | 'search' | 'firstRow' | 'lastRow',
+  ) => +(from[piece].top - to[piece].top - (to.scrollY - from.scrollY)).toFixed(1)
+
+  for (const width of [320, 360, 390, 414]) {
+    await page.setViewportSize({ width, height: 780 })
+    await openDemo(page)
+    const atTop = await settle()
+    const where = `${width}px`
+    const maxScroll = await page.evaluate(
+      () => document.documentElement.scrollHeight - window.innerHeight,
+    )
+    expect(maxScroll, `${where} demo page must be scrollable for this test`).toBeGreaterThanOrEqual(200)
+
+    // 1. At scrollY = 0 the header is ordinary content: not fixed, not sticky,
+    //    and none of its three pieces positions itself.
+    expect(atTop.chromePosition, `${where} chrome must not be fixed`).not.toBe('fixed')
+    expect(atTop.chromePosition, `${where} chrome must not be sticky`).not.toBe('sticky')
+    expect(atTop.chromePosition, `${where} chrome should be static`).toBe('static')
+    for (const piece of ['identityPosition', 'pillPosition', 'searchPosition'] as const) {
+      expect(atTop[piece], `${where} ${piece} must not position itself`).toBe('static')
+    }
+
+    // 2. One continuous surface: the header paints no background, has no rim,
+    //    and there is no scrim behind it.
+    expect(atTop.chromeBgAlpha, `${where} chrome must not paint a panel`).toBe(0)
+    expect(atTop.scrimContent, `${where} chrome must have no scrim`).toBe('none')
+    expect(atTop.chromeBorderWidth, `${where} chrome must have no border`).toBe('0px')
+
+    // 3. Deliberate breathing room above the identity row, and the header keeps
+    //    its own space in the document: the catalogue starts below its bottom.
+    expect(atTop.topBreathingRoom, `${where} identity row is touching the top edge`).toBeGreaterThanOrEqual(16)
+    expect(atTop.topBreathingRoom, `${where} breathing room must not be excessive`).toBeLessThanOrEqual(64)
+    expect(atTop.pagePaddingTop, `${where} page top inset must be a positive inset`).toBeGreaterThan(0)
+    expect(atTop.pagePaddingTop, `${where} page inset must not reserve a header band`).toBeLessThanOrEqual(64)
+    expect(atTop.firstRow.top, `${where} content must start below the header`).toBeGreaterThanOrEqual(
+      atTop.chrome.bottom,
+    )
+
+    // 4. One normal scroll, no nested pane, no horizontal overflow.
+    expect(atTop.scrollerIsDocument, `${where} the document must be the scroller`).toBe(true)
+    expect(atTop.pageOverflowY, `${where} .vault-page must not scroll itself`).toBe('visible')
+    expect(atTop.overflowX, `${where} horizontal overflow at top`).toBe(0)
+
+    // 5. THE PROOF. scrollY 0 -> 200 moves the header, its three pieces and the
+    //    catalogue up by the scroll delta together. A fixed or sticky header
+    //    would report a travel error equal to the whole delta.
+    await page.evaluate(() => window.scrollTo(0, 200))
+    await page.waitForTimeout(300)
+    const at200 = await settle()
+    expect(at200.scrollY, `${where} actually scrolled to 200`).toBeGreaterThanOrEqual(200)
+    expect(at200.chrome.top, `${where} header did not move with the page`).toBeLessThan(
+      atTop.chrome.top - 100,
+    )
+    for (const piece of ['chrome', 'identity', 'pill', 'search', 'firstRow', 'lastRow'] as const) {
+      const err = travelError(atTop, at200, piece)
+      expect(Math.abs(err), `${where} ${piece} travel error (expected ~0, got ${err})`).toBeLessThanOrEqual(2)
+    }
+    expect(at200.chromeBgAlpha, `${where} chrome must still paint no panel`).toBe(0)
+    expect(at200.overflowX, `${where} horizontal overflow scrolled`).toBe(0)
+
+    // 6. Deeper still: the header keeps travelling and the later cards arrive,
+    //    rather than anything being pinned or revealed.
+    const deepTarget = Math.min(600, maxScroll)
+    await page.evaluate((y) => window.scrollTo(0, y), deepTarget)
+    await page.waitForTimeout(300)
+    const deep = await settle()
+    expect(deep.scrollY, `${where} deep scroll`).toBe(deepTarget)
+    expect(deep.scrollY, `${where} deep must differ from 200`).toBeGreaterThan(at200.scrollY)
+    for (const piece of ['chrome', 'identity', 'pill', 'search', 'firstRow', 'lastRow'] as const) {
+      const err = travelError(atTop, deep, piece)
+      expect(Math.abs(err), `${where} ${piece} deep travel error (got ${err})`).toBeLessThanOrEqual(2)
+    }
+    expect(deep.lastRow.top, `${where} later cards should have arrived`).toBeLessThan(deep.viewportHeight)
+    expect(deep.chrome.bottom, `${where} header should have started leaving the viewport`).toBeLessThan(
+      deep.viewportHeight,
+    )
+
+    // 7. Scrolling back restores it — nothing was hidden, collapsed or detached.
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.waitForTimeout(300)
+    const back = await settle()
+    expect(back.scrollY, `${where} scrolled back to top`).toBe(0)
+    for (const piece of ['chrome', 'identity', 'pill', 'search'] as const) {
+      expect(back[piece].top, `${where} ${piece} did not return to its resting place`).toBeCloseTo(
+        atTop[piece].top,
+        0,
+      )
+    }
+  }
+})
+
+test('wide screens keep the chrome in normal flow', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await openDemo(page)
+  await page.waitForTimeout(400)
+
+  const desktop = await page.evaluate(() => {
+    const chrome = document.querySelector('.vault-chrome') as HTMLElement
+    const pill = document.querySelector('.vault-capsule') as HTMLElement
+    const search = document.querySelector('[data-tour="search"]') as HTMLElement
+    return {
+      chromePosition: getComputedStyle(chrome).position,
+      scrimContent: getComputedStyle(chrome, '::before').content,
+      capsuleRowDisplay: pill.parentElement ? getComputedStyle(pill.parentElement).display : null,
+      searchInsideChrome: chrome.contains(search),
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    }
+  })
+
+  // A wide viewport now uses exactly the same architecture as a phone: the chrome
+  // is in flow with no scrim, the mobile-only capsule stays hidden, and the
+  // wider search margin is preserved.
+  expect(desktop.chromePosition).toBe('static')
+  expect(desktop.scrimContent).toBe('none')
+  expect(desktop.capsuleRowDisplay).toBe('none')
+  expect(desktop.searchInsideChrome).toBe(true)
+  expect(desktop.overflowX).toBe(0)
+})
+
 test('@visual authenticated home remains stable', async ({ page }) => {
   await openDemo(page)
   await page.addStyleTag({

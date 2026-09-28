@@ -16,6 +16,10 @@ export type ScheduledReminder = {
   next_fire_at: string | null
   recurrence?: ReminderRecurrence
   day_of_week?: Weekday | null
+  /** Exact calendar date ("YYYY-MM-DD") chosen for a 'once' reminder. NULL for
+   *  every repeating mode, and for legacy 'once' rows written before the column
+   *  existed. */
+  fire_on_date?: string | null
 }
 
 export const WEEKDAY_TO_NUMBER: Record<Weekday, number> = {
@@ -219,6 +223,67 @@ export function nextFireAtForRecurrence(reminder: ScheduledReminder, now = new D
   return nextFireAt(reminder, now)
 }
 
+/** Strict, allocation-free "YYYY-MM-DD" parser. Returns null for anything that is
+ *  not a real calendar date (so "2026-02-30" and "2026-13-01" are rejected).
+ *  Deliberately never constructs a `Date` from the string: a bare
+ *  `new Date('2026-10-14')` is parsed as UTC midnight and silently shifts a day
+ *  for anyone west of Greenwich. Mirrors `parseFireOnDate` in src/lib/reminders.ts. */
+export function parseFireOnDate(value: unknown): { year: number; month: number; day: number } | null {
+  if (typeof value !== 'string') return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  // Round-trip through a UTC calendar date to reject overflow days like 2026-02-30.
+  const probe = new Date(Date.UTC(year, month - 1, day))
+  if (probe.getUTCFullYear() !== year || probe.getUTCMonth() !== month - 1 || probe.getUTCDate() !== day) {
+    return null
+  }
+  return { year, month, day }
+}
+
+/** True when `value` is a usable "YYYY-MM-DD" calendar date. */
+export function isValidFireOnDate(value: unknown): boolean {
+  return parseFireOnDate(value) !== null
+}
+
+/**
+ * The EXACT instant a 'once' reminder is meant to fire: its chosen
+ * `fire_on_date` + `local_time` read as a wall clock in the reminder's own
+ * timezone, converted to the real UTC instant (DST- and offset-aware).
+ *
+ * Returns null when the reminder carries no usable `fire_on_date` — either a
+ * repeating mode, or a legacy 'once' row written before the column existed.
+ * Those keep using `next_fire_at` as the trigger, so nothing regresses.
+ */
+export type OnceScheduleInput = {
+  recurrence?: ReminderRecurrence | null
+  fire_on_date?: string | null
+  local_time: string
+  timezone: string
+}
+
+export function onceFireAt(reminder: OnceScheduleInput): Date | null {
+  if ((reminder.recurrence ?? 'daily') !== 'once') return null
+  if (!isValidFireOnDate(reminder.fire_on_date)) return null
+  return zonedWallClockToUtc(reminder.fire_on_date as string, reminder.local_time.slice(0, 5), reminder.timezone)
+}
+
+/**
+ * Whether a 'once' reminder's exact intended occurrence has arrived.
+ *
+ * `true` for every mode that carries no explicit `fire_on_date`, so the caller
+ * can apply this to all reminders without branching: those are governed by
+ * `next_fire_at` exactly as before.
+ */
+export function isOnceOccurrenceDue(reminder: OnceScheduleInput, now = new Date()): boolean {
+  const intended = onceFireAt(reminder)
+  if (!intended) return true
+  return intended.getTime() <= now.getTime()
+}
+
 export type NoteRecord = {
   title?: string
   deleted_at: string | null
@@ -251,13 +316,18 @@ export type ReminderPreflightError =
   | 'invalid-timezone'
   | 'invalid-next-fire-at'
   | 'invalid-weekday'
+  | 'invalid-fire-on-date'
+  | 'once-not-due'
 
-export type ReminderPreflight = { ok: true; note: NoteRecord } | { ok: false; reason: ReminderPreflightError }
+export type ReminderPreflight =
+  | { ok: true; note: NoteRecord }
+  | { ok: false; reason: ReminderPreflightError; retryable?: boolean }
 
 export type ReminderPreflightInput = {
   checklist_item_id: string | null
   recurrence?: ReminderRecurrence | null
   day_of_week?: Weekday | null
+  fire_on_date?: string | null
   local_time: string
   timezone: string
   next_fire_at?: string | null
@@ -278,11 +348,22 @@ export type ReminderPreflightInput = {
  *   - timezone not a usable IANA zone→ 'invalid-timezone' (never claim)
  *   - next_fire_at unparseable       → 'invalid-next-fire-at'
  *   - weekly day_of_week unknown     → 'invalid-weekday'
+ *   - 'once' with a malformed         → 'invalid-fire-on-date'
+ *     fire_on_date (a NULL fire_on_date
+ *     is a legacy row and stays valid)
+ *   - 'once' whose exact date/time is → 'once-not-due' (retryable: the row is
+ *     still in the future              left enabled and un-claimed, so the
+ *                                      occurrence is preserved for a later tick)
  *
  * A failure always means "do not claim": the invalid timezone can never convert
  * to a date AFTER the occurrence was claimed, so no occurrence is ever lost.
+ * `once-not-due` is the one failure that must NOT disable the reminder — the
+ * caller distinguishes it via `retryable` and leaves the row untouched.
  */
-export function preflightReminder(reminder: ReminderPreflightInput): ReminderPreflight {
+export function preflightReminder(
+  reminder: ReminderPreflightInput,
+  now: Date = new Date(),
+): ReminderPreflight {
   const note = normalizeNote(reminder.notes)
   if (note == null) return { ok: false, reason: 'invalid-reminder' }
   if (typeof note !== 'object' || Array.isArray(note)) return { ok: false, reason: 'malformed-note' }
@@ -311,6 +392,20 @@ export function preflightReminder(reminder: ReminderPreflightInput): ReminderPre
 
   if (recurrence === 'weekly' && reminder.day_of_week != null && !(reminder.day_of_week in WEEKDAY_TO_NUMBER)) {
     return { ok: false, reason: 'invalid-weekday' }
+  }
+
+  // A 'once' reminder that names a date must name a REAL one. NULL is a legacy
+  // row (still perfectly schedulable), so it is deliberately not rejected.
+  if (recurrence === 'once' && reminder.fire_on_date != null && !isValidFireOnDate(reminder.fire_on_date)) {
+    return { ok: false, reason: 'invalid-fire-on-date' }
+  }
+
+  // The client is not the final authority on WHEN: for an exact-date 'once'
+  // reminder the intended occurrence is recomputed here from
+  // fire_on_date + local_time + timezone, and a row whose moment has not arrived
+  // is left alone. This is what stops a stale next_fire_at from firing early.
+  if (!isOnceOccurrenceDue(reminder, now)) {
+    return { ok: false, reason: 'once-not-due', retryable: true }
   }
 
   return { ok: true, note }

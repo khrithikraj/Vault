@@ -61,9 +61,13 @@ function makeDeps(overrides: Partial<DeliveryDeps> = {}): Deps {
   const revokeSubscription = (overrides.revokeSubscription as Mock<DeliveryDeps['revokeSubscription']> | undefined) ?? defaultRevokeSubscription
   const sendPush = (overrides.sendPush as Mock<DeliveryDeps['sendPush']> | undefined) ?? defaultSendPush
 
+  // `now` must be overridable: preflight decides whether an exact-date 'once'
+  // reminder has arrived using it, so a silently-ignored override would leave the
+  // test reading the real system clock. Keep `now_iso` derived so the two agree.
+  const now = overrides.now ?? NOW
   const deps: DeliveryDeps = {
-    now: NOW,
-    now_iso: NOW.toISOString(),
+    now,
+    now_iso: overrides.now_iso ?? now.toISOString(),
     disableInvalid,
     claim,
     fetchCompletion,
@@ -341,5 +345,92 @@ describe('runDeliveryBatch: push + subscription revoke behavior', () => {
     expect(summary.sent).toBe(0)
     expect(summary.subscriptionQueryErrors).toBe(0)
     expect(sendPush).not.toHaveBeenCalled()
+  })
+})
+
+describe('delivery: exact-date once reminders are never disabled or fired early', () => {
+  // The chosen instant is 2026-10-14 09:00 IST = 2026-10-14T03:30:00.000Z.
+  const intendedInstant = '2026-10-14T03:30:00.000Z'
+
+  it('leaves a not-yet-due exact-date once reminder completely untouched', async () => {
+    // next_fire_at is stale (points at today) but the chosen date is still ahead:
+    // the client must not be able to make this fire early.
+    const future = makeReminder({
+      recurrence: 'once',
+      fire_on_date: '2026-10-14',
+      local_time: '09:00',
+      next_fire_at: '2026-09-15T04:00:00.000Z',
+    })
+    const { deps, disableInvalid, claim, sendPush, fetchSubscriptions } = makeDeps({
+      now: new Date('2026-09-15T04:00:00.000Z'),
+    })
+
+    const outcome = await deliverDueReminder(future, deps)
+
+    expect(outcome.kind).toBe('not-yet-due')
+    if (outcome.kind === 'not-yet-due') expect(outcome.reason).toBe('once-not-due')
+    // The critical assertions: no disable, no claim, no push, no subscription read.
+    expect(disableInvalid).not.toHaveBeenCalled()
+    expect(claim).not.toHaveBeenCalled()
+    expect(sendPush).not.toHaveBeenCalled()
+    expect(fetchSubscriptions).not.toHaveBeenCalled()
+  })
+
+  it('counts not-yet-due separately in the batch summary and keeps the rest of the batch going', async () => {
+    const future = makeReminder({ id: 'future', recurrence: 'once', fire_on_date: '2026-10-14' })
+    const good = makeReminder({ id: 'good', recurrence: 'daily' })
+    const { deps, disableInvalid, sendPush } = makeDeps({ now: new Date('2026-09-15T04:00:00.000Z') })
+
+    const summary = await runDeliveryBatch([future, good], deps)
+
+    expect(summary.skippedNotYetDue).toBe(1)
+    expect(summary.disabledInvalid).toBe(0)
+    expect(disableInvalid).not.toHaveBeenCalled()
+    // The valid daily reminder is unaffected by the skipped one.
+    expect(summary.sent).toBe(1)
+    expect(sendPush).toHaveBeenCalledTimes(1)
+    // A skipped reminder is not an error and not an invalid row.
+    expect(summary.processingErrors).toHaveLength(0)
+    expect(summary.invalidReasons['once-not-due']).toBeUndefined()
+  })
+
+  it('delivers and disables a once reminder once its exact instant has passed', async () => {
+    const due = makeReminder({
+      recurrence: 'once',
+      fire_on_date: '2026-10-14',
+      local_time: '09:00',
+      next_fire_at: intendedInstant,
+    })
+    const { deps, claim, sendPush } = makeDeps({ now: new Date('2026-10-14T03:30:00.000Z') })
+
+    const outcome = await deliverDueReminder(due, deps)
+
+    expect(outcome.kind).toBe('delivered')
+    expect(claim).toHaveBeenCalledTimes(1)
+    expect(sendPush).toHaveBeenCalledTimes(1)
+    // A 'once' reminder is still retired through the same claim as before.
+    expect(claim).toHaveBeenCalledWith(expect.objectContaining({ is_once: true }))
+  })
+
+  it('still disables a once reminder carrying an impossible date (permanent defect)', async () => {
+    const corrupt = makeReminder({ recurrence: 'once', fire_on_date: '2026-02-30' })
+    const { deps, disableInvalid, claim } = makeDeps()
+
+    const outcome = await deliverDueReminder(corrupt, deps)
+
+    expect(outcome.kind).toBe('invalid-disabled')
+    expect(disableInvalid).toHaveBeenCalledWith('r1', 'invalid-fire-on-date')
+    expect(claim).not.toHaveBeenCalled()
+  })
+
+  it('keeps a legacy NULL-date once reminder firing on next_fire_at as before', async () => {
+    const legacy = makeReminder({ recurrence: 'once', fire_on_date: null, next_fire_at: '2026-09-15T04:00:00.000Z' })
+    const { deps, claim, sendPush } = makeDeps({ now: new Date('2026-09-15T04:00:00.000Z') })
+
+    const outcome = await deliverDueReminder(legacy, deps)
+
+    expect(outcome.kind).toBe('delivered')
+    expect(claim).toHaveBeenCalledTimes(1)
+    expect(sendPush).toHaveBeenCalledTimes(1)
   })
 })
