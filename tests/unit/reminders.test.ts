@@ -7,6 +7,7 @@ import {
   formatReminderDate,
   formatReminderTime,
   formatWeekdayLabel,
+  getReminderDueGroup,
   isCompletedToday,
   isValidFireOnDate,
   localDateInTimezone,
@@ -521,3 +522,58 @@ describe('exact-date "Once" reminders (fire_on_date)', () => {
     expect(formatReminderDate('2026-01-05')).toBe('5 Jan 2026')
   })
 })
+
+describe('getReminderDueGroup', () => {
+  const baseNow = new Date('2026-10-03T10:00:00.000Z') // A Saturday in UTC/Asia/Kolkata
+  const zone = 'Asia/Kolkata'
+
+  it('groups daily reminders into today', () => {
+    const r = makeReminder({ recurrence: 'daily', timezone: zone })
+    expect(getReminderDueGroup(r, baseNow)).toBe('today')
+  })
+
+  it('groups weekdays reminders: today if weekday, tomorrow/this_week if weekend', () => {
+    // Saturday in Kolkata -> Monday is in 2 days -> this_week
+    const r = makeReminder({ recurrence: 'weekdays', timezone: zone })
+    expect(getReminderDueGroup(r, baseNow)).toBe('this_week')
+
+    // Sunday (2026-10-04) -> Monday is tomorrow -> tomorrow
+    const sunday = new Date('2026-10-04T10:00:00.000Z')
+    expect(getReminderDueGroup(r, sunday)).toBe('tomorrow')
+
+    // Monday (2026-10-05) -> today
+    const monday = new Date('2026-10-05T10:00:00.000Z')
+    expect(getReminderDueGroup(r, monday)).toBe('today')
+  })
+
+  it('groups weekly reminders correctly based on target weekday', () => {
+    // Saturday (2026-10-03)
+    const rSat = makeReminder({ recurrence: 'weekly', day_of_week: 'saturday', timezone: zone })
+    expect(getReminderDueGroup(rSat, baseNow)).toBe('today')
+
+    const rSun = makeReminder({ recurrence: 'weekly', day_of_week: 'sunday', timezone: zone })
+    expect(getReminderDueGroup(rSun, baseNow)).toBe('tomorrow')
+
+    const rTue = makeReminder({ recurrence: 'weekly', day_of_week: 'tuesday', timezone: zone })
+    expect(getReminderDueGroup(rTue, baseNow)).toBe('this_week')
+  })
+
+  it('groups once reminders into today, tomorrow, this_week, or later', () => {
+    // Today: 2026-10-03
+    const rToday = makeReminder({ recurrence: 'once', fire_on_date: '2026-10-03', timezone: zone })
+    expect(getReminderDueGroup(rToday, baseNow)).toBe('today')
+
+    const rPast = makeReminder({ recurrence: 'once', fire_on_date: '2026-10-01', timezone: zone })
+    expect(getReminderDueGroup(rPast, baseNow)).toBe('today') // overdue is in today
+
+    const rTomorrow = makeReminder({ recurrence: 'once', fire_on_date: '2026-10-04', timezone: zone })
+    expect(getReminderDueGroup(rTomorrow, baseNow)).toBe('tomorrow')
+
+    const rThisWeek = makeReminder({ recurrence: 'once', fire_on_date: '2026-10-07', timezone: zone })
+    expect(getReminderDueGroup(rThisWeek, baseNow)).toBe('this_week')
+
+    const rLater = makeReminder({ recurrence: 'once', fire_on_date: '2026-10-25', timezone: zone })
+    expect(getReminderDueGroup(rLater, baseNow)).toBe('later')
+  })
+})
+

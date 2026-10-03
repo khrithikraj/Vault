@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { FolderLock, Heart, Home, NotebookPen, Trash2 } from 'lucide-react'
+import { Bell, FolderLock, Heart, Home, NotebookPen } from 'lucide-react'
 import { BrandIcon, CategoryIcon } from '../../lib/icons'
 import { layers } from '../../design/layers'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
@@ -15,10 +15,10 @@ type FloatingNavProps = {
   onSelectNotes: () => void
   docsActive: boolean
   onSelectDocs: () => void
+  remindersActive: boolean
+  onSelectReminders: () => void
   favoritesActive: boolean
   onSelectFavorites: () => void
-  trashActive: boolean
-  onSelectTrash: () => void
 }
 
 type NavItem = {
@@ -33,7 +33,7 @@ type NavItem = {
  * V2 — Compact floating navigation.
  *
  * A slim dock island anchored at the bottom with safe-area awareness.
- * Primary items: All items / Notes / Documents / Favorites / Trash.
+ * Primary items: All items / Notes / Documents / Reminders / Favorites.
  * When categories exist, a category toggle reveals them inline.
  *
  * Features:
@@ -49,16 +49,16 @@ export function FloatingNav({
   onSelectNotes,
   docsActive,
   onSelectDocs,
+  remindersActive,
+  onSelectReminders,
   favoritesActive,
   onSelectFavorites,
-  trashActive,
-  onSelectTrash,
 }: FloatingNavProps) {
   const [showCategories, setShowCategories] = useState(false)
   const reducedMotion = usePrefersReducedMotion()
 
   const isEverything =
-    !notesActive && !docsActive && !trashActive && !favoritesActive && selectedCategoryId === null
+    !notesActive && !docsActive && !remindersActive && !favoritesActive && selectedCategoryId === null
 
   const primaryItems: NavItem[] = [
     {
@@ -92,6 +92,15 @@ export function FloatingNav({
       onClick: onSelectDocs,
     },
     {
+      key: 'reminders',
+      label: 'Reminders',
+      icon: (size) => (
+        <BrandIcon icon={Bell} size={size} tone={remindersActive ? 'ink' : 'accent'} />
+      ),
+      active: remindersActive,
+      onClick: onSelectReminders,
+    },
+    {
       key: 'favorites',
       label: 'Favorites',
       icon: (size) => (
@@ -99,15 +108,6 @@ export function FloatingNav({
       ),
       active: favoritesActive,
       onClick: onSelectFavorites,
-    },
-    {
-      key: 'trash',
-      label: 'Trash',
-      icon: (size) => (
-        <BrandIcon icon={Trash2} size={size} tone={trashActive ? 'ink' : 'accent'} />
-      ),
-      active: trashActive,
-      onClick: onSelectTrash,
     },
   ]
 

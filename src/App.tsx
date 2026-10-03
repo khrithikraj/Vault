@@ -23,6 +23,7 @@ import { CommandSearch } from './components/home/CommandSearch'
 import { ArchiveObjects } from './components/home/ArchiveObjects'
 import { CategoryIndex } from './components/home/CategoryIndex'
 import { FloatingNav } from './components/home/FloatingNav'
+import { RemindersPanel } from './components/reminders/RemindersPanel'
 import { DynamicIsland } from './components/home/DynamicIsland'
 import { searchVault } from './lib/search'
 import type { SearchScope } from './lib/search'
@@ -106,9 +107,9 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     : null
   const [sharedPhoto, setSharedPhoto] = useState<File | null>(null)
   const [sharedPhotoToken, setSharedPhotoToken] = useState(0)
-  const [mainView, setMainView] = useState<'vault' | 'notes' | 'documents' | 'trash' | 'favorites'>(
-    'vault',
-  )
+  const [mainView, setMainView] = useState<
+    'vault' | 'notes' | 'documents' | 'reminders' | 'trash' | 'favorites'
+  >('vault')
   // Track whether documents have been loaded for the current session
   const docsLoadedRef = useRef(false)
  
@@ -147,12 +148,15 @@ export default function App({ onReturnToLanding = () => window.location.assign('
 
   const handleUpsertReminder = useCallback(
     (input: {
-      noteId: string
+      id?: string
+      title?: string | null
+      noteId?: string | null
       checklistItemId?: string | null
       localTime: string
       enabled: boolean
       recurrence?: ReminderRecurrence
       dayOfWeek?: Weekday | null
+      fireOnDate?: string | null
       timezone?: string
     }) => {
       void vault.upsertReminder(input)
@@ -295,9 +299,9 @@ export default function App({ onReturnToLanding = () => window.location.assign('
   // Stack of the base (non-overlay) sections we've navigated into. The top entry
   // is the section currently visible underneath any open overlay. Only grows when
   // the user actually switches main section.
-  const sectionStackRef = useRef<('vault' | 'notes' | 'documents' | 'trash' | 'favorites')[]>([
-    'vault',
-  ])
+  const sectionStackRef = useRef<
+    ('vault' | 'notes' | 'documents' | 'reminders' | 'trash' | 'favorites')[]
+  >(['vault'])
  
   const handleDismissOverlay = useCallback(() => {
     if (window.history.state?.vaultOverlay) {
@@ -347,7 +351,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
  
   // Switch the base section and record a history entry so Back can return to it.
   const goToSection = useCallback(
-    (next: 'vault' | 'notes' | 'documents' | 'trash' | 'favorites') => {
+    (next: 'vault' | 'notes' | 'documents' | 'reminders' | 'trash' | 'favorites') => {
       const top = sectionStackRef.current[sectionStackRef.current.length - 1]
       if (top === next) {
         return
@@ -370,7 +374,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
   const quickAdd = useMemo<'choose' | 'item' | 'note' | 'document'>(() => {
     if (mainView === 'notes') return 'note'
     if (mainView === 'documents') return 'document'
-    if (mainView === 'favorites') return 'choose'
+    if (mainView === 'favorites' || mainView === 'reminders') return 'choose'
     if (vault.selectedCategoryId) return 'item'
     return 'choose'
   }, [mainView, vault.selectedCategoryId])
@@ -737,7 +741,13 @@ export default function App({ onReturnToLanding = () => window.location.assign('
               : 'Search your vault…'
  
   const searchMode: 'everything' | 'category' | 'favorites' | 'notes' | 'documents' | 'trash' =
-    mainView === 'vault' ? (vault.selectedCategoryId ? 'category' : 'everything') : mainView
+    mainView === 'vault'
+      ? vault.selectedCategoryId
+        ? 'category'
+        : 'everything'
+      : mainView === 'reminders'
+        ? 'everything'
+        : mainView
   const searchScopeLabel = activeCategory?.name
     ?? (searchMode === 'everything' ? 'All items' : `${searchMode[0].toUpperCase()}${searchMode.slice(1)}`)
  
@@ -866,6 +876,12 @@ export default function App({ onReturnToLanding = () => window.location.assign('
                   onDelete={(id) => void vault.deleteCategory(id)}
                   onAdd={(input) => void vault.addCategory(input)}
                   onEdit={(category) => setEditingCategoryId(category.id)}
+                  onSelectTrash={() => goToSection('trash')}
+                  trashCount={
+                    vault.trashedItems.length +
+                    vault.trashedNotes.length +
+                    docs.trashedDocuments.length
+                  }
                 />
               )}
             </VaultSection>
@@ -915,6 +931,17 @@ export default function App({ onReturnToLanding = () => window.location.assign('
               </section>
             </div>
           </VaultSection>
+        ) : mainView === 'reminders' ? (
+          <RemindersPanel
+            reminders={vault.reminders}
+            dailyCompletions={vault.dailyCompletions}
+            notes={vault.notes}
+            onOpenNote={handleOpenNote}
+            onUpsertReminder={handleUpsertReminder}
+            onRemoveReminder={handleRemoveReminder}
+            onToggleDailyCompletion={(reminder) => void vault.toggleDailyCompletion(reminder)}
+            onEnableNotifications={handleEnableNotifications}
+          />
         ) : mainView === 'trash' ? (
           <TrashPanel
             items={vault.trashedItems}
@@ -973,10 +1000,10 @@ export default function App({ onReturnToLanding = () => window.location.assign('
         onSelectNotes={() => goToSection('notes')}
         docsActive={mainView === 'documents'}
         onSelectDocs={() => goToSection('documents')}
+        remindersActive={mainView === 'reminders'}
+        onSelectReminders={() => goToSection('reminders')}
         favoritesActive={mainView === 'favorites'}
         onSelectFavorites={() => goToSection('favorites')}
-        trashActive={mainView === 'trash'}
-        onSelectTrash={() => goToSection('trash')}
       />
  
       {mainView !== 'trash' ? (

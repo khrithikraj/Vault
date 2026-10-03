@@ -272,7 +272,9 @@ export function useMockVault() {
   }
 
   const upsertReminder = async (input: {
-    noteId: string
+    id?: string
+    title?: string | null
+    noteId?: string | null
     checklistItemId?: string | null
     localTime: string
     enabled: boolean
@@ -298,15 +300,20 @@ export function useMockVault() {
           fireOnDate,
         })
       : null
-    const existing = reminders.find(
-      (entry) =>
-        entry.note_id === input.noteId &&
-        (targetItemId === null ? entry.checklist_item_id === null : entry.checklist_item_id === targetItemId),
-    )
+    const existing = input.id
+      ? reminders.find((entry) => entry.id === input.id)
+      : input.noteId
+        ? reminders.find(
+            (entry) =>
+              entry.note_id === input.noteId &&
+              (targetItemId === null ? entry.checklist_item_id === null : entry.checklist_item_id === targetItemId),
+          )
+        : undefined
     const reminder: ChecklistReminder = {
       id: existing?.id ?? makeId(),
       user_id: DEV_USER_ID,
-      note_id: input.noteId,
+      title: input.title ? input.title.trim() : null,
+      note_id: input.noteId || null,
       checklist_item_id: targetItemId,
       enabled: input.enabled,
       recurrence,

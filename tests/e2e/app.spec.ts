@@ -154,10 +154,10 @@ test('primary content views share section and empty-state patterns', async ({ pa
   await expect(page).toHaveTitle("Documents · Raj's Vault")
   await expect(page.getByText('No documents yet')).toBeVisible()
 
-  await page.goBack()
-  await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible()
-  await expect(page).toHaveTitle("Notes · Raj's Vault")
+  await page.getByRole('button', { name: 'Reminders' }).click()
+  await expect(page.getByRole('heading', { name: 'Reminders' })).toBeVisible()
 
+  await page.getByRole('button', { name: 'All items' }).click()
   await page.getByRole('button', { name: 'Trash' }).click()
   await expect(page.getByRole('heading', { name: 'Recently Deleted' })).toBeVisible()
   await expect(page.getByText('Recently Deleted is empty')).toBeVisible()
@@ -1019,6 +1019,7 @@ test('trash restore keeps an item favorited', async ({ page }) => {
   await page.getByRole('button', { name: 'Favorites', exact: true }).click()
   await expect(page.getByText('No favorites yet')).toBeVisible()
 
+  await page.getByRole('button', { name: 'All items' }).click()
   await page.getByRole('button', { name: 'Trash' }).click()
   await page.getByRole('button', { name: 'Restore item' }).click()
   await expect(page.getByText('Recently Deleted is empty')).toBeVisible()

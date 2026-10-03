@@ -173,7 +173,7 @@ export function AccountPanel({
           {/* Security */}
           <section className="border-t border-dashed border-ink/15 pt-4">
             <h4 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft">Security</h4>
-            <div className="mt-3 flex items-center justify-between gap-4">
+            <div className="mt-3 flex flex-col gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink">Reset password</p>
                 <p className="mt-1 text-sm leading-relaxed text-ink-soft/80">
@@ -185,7 +185,7 @@ export function AccountPanel({
                 size="sm"
                 onClick={() => void handleSendReset()}
                 disabled={sendingReset || !email || resetSent}
-                className="shrink-0 uppercase"
+                className="self-start uppercase"
               >
                 {sendingReset ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -205,7 +205,7 @@ export function AccountPanel({
           {/* Sign out */}
           <section className="border-t border-dashed border-ink/15 pt-4">
             <h4 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft">Sign out</h4>
-            <div className="mt-3 flex items-center justify-between gap-4">
+            <div className="mt-3 flex flex-col gap-3">
               <p className="min-w-0 text-sm leading-relaxed text-ink-soft/80">
                 {preview ? 'Exit preview mode. Nothing is saved to a real account.' : 'Sign out of Vault'}
               </p>
@@ -214,7 +214,7 @@ export function AccountPanel({
                 size="sm"
                 icon={LogOut}
                 onClick={() => setConfirmSignOut(true)}
-                className="shrink-0 uppercase"
+                className="self-start uppercase"
               >
                 {preview ? 'Exit preview' : 'Sign out'}
               </VaultButton>

@@ -42,7 +42,8 @@ import {
 export type ReminderRowForDelivery = {
   id: string
   user_id: string
-  note_id: string
+  title?: string | null
+  note_id: string | null
   checklist_item_id: string | null
   recurrence: ReminderRecurrence
   day_of_week?: Weekday | null
@@ -52,7 +53,7 @@ export type ReminderRowForDelivery = {
   local_time: string
   timezone: string
   next_fire_at: string | null
-  notes: NoteRecord | NoteRecord[]
+  notes?: NoteRecord | NoteRecord[] | null
 }
 
 export type ClaimInput = {
@@ -90,7 +91,7 @@ export type DeliveryDeps = {
   /** Sends one push. Never throws - every failure is returned as a result. */
   sendPush: (input: {
     subscription: PushSubscriptionRecord
-    payload: { title: string; body: string; noteId: string; checklistItemId: string | undefined }
+    payload: { title: string; body: string; noteId?: string | null; checklistItemId?: string | null }
   }) => Promise<PushSendResult>
 }
 

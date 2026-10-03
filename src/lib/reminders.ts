@@ -347,3 +347,55 @@ export function to24HourTime(hour12: number, minute: number, period: 'AM' | 'PM'
   }
   return `${String(hour24).padStart(2, '0')}:${String(clampedMin).padStart(2, '0')}`
 }
+
+/** Computes calendar day difference (B - A) between two "YYYY-MM-DD" dates. */
+export function daysBetween(dateStrA: string, dateStrB: string): number {
+  const [yA, mA, dA] = dateStrA.split('-').map(Number)
+  const [yB, mB, dB] = dateStrB.split('-').map(Number)
+  const utcA = Date.UTC(yA, mA - 1, dA)
+  const utcB = Date.UTC(yB, mB - 1, dB)
+  return Math.round((utcB - utcA) / (24 * 60 * 60 * 1000))
+}
+
+export type DueGroup = 'today' | 'tomorrow' | 'this_week' | 'later'
+
+export function getReminderDueGroup(reminder: ChecklistReminder, now = new Date()): DueGroup {
+  const zone = reminder.timezone || browserTimezone()
+  const todayStr = zonedDateStr(now, zone)
+  const recurrence = reminder.recurrence ?? 'daily'
+
+  if (recurrence === 'daily') {
+    return 'today'
+  }
+
+  if (recurrence === 'weekdays') {
+    const dow = zonedDayOfWeek(todayStr, zone)
+    if (dow >= 1 && dow <= 5) return 'today'
+    if (dow === 0) return 'tomorrow'
+    return 'this_week'
+  }
+
+  if (recurrence === 'weekly') {
+    const targetDow = reminder.day_of_week
+      ? WEEKDAY_TO_NUMBER[reminder.day_of_week]
+      : zonedDayOfWeek(todayStr, zone)
+    const currentDow = zonedDayOfWeek(todayStr, zone)
+    const daysUntil = (targetDow - currentDow + 7) % 7
+    if (daysUntil === 0) return 'today'
+    if (daysUntil === 1) return 'tomorrow'
+    if (daysUntil <= 6) return 'this_week'
+    return 'later'
+  }
+
+  if (recurrence === 'once') {
+    const fireOnDate = reminder.fire_on_date || (reminder.next_fire_at ? zonedDateStr(new Date(reminder.next_fire_at), zone) : todayStr)
+    const diff = daysBetween(todayStr, fireOnDate)
+    if (diff <= 0) return 'today'
+    if (diff === 1) return 'tomorrow'
+    if (diff <= 6) return 'this_week'
+    return 'later'
+  }
+
+  return 'today'
+}
+

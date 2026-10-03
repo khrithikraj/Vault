@@ -85,10 +85,12 @@ export function SearchResults({
   if (mode === 'trash') {
     return (
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-10">
-        <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
-          <BrandIcon icon={Trash2} size={18} />
-          Search results
-          <span className="ml-1 text-xs font-normal text-ink-soft/70">· {total} {total === 1 ? 'result' : 'results'} · {scopeLabel}</span>
+        <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-ink">
+          <BrandIcon icon={Trash2} size={16} />
+          <span>Search results</span>
+          <span className="ml-1 text-xs font-normal text-ink-soft/70">
+            · {total} {total === 1 ? 'result' : 'results'} · {scopeLabel}
+          </span>
         </h2>
         <TrashList
           rows={trashRows ?? []}
@@ -103,10 +105,12 @@ export function SearchResults({
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-10">
-      <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em]">
-        <BrandIcon icon={Search} size={18} />
-        Search results
-        <span className="ml-1 text-xs font-normal text-ink-soft/70">· {total} {total === 1 ? 'result' : 'results'} · {scopeLabel}</span>
+      <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-ink">
+        <BrandIcon icon={Search} size={16} />
+        <span>Search results</span>
+        <span className="ml-1 text-xs font-normal text-ink-soft/70">
+          · {total} {total === 1 ? 'result' : 'results'} · {scopeLabel}
+        </span>
       </h2>
 
       {mode === 'everything' || mode === 'category' || mode === 'favorites' ? (

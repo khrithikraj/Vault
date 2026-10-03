@@ -279,7 +279,7 @@ describe('preflightReminder', () => {
     const result = preflightReminder(base)
     expect(result.ok).toBe(true)
     if (result.ok) {
-      expect(result.note.title).toBe('Grocery List')
+      expect(result.note?.title).toBe('Grocery List')
     }
   })
 

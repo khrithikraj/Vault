@@ -69,12 +69,23 @@ export function ArchiveIdentity({
         <button
           type="button"
           onClick={onOpenAccount}
-          className="flex items-center gap-1.5 rounded py-1.5 pl-2 pr-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft transition-colors hover:text-ink"
+          className="group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 sm:h-auto sm:w-auto sm:shrink sm:items-center sm:gap-1.5 sm:rounded sm:py-1.5 sm:pl-2 sm:pr-1.5 sm:text-[11px] sm:font-semibold sm:uppercase sm:tracking-[0.12em] sm:text-ink-soft sm:transition-colors sm:hover:text-ink sm:active:scale-100"
           aria-label={preview ? 'Preview mode account panel' : 'Account settings'}
           title={preview ? 'Preview mode account panel' : 'Account settings'}
           data-tour="account"
         >
-          <User size={12} aria-hidden="true" />
+          {/* Mobile: counterpart to the lock badge */}
+          <span className="absolute inset-0 rounded-full border border-ink/12 transition-colors group-hover:border-ink/25 sm:hidden" />
+          <span className="absolute inset-1.5 rounded-full bg-accent/8 transition-colors group-hover:bg-accent/12 sm:hidden" />
+          <User
+            size={15}
+            strokeWidth={2}
+            className="relative text-accent sm:hidden"
+            aria-hidden="true"
+          />
+
+          {/* Wide (sm+): text-button with quiet icon */}
+          <User size={12} className="hidden sm:inline" aria-hidden="true" />
           <span className="hidden sm:inline">{accountLabel}</span>
         </button>
 

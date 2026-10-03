@@ -298,14 +298,20 @@ export type NoteRecord = {
  *   valid when note exists, note.deleted_at === null, AND note.checklist contains the item.
  */
 export function isReminderValid(
-  reminder: { checklist_item_id: string | null },
+  reminder: { note_id?: string | null; checklist_item_id: string | null; title?: string | null },
   note?: NoteRecord,
 ): boolean {
-  if (!note || note.deleted_at !== null) return false
-  const isNoteLevel = reminder.checklist_item_id == null || reminder.checklist_item_id === ''
-  if (isNoteLevel) return true
-  const hasItem = note.checklist?.some((entry) => entry.id === reminder.checklist_item_id)
-  return Boolean(hasItem)
+  if (note) {
+    if (note.deleted_at !== null) return false
+    const isNoteLevel = reminder.checklist_item_id == null || reminder.checklist_item_id === ''
+    if (isNoteLevel) return true
+    const hasItem = note.checklist?.some((entry) => entry.id === reminder.checklist_item_id)
+    return Boolean(hasItem)
+  }
+
+  // Standalone reminder (no note attached):
+  if (reminder.note_id != null && reminder.note_id !== '') return false
+  return typeof reminder.title === 'string' && reminder.title.trim().length > 0
 }
 
 export type ReminderPreflightError =
@@ -320,10 +326,13 @@ export type ReminderPreflightError =
   | 'once-not-due'
 
 export type ReminderPreflight =
-  | { ok: true; note: NoteRecord }
+  | { ok: true; note?: NoteRecord }
   | { ok: false; reason: ReminderPreflightError; retryable?: boolean }
 
 export type ReminderPreflightInput = {
+  id?: string
+  title?: string | null
+  note_id?: string | null
   checklist_item_id: string | null
   recurrence?: ReminderRecurrence | null
   day_of_week?: Weekday | null
@@ -340,6 +349,7 @@ export type ReminderPreflightInput = {
  * invalid timezone, or malformed recurrence / local_time / next_fire_at from ever
  * consuming an occurrence or aborting the batch:
  *
+ *   - standalone reminder without a valid title → 'invalid-reminder'
  *   - note missing / soft-deleted  → 'invalid-reminder'   (disable, never fire)
  *   - referenced checklist item gone → 'invalid-reminder' (disable, never fire)
  *   - note/checklist shape unusable  → 'malformed-note'   (disable)
@@ -365,18 +375,25 @@ export function preflightReminder(
   now: Date = new Date(),
 ): ReminderPreflight {
   const note = normalizeNote(reminder.notes)
-  if (note == null) return { ok: false, reason: 'invalid-reminder' }
-  if (typeof note !== 'object' || Array.isArray(note)) return { ok: false, reason: 'malformed-note' }
 
-  const checklist = note.checklist
-  if (checklist != null) {
-    if (!Array.isArray(checklist)) return { ok: false, reason: 'malformed-note' }
-    if (checklist.some((entry) => entry === null || Array.isArray(entry) || typeof entry !== 'object')) {
-      return { ok: false, reason: 'malformed-note' }
+  if (note != null) {
+    if (typeof note !== 'object' || Array.isArray(note)) return { ok: false, reason: 'malformed-note' }
+
+    const checklist = note.checklist
+    if (checklist != null) {
+      if (!Array.isArray(checklist)) return { ok: false, reason: 'malformed-note' }
+      if (checklist.some((entry) => entry === null || Array.isArray(entry) || typeof entry !== 'object')) {
+        return { ok: false, reason: 'malformed-note' }
+      }
+    }
+
+    if (note.deleted_at !== null) return { ok: false, reason: 'invalid-reminder' }
+  } else {
+    if (reminder.note_id != null && reminder.note_id !== '') {
+      return { ok: false, reason: 'invalid-reminder' }
     }
   }
 
-  if (note.deleted_at !== null) return { ok: false, reason: 'invalid-reminder' }
   if (!isReminderValid(reminder, note)) return { ok: false, reason: 'invalid-reminder' }
 
   const recurrence = reminder.recurrence ?? 'daily'
@@ -413,13 +430,19 @@ export function preflightReminder(
 
 /**
  * Constructs title and body for web push notification.
+ * Standalone: title = reminder.title || "Reminder", body = "Raj's Vault"
  * Note-level: title = note.title || "Raj's Vault", body = "N checklist task(s) remaining."
  * Item-level: title = item.text, body = From "<note title>" · N task(s) remaining.
  */
 export function buildNotificationContent(
-  reminder: { checklist_item_id: string | null },
-  note: NoteRecord,
+  reminder: { title?: string | null; note_id?: string | null; checklist_item_id: string | null },
+  note?: NoteRecord,
 ): { title: string; body: string } {
+  if (!note) {
+    const title = reminder.title?.trim() || 'Reminder'
+    return { title, body: "Raj's Vault" }
+  }
+
   const incompleteCount = note.checklist?.filter((i) => !i.done)?.length ?? 0
 
   const isNoteLevel = reminder.checklist_item_id == null || reminder.checklist_item_id === ''

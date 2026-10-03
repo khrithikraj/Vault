@@ -331,3 +331,50 @@ test('the custom calendar stays usable and overflow-free across narrow mobile wi
 
   expect(errors).toEqual([])
 })
+
+test('standalone reminders create, group, complete, and delete in primary Reminders view', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`))
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(`console.error: ${msg.text()}`)
+  })
+
+  await openDemo(page)
+
+  // Navigate to Reminders in primary floating nav
+  await page.getByRole('button', { name: 'Reminders' }).click()
+  await expect(page.getByRole('heading', { name: 'Reminders' })).toBeVisible()
+
+  // Create a new standalone reminder
+  await page.getByRole('button', { name: 'New reminder' }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'New Reminder' })
+  await expect(dialog).toBeVisible()
+
+  await dialog.getByPlaceholder(/Renew car insurance/i).fill('Call dentist')
+  await dialog.getByRole('button', { name: 'Daily', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Create Reminder' }).click()
+
+  // Verify it appears in Today group
+  await expect(page.getByText('Call dentist')).toBeVisible()
+  await expect(page.getByText('Today')).toBeVisible()
+
+  // Toggle completion
+  const completeBtn = page.getByRole('button', { name: 'Mark reminder complete' })
+  await completeBtn.click()
+  await expect(page.getByRole('button', { name: 'Mark reminder incomplete' })).toBeVisible()
+
+  // Edit reminder
+  await page.getByRole('button', { name: 'Edit reminder' }).click()
+  const editDialog = page.getByRole('dialog', { name: 'Edit Reminder' })
+  await expect(editDialog).toBeVisible()
+  await editDialog.getByPlaceholder(/Renew car insurance/i).fill('Call dentist office')
+  await editDialog.getByRole('button', { name: 'Save Changes' }).click()
+  await expect(page.getByText('Call dentist office')).toBeVisible()
+
+  // Delete reminder
+  await page.getByRole('button', { name: 'Delete reminder' }).click()
+  await expect(page.getByText('Call dentist office')).toBeHidden()
+
+  expect(errors).toEqual([])
+})
+

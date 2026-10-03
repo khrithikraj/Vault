@@ -56,8 +56,9 @@ export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday'
 export type ChecklistReminder = {
   id: string
   user_id: string
-  note_id: string
-  /** NULL = whole-note reminder; a real checklist item UUID = item-level reminder. */
+  title?: string | null
+  note_id: string | null
+  /** NULL = whole-note reminder or standalone reminder; a real checklist item UUID = item-level reminder. */
   checklist_item_id: string | null
   enabled: boolean
   recurrence: 'once' | 'daily' | 'weekdays' | 'weekly'

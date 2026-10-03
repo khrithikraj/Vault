@@ -9,7 +9,7 @@ import { ShareStatusPanel } from './ShareStatusPanel'
 import { FavoriteButton } from './ui/FavoriteButton'
 import { MoreActionsMenu, type MoreActionItem } from './ui/MoreActionsMenu'
 import { isNoteFavorite } from '../lib/favorites'
-import { browserTimezone, formatRecurrenceLabel, formatReminderDate, formatReminderTime, isCompletedToday, isValidFireOnDate, noteReminder, reminderForItem, type ReminderRecurrence } from '../lib/reminders'
+import { browserTimezone, formatRecurrenceLabel, formatReminderDate, formatReminderTime, formatWeekdayLabel, isCompletedToday, isValidFireOnDate, noteReminder, reminderForItem, type ReminderRecurrence } from '../lib/reminders'
 import { getNotificationStatus, type NotificationStatus } from '../lib/notifications'
 import { cn } from '../design/cn'
 import { NoteReminderControl } from './notes/NoteReminderControl'
@@ -255,6 +255,18 @@ export function NoteEditor({
         : `${formatRecurrenceLabel(currentNoteReminder.recurrence)} reminder at ${reminderTime}`
     : 'Set reminder'
 
+  // Compact inline recurrence metadata shown inside the header chip:
+  // e.g. "12:01 AM · DAILY", "12:01 AM · 28 SEP", "12:01 AM · MON"
+  const reminderChipMeta = currentNoteReminder?.enabled
+    ? isReminderDoneToday
+      ? null // done state handled by icon
+      : onceDate
+        ? onceDate.toUpperCase()
+        : currentNoteReminder.recurrence === 'weekly' && currentNoteReminder.day_of_week
+          ? formatWeekdayLabel(currentNoteReminder.day_of_week).slice(0, 3).toUpperCase()
+          : formatRecurrenceLabel(currentNoteReminder.recurrence).toUpperCase()
+    : null
+
   const notificationsItem: MoreActionItem = (() => {
     switch (notificationStatus?.kind) {
       case 'enabled':
@@ -340,18 +352,23 @@ export function NoteEditor({
                 aria-label={reminderChipLabel}
                 title={reminderChipLabel}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-0.5 text-xs font-medium transition-colors',
+                  'inline-flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[11px] font-medium transition-colors',
                   isReminderDoneToday
-                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-                    : 'border-accent/20 bg-accent/5 text-accent hover:bg-accent/15',
+                    ? 'text-emerald-400/80 hover:text-emerald-400'
+                    : 'text-accent/70 hover:text-accent',
                 )}
               >
                 {isReminderDoneToday ? (
-                  <Check size={12} className="shrink-0 stroke-[2.5]" aria-hidden="true" />
+                  <Check size={11} className="shrink-0 stroke-[2.5]" aria-hidden="true" />
                 ) : (
-                  <Clock size={12} className="shrink-0" aria-hidden="true" />
+                  <Clock size={11} className="shrink-0" aria-hidden="true" />
                 )}
-                <span>{reminderTime}</span>
+                <span className="font-mono">{reminderTime}</span>
+                {reminderChipMeta ? (
+                  <span className="text-[10px] tracking-wide opacity-70">
+                    &middot;&thinsp;{reminderChipMeta}
+                  </span>
+                ) : null}
               </button>
             ) : null}
             <MoreActionsMenu triggerRef={setMoreActionsNode} triggerLabel="More actions" items={moreItems} />

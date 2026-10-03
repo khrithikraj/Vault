@@ -152,7 +152,7 @@ Deno.serve(
       const nowIso = now.toISOString()
       const { data: reminders, error } = await supabase
         .from('reminders')
-        .select('id,user_id,note_id,checklist_item_id,recurrence,day_of_week,fire_on_date,local_time,timezone,next_fire_at,notes!inner(title,deleted_at,checklist)')
+        .select('id,user_id,title,note_id,checklist_item_id,recurrence,day_of_week,fire_on_date,local_time,timezone,next_fire_at,notes(title,deleted_at,checklist)')
         .eq('enabled', true)
         .or(`next_fire_at.is.null,next_fire_at.lte.${nowIso}`)
         .limit(100)

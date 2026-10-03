@@ -786,7 +786,9 @@ export function useVault() {
   }
 
   const upsertReminder = async (input: {
-    noteId: string
+    id?: string
+    title?: string | null
+    noteId?: string | null
     checklistItemId?: string | null
     localTime: string
     enabled: boolean
@@ -797,6 +799,10 @@ export function useVault() {
     timezone?: string
   }) => {
     if (!session?.user?.id) return
+    if (!input.noteId && (!input.title || !input.title.trim())) {
+      setMessage('Enter a reminder title.')
+      return
+    }
     if (!validateReminderTime(input.localTime)) {
       setMessage('Enter a valid reminder time.')
       return
@@ -825,18 +831,21 @@ export function useVault() {
         })
       : null
 
-    // Find-then-update-or-insert: partial unique indexes on nullable columns cannot
-    // be targeted by PostgREST generic upsert conflict inference, so we handle the
-    // two cases (note-level and item-level) explicitly.
-    const existing = reminders.find(
-      (r) =>
-        r.note_id === input.noteId &&
-        (targetItemId === null ? r.checklist_item_id === null : r.checklist_item_id === targetItemId),
-    )
+    // Find-then-update-or-insert: if ID is given, find by ID; else by note/item
+    const existing = input.id
+      ? reminders.find((r) => r.id === input.id)
+      : input.noteId
+        ? reminders.find(
+            (r) =>
+              r.note_id === input.noteId &&
+              (targetItemId === null ? r.checklist_item_id === null : r.checklist_item_id === targetItemId),
+          )
+        : undefined
 
     const includeDayOfWeek = await remindersSupportDayOfWeek()
     const includeFireOnDate = await remindersSupportFireOnDate()
     const reminderFields = {
+      title: input.title ? input.title.trim() : null,
       local_time: input.localTime,
       enabled: input.enabled,
       recurrence,
@@ -861,7 +870,7 @@ export function useVault() {
         .from('reminders')
         .insert({
           user_id: session.user.id,
-          note_id: input.noteId,
+          note_id: input.noteId || null,
           checklist_item_id: targetItemId,
           ...reminderFields,
         })

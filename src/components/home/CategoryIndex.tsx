@@ -15,6 +15,8 @@ type CategoryIndexProps = {
   onDelete: (categoryId: string) => void
   onAdd: (input: { name: string; icon: string; color: string }) => void
   onEdit: (category: Category) => void
+  onSelectTrash?: () => void
+  trashCount?: number
 }
 
 /**
@@ -36,6 +38,8 @@ export function CategoryIndex({
   onDelete,
   onAdd,
   onEdit,
+  onSelectTrash,
+  trashCount,
 }: CategoryIndexProps) {
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
@@ -74,7 +78,7 @@ export function CategoryIndex({
     <motion.div layout aria-label="Category index" className="mt-2">
       {/* Rail header */}
       <div className="mb-3 flex items-center justify-between">
-        <span className="folio text-[9px] tracking-[0.28em] text-ink-soft/50">Category index</span>
+        <span className="folio text-[9px] tracking-[0.28em] text-ink/70">Category index</span>
         <button
           type="button"
           onClick={() => setShowForm((value) => !value)}
@@ -247,6 +251,34 @@ export function CategoryIndex({
           </motion.form>
         ) : null}
       </motion.div>
+
+      {/* Vault Tools section */}
+      {onSelectTrash ? (
+        <div className="mt-8 border-t border-ink/10 pt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="folio text-[9px] uppercase tracking-[0.28em] text-ink/70">
+              Vault Tools
+            </span>
+          </div>
+          <div className="index-row group flex items-center gap-3 py-2.5 pl-3 pr-3 sm:gap-4 sm:pl-4 sm:pr-4">
+            <button
+              type="button"
+              onClick={onSelectTrash}
+              className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+            >
+              <Trash2 size={16} className="text-ink/65 transition-colors group-hover:text-ink" />
+              <span className="font-display text-sm font-medium text-ink/80 transition-colors group-hover:text-ink">
+                Trash
+              </span>
+            </button>
+            {typeof trashCount === 'number' && trashCount > 0 ? (
+              <span className="folio text-[10px] tabular-nums text-ink/60">
+                {trashCount}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={deleteTarget !== null}
