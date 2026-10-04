@@ -61,6 +61,7 @@ export type ChecklistReminder = {
   /** NULL = whole-note reminder or standalone reminder; a real checklist item UUID = item-level reminder. */
   checklist_item_id: string | null
   enabled: boolean
+  is_favorite: boolean
   recurrence: 'once' | 'daily' | 'weekdays' | 'weekly'
   day_of_week?: Weekday | null
   /** 'YYYY-MM-DD' calendar date the user picked for a 'once' reminder. NULL for

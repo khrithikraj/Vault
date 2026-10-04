@@ -11,7 +11,7 @@ import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { VaultDialog } from './ui/VaultDialog'
 import type { Category, FieldDefinition, VaultItem } from '../types/app'
 
-type CapturQuickAdd = 'choose' | 'item' | 'note' | 'document'
+type CapturQuickAdd = 'choose' | 'item' | 'note' | 'document' | 'reminder'
 
 type CaptureFabProps = {
   categories: Category[]
@@ -28,9 +28,10 @@ type CaptureFabProps = {
   openToken?: number
   /** Smart Quick Add context: which action the FAB tap should perform. */
   quickAdd?: CapturQuickAdd
-  /** Note/document quick-add shortcuts (used when quickAdd is note/document). */
+  /** Note/document/reminder quick-add shortcuts (used when quickAdd is note/document/reminder). */
   onQuickAddNote?: () => void
   onQuickAddDocument?: () => void
+  onQuickAddReminder?: () => void
   /** Live items used to warn about probable duplicates while creating an item. */
   existingItems?: VaultItem[]
   /** Jump straight to a matched existing item from the duplicate warning. */
@@ -77,6 +78,7 @@ export function CaptureFab({
   quickAdd = 'item',
   onQuickAddNote,
   onQuickAddDocument,
+  onQuickAddReminder,
   existingItems,
   onViewExistingItem,
 }: CaptureFabProps) {
@@ -1091,6 +1093,10 @@ export function CaptureFab({
           setMenuOpen(false)
           onQuickAddDocument?.()
         }}
+        onPickReminder={() => {
+          setMenuOpen(false)
+          onQuickAddReminder?.()
+        }}
       />
 
       <div
@@ -1110,6 +1116,10 @@ export function CaptureFab({
             }
             if (quickAdd === 'document') {
               onQuickAddDocument?.()
+              return
+            }
+            if (quickAdd === 'reminder') {
+              onQuickAddReminder?.()
               return
             }
             if (quickAdd === 'choose') {

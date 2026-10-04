@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { VaultItem } from '../../src/types/app'
-import { isFavorite, toggleFavorite, withFavoriteColumn, isItemFavorite, isNoteFavorite, isDocumentFavorite } from '../../src/lib/favorites'
+import { isFavorite, toggleFavorite, withFavoriteColumn, isItemFavorite, isNoteFavorite, isDocumentFavorite, isReminderFavorite } from '../../src/lib/favorites'
 import { isFavorite as ratingsIsFavorite, withFavoriteToggled } from '../../src/lib/ratings'
-import type { Note, VaultDocument } from '../../src/types/app'
+import type { ChecklistReminder, Note, VaultDocument } from '../../src/types/app'
 
 function makeItem(overrides: Partial<VaultItem> = {}): VaultItem {
   return {
@@ -57,9 +57,12 @@ describe('favorites', () => {
     const item = makeItem({ is_favorite: true })
     const note = { id: 'n', is_favorite: true } as Note
     const doc = { id: 'd', is_favorite: false } as VaultDocument
+    const reminder = { id: 'r', is_favorite: true } as ChecklistReminder
     expect(isItemFavorite(item)).toBe(true)
     expect(isNoteFavorite(note)).toBe(true)
     expect(isDocumentFavorite(doc)).toBe(false)
+    expect(isReminderFavorite(reminder)).toBe(true)
+    expect(isReminderFavorite({ ...reminder, is_favorite: false })).toBe(false)
     expect(ratingsIsFavorite(item)).toBe(true)
   })
 

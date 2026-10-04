@@ -5,12 +5,11 @@ import {
   Check,
   Clock,
   NotebookPen,
-  Pencil,
-  Plus,
   Trash2,
 } from 'lucide-react'
 import { VaultSection } from '../ui/VaultSection'
-import { ReminderEditorDialog } from './ReminderEditorDialog'
+import { FavoriteButton } from '../ui/FavoriteButton'
+import { DoneStamp } from '../DoneStamp'
 import {
   formatRecurrenceLabel,
   formatReminderDate,
@@ -19,28 +18,17 @@ import {
   getReminderDueGroup,
   isCompletedToday,
   type DueGroup,
-  type ReminderRecurrence,
 } from '../../lib/reminders'
-import type { ChecklistReminder, DailyChecklistCompletion, Note, Weekday } from '../../types/app'
+import type { ChecklistItem, ChecklistReminder, DailyChecklistCompletion, Note } from '../../types/app'
 
 export type RemindersPanelProps = {
   reminders: ChecklistReminder[]
   dailyCompletions: DailyChecklistCompletion[]
   notes: Note[]
   onOpenNote: (noteId: string) => void
-  onUpsertReminder: (input: {
-    id?: string
-    title?: string | null
-    noteId?: string | null
-    checklistItemId?: string | null
-    localTime: string
-    enabled: boolean
-    recurrence?: ReminderRecurrence
-    dayOfWeek?: Weekday | null
-    fireOnDate?: string | null
-    timezone?: string
-  }) => void
+  onEditReminder: (reminder: ChecklistReminder) => void
   onRemoveReminder: (id: string) => void
+  onToggleReminderFavorite: (reminder: ChecklistReminder) => void
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
   onEnableNotifications?: () => Promise<{ message?: string }>
 }
@@ -50,13 +38,12 @@ export function RemindersPanel({
   dailyCompletions,
   notes,
   onOpenNote,
-  onUpsertReminder,
+  onEditReminder,
   onRemoveReminder,
+  onToggleReminderFavorite,
   onToggleDailyCompletion,
   onEnableNotifications,
 }: RemindersPanelProps) {
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editingReminder, setEditingReminder] = useState<ChecklistReminder | null>(null)
   const [notifMessage, setNotifMessage] = useState('')
 
   // Map notes by ID for quick title/checklist lookup
@@ -75,7 +62,6 @@ export function RemindersPanel({
   }
 
   for (const reminder of activeReminders) {
-    // If completed today, we group it under today or separate section
     const group = getReminderDueGroup(reminder)
     groups[group].push(reminder)
   }
@@ -83,54 +69,6 @@ export function RemindersPanel({
   // Sort reminders within groups by time
   for (const group of Object.keys(groups) as DueGroup[]) {
     groups[group].sort((a, b) => a.local_time.localeCompare(b.local_time))
-  }
-
-  const handleCreateNew = () => {
-    setEditingReminder(null)
-    setEditorOpen(true)
-  }
-
-  const handleEdit = (reminder: ChecklistReminder) => {
-    setEditingReminder(reminder)
-    setEditorOpen(true)
-  }
-
-  const handleSaveReminder = (input: {
-    id?: string
-    title: string
-    localTime: string
-    recurrence: ReminderRecurrence
-    dayOfWeek?: Weekday | null
-    fireOnDate?: string | null
-    enabled: boolean
-  }) => {
-    if (editingReminder && editingReminder.note_id) {
-      // Editing a note-attached reminder
-      onUpsertReminder({
-        id: editingReminder.id,
-        noteId: editingReminder.note_id,
-        checklistItemId: editingReminder.checklist_item_id,
-        localTime: input.localTime,
-        recurrence: input.recurrence,
-        dayOfWeek: input.dayOfWeek,
-        fireOnDate: input.fireOnDate,
-        enabled: input.enabled,
-        timezone: editingReminder.timezone,
-      })
-    } else {
-      // Standalone reminder
-      onUpsertReminder({
-        id: input.id,
-        title: input.title,
-        noteId: null,
-        checklistItemId: null,
-        localTime: input.localTime,
-        recurrence: input.recurrence,
-        dayOfWeek: input.dayOfWeek,
-        fireOnDate: input.fireOnDate,
-        enabled: input.enabled,
-      })
-    }
   }
 
   const handleEnablePush = async () => {
@@ -154,19 +92,9 @@ export function RemindersPanel({
         folio="01"
         title="Reminders"
         right={
-          <div className="flex items-center gap-3">
-            <span className="vault-meta text-ink-soft/45">
-              {totalCount} {totalCount === 1 ? 'reminder' : 'reminders'}
-            </span>
-            <button
-              type="button"
-              onClick={handleCreateNew}
-              className="vault-action flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent transition-colors hover:bg-accent hover:text-ink"
-            >
-              <Plus size={13} aria-hidden="true" />
-              New reminder
-            </button>
-          </div>
+          <span className="vault-meta text-ink-soft/45">
+            {totalCount} {totalCount === 1 ? 'reminder' : 'reminders'}
+          </span>
         }
       >
         {/* Notification Status Banner */}
@@ -200,14 +128,6 @@ export function RemindersPanel({
             <p className="mt-2 text-sm text-ink-soft/70">
               Create standalone reminders or add checklists with reminders inside Notes.
             </p>
-            <button
-              type="button"
-              onClick={handleCreateNew}
-              className="vault-action mt-5 inline-flex items-center gap-2 border border-ink/15 px-4 py-2 text-xs font-medium text-ink-soft transition-colors hover:border-accent hover:text-accent"
-            >
-              <Plus size={13} aria-hidden="true" />
-              New reminder
-            </button>
           </div>
         ) : (
           <div className="space-y-8">
@@ -219,8 +139,9 @@ export function RemindersPanel({
               dailyCompletions={dailyCompletions}
               notesById={notesById}
               onOpenNote={onOpenNote}
-              onEdit={handleEdit}
+              onEdit={onEditReminder}
               onDelete={onRemoveReminder}
+              onToggleFavorite={onToggleReminderFavorite}
               onToggleComplete={onToggleDailyCompletion}
             />
 
@@ -232,8 +153,9 @@ export function RemindersPanel({
               dailyCompletions={dailyCompletions}
               notesById={notesById}
               onOpenNote={onOpenNote}
-              onEdit={handleEdit}
+              onEdit={onEditReminder}
               onDelete={onRemoveReminder}
+              onToggleFavorite={onToggleReminderFavorite}
               onToggleComplete={onToggleDailyCompletion}
             />
 
@@ -245,8 +167,9 @@ export function RemindersPanel({
               dailyCompletions={dailyCompletions}
               notesById={notesById}
               onOpenNote={onOpenNote}
-              onEdit={handleEdit}
+              onEdit={onEditReminder}
               onDelete={onRemoveReminder}
+              onToggleFavorite={onToggleReminderFavorite}
               onToggleComplete={onToggleDailyCompletion}
             />
 
@@ -258,29 +181,14 @@ export function RemindersPanel({
               dailyCompletions={dailyCompletions}
               notesById={notesById}
               onOpenNote={onOpenNote}
-              onEdit={handleEdit}
+              onEdit={onEditReminder}
               onDelete={onRemoveReminder}
+              onToggleFavorite={onToggleReminderFavorite}
               onToggleComplete={onToggleDailyCompletion}
             />
           </div>
         )}
       </VaultSection>
-
-      {/* Editor Modal */}
-      <ReminderEditorDialog
-        open={editorOpen}
-        reminder={editingReminder}
-        onClose={() => {
-          setEditorOpen(false)
-          setEditingReminder(null)
-        }}
-        onSave={handleSaveReminder}
-        onDelete={(id) => {
-          onRemoveReminder(id)
-          setEditorOpen(false)
-          setEditingReminder(null)
-        }}
-      />
     </div>
   )
 }
@@ -294,6 +202,7 @@ function ReminderGroupSection({
   onOpenNote,
   onEdit,
   onDelete,
+  onToggleFavorite,
   onToggleComplete,
 }: {
   title: string
@@ -304,6 +213,7 @@ function ReminderGroupSection({
   onOpenNote: (noteId: string) => void
   onEdit: (reminder: ChecklistReminder) => void
   onDelete: (id: string) => void
+  onToggleFavorite: (reminder: ChecklistReminder) => void
   onToggleComplete: (reminder: ChecklistReminder) => void
 }) {
   if (count === 0) return null
@@ -320,8 +230,8 @@ function ReminderGroupSection({
         <span className="folio text-[10px] tabular-nums text-ink-soft/40">{count}</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {reminders.map((reminder) => {
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+        {reminders.map((reminder, index) => {
           const isDone = isCompletedToday(reminder, dailyCompletions)
           const note = reminder.note_id ? notesById.get(reminder.note_id) : undefined
           const checklistItem =
@@ -329,110 +239,188 @@ function ReminderGroupSection({
               ? note.checklist?.find((i) => i.id === reminder.checklist_item_id)
               : undefined
 
-          // Title resolution
-          const displayTitle = reminder.note_id
-            ? checklistItem
-              ? checklistItem.text
-              : note?.title.trim() || 'Untitled note'
-            : reminder.title?.trim() || 'Untitled reminder'
-
           return (
-            <motion.div
-              layout
+            <ReminderCard
               key={reminder.id}
-              className={`group relative flex flex-col justify-between rounded-xl border p-3.5 transition-all ${
-                isDone
-                  ? 'border-ink/8 bg-surface/30 opacity-60'
-                  : 'border-ink/12 bg-surface hover:border-ink/25 hover:shadow-sm'
-              }`}
-            >
-              {/* Card Top: Checkbox + Title */}
-              <div className="flex items-start gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => onToggleComplete(reminder)}
-                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded transition-colors ${
-                    isDone
-                      ? 'border border-accent bg-accent text-ink'
-                      : 'border border-ink/30 hover:border-accent hover:bg-accent/10'
-                  }`}
-                  aria-label={isDone ? 'Mark reminder incomplete' : 'Mark reminder complete'}
-                >
-                  {isDone ? <Check size={11} strokeWidth={3} /> : null}
-                </button>
-
-                <div className="min-w-0 flex-1">
-                  <h4
-                    onClick={() => onEdit(reminder)}
-                    className={`font-display cursor-pointer break-words text-sm font-medium leading-snug transition-colors group-hover:text-ink ${
-                      isDone ? 'text-ink-soft/50 line-through' : 'text-ink'
-                    }`}
-                  >
-                    {displayTitle}
-                  </h4>
-
-                  {/* Note link context badge */}
-                  {reminder.note_id && note ? (
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onOpenNote(reminder.note_id!)
-                        }}
-                        className="inline-flex items-center gap-1 rounded bg-ink/5 px-1.5 py-0.5 text-[10px] text-ink-soft/70 transition-colors hover:bg-ink/10 hover:text-ink"
-                        title="Open note in editor"
-                      >
-                        <NotebookPen size={10} />
-                        <span className="max-w-36 truncate">{note.title.trim() || 'Untitled Note'}</span>
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* Card Bottom: Badges + Actions */}
-              <div className="mt-3.5 flex items-center justify-between border-t border-ink/5 pt-2.5">
-                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-ink-soft/65">
-                  <span className="inline-flex items-center gap-1 font-medium text-ink-soft/90">
-                    <Clock size={11} className="text-accent" />
-                    {formatReminderTime(reminder.local_time)}
-                  </span>
-                  <span>·</span>
-                  <span>
-                    {reminder.recurrence === 'once' && reminder.fire_on_date
-                      ? formatReminderDate(reminder.fire_on_date)
-                      : reminder.recurrence === 'weekly' && reminder.day_of_week
-                        ? `Every ${formatWeekdayLabel(reminder.day_of_week)}`
-                        : formatRecurrenceLabel(reminder.recurrence)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
-                  <button
-                    type="button"
-                    onClick={() => onEdit(reminder)}
-                    className="rounded p-1 text-ink-soft/45 transition-colors hover:bg-ink/5 hover:text-ink"
-                    title="Edit reminder"
-                    aria-label="Edit reminder"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(reminder.id)}
-                    className="rounded p-1 text-ink-soft/45 transition-colors hover:bg-red-500/10 hover:text-red-400"
-                    title="Delete reminder"
-                    aria-label="Delete reminder"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+              reminder={reminder}
+              index={index}
+              isDone={isDone}
+              note={note}
+              checklistItem={checklistItem}
+              onOpenNote={onOpenNote}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onToggleFavorite={onToggleFavorite}
+              onToggleComplete={onToggleComplete}
+            />
           )
         })}
       </div>
     </section>
+  )
+}
+
+export function ReminderCard({
+  reminder,
+  index,
+  isDone,
+  note,
+  checklistItem,
+  onOpenNote,
+  onEdit,
+  onDelete,
+  onToggleFavorite,
+  onToggleComplete,
+}: {
+  reminder: ChecklistReminder
+  index: number
+  isDone: boolean
+  note?: Note
+  checklistItem?: ChecklistItem
+  onOpenNote: (noteId: string) => void
+  onEdit: (reminder: ChecklistReminder) => void
+  onDelete: (id: string) => void
+  onToggleFavorite: (reminder: ChecklistReminder) => void
+  onToggleComplete: (reminder: ChecklistReminder) => void
+}) {
+  // Title resolution
+  const displayTitle = reminder.note_id
+    ? checklistItem
+      ? checklistItem.text
+      : note?.title.trim() || 'Untitled note'
+    : reminder.title?.trim() || 'Untitled reminder'
+
+  const scheduleText =
+    reminder.recurrence === 'once' && reminder.fire_on_date
+      ? formatReminderDate(reminder.fire_on_date)
+      : reminder.recurrence === 'weekly' && reminder.day_of_week
+        ? `Every ${formatWeekdayLabel(reminder.day_of_week)}`
+        : formatRecurrenceLabel(reminder.recurrence)
+
+  const isFav = reminder.is_favorite === true
+  const favoriteLabel = isFav
+    ? `Remove ${displayTitle} from favorites`
+    : `Add ${displayTitle} to favorites`
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03, type: 'spring', stiffness: 300, damping: 28 }}
+      whileHover={{
+        y: -4,
+        rotateX: -3,
+        rotateY: index % 2 === 0 ? -1.5 : 1.5,
+      }}
+      whileTap={{ scale: 0.98 }}
+      style={{ transformPerspective: 800 }}
+      onClick={() => onEdit(reminder)}
+      className="vault-card group flex flex-col justify-between overflow-hidden cursor-pointer select-none min-h-[148px]"
+      role="button"
+      tabIndex={0}
+      aria-label={`Edit reminder ${displayTitle}`}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        if ((event.target as HTMLElement).closest('button, a, input, textarea, select')) return
+        event.preventDefault()
+        onEdit(reminder)
+      }}
+    >
+      {/* Header row: title + top-right actions (Favorite + Delete) */}
+      <div className="flex items-start justify-between gap-2 px-4 pt-3 min-h-[3rem]">
+        <h3
+          className={`min-w-0 font-display font-semibold uppercase leading-snug tracking-tight text-ink transition-colors group-hover:text-accent text-[0.95rem] sm:text-base line-clamp-2 ${
+            isDone ? 'text-ink-soft/50 line-through' : ''
+          }`}
+        >
+          {displayTitle}
+        </h3>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <FavoriteButton
+            active={isFav}
+            label={favoriteLabel}
+            onToggle={() => onToggleFavorite(reminder)}
+            size={13}
+            boxClassName="h-8 w-8"
+          />
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onDelete(reminder.id)
+            }}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-soft/30 transition-colors hover:bg-ink/5 hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            title="Delete reminder"
+            aria-label="Delete reminder"
+          >
+            <Trash2 size={13} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      {/* Body: note context badge or standalone reminder pill */}
+      <div className="flex-1 flex items-center px-4 py-2 min-h-[2.25rem]">
+        {reminder.note_id && note ? (
+          <div className="flex items-center gap-1.5 overflow-hidden">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenNote(reminder.note_id!)
+              }}
+              className="inline-flex items-center gap-1.5 rounded bg-ink/5 px-2 py-0.5 text-xs text-ink-soft transition-colors hover:bg-ink/10 hover:text-ink max-w-full"
+              title="Open note in editor"
+            >
+              <NotebookPen size={12} className="shrink-0 text-accent" />
+              <span className="truncate font-medium">{note.title.trim() || 'Untitled Note'}</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 overflow-hidden">
+            <span className="inline-flex items-center gap-1.5 rounded bg-ink/5 px-2 py-0.5 text-xs text-ink-soft max-w-full">
+              <Bell size={12} className="shrink-0 text-accent/80" />
+              <span className="truncate font-medium">Standalone reminder</span>
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Divider + footer: time/schedule on left + Mark as Done / DoneStamp on right */}
+      <div className="mx-4 h-px bg-ink/[0.07]" />
+      <div className="flex items-center justify-between gap-2 px-4 py-2.5 min-h-[2.25rem]">
+        <span className="flex min-w-0 items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-ink-soft/50">
+          <Clock size={11} className="shrink-0 text-accent" />
+          <span className="font-semibold text-ink-soft/80">{formatReminderTime(reminder.local_time)}</span>
+          <span className="shrink-0 text-ink-soft/30" aria-hidden="true">·</span>
+          <span className="truncate">{scheduleText}</span>
+        </span>
+        <div className="flex items-center gap-1.5">
+          {isDone ? (
+            <DoneStamp
+              label="Mark reminder incomplete"
+              onToggle={(event) => {
+                event.stopPropagation()
+                onToggleComplete(reminder)
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                onToggleComplete(reminder)
+              }}
+              className="inline-flex items-center gap-1 rounded border border-ink/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft/60 transition-colors hover:border-accent hover:bg-accent/10 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              title="Mark reminder complete"
+              aria-label="Mark reminder complete"
+            >
+              <Check size={11} strokeWidth={2.5} />
+              <span>Done</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.div>
   )
 }

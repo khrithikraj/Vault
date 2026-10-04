@@ -316,6 +316,7 @@ export function useMockVault() {
       note_id: input.noteId || null,
       checklist_item_id: targetItemId,
       enabled: input.enabled,
+      is_favorite: existing?.is_favorite ?? false,
       recurrence,
       day_of_week: dayOfWeek,
       fire_on_date: fireOnDate,
@@ -340,6 +341,14 @@ export function useMockVault() {
     setDailyCompletions((current) => exists
       ? current.filter((entry) => !(entry.reminder_id === reminder.id && entry.local_date === localDate))
       : [...current, { reminder_id: reminder.id, local_date: localDate, completed_at: new Date().toISOString() }])
+  }
+
+  const toggleReminderFavorite = async (reminder: ChecklistReminder) => {
+    setReminders((current) =>
+      current.map((r) =>
+        r.id === reminder.id ? { ...r, is_favorite: !r.is_favorite } : r,
+      ),
+    )
   }
 
   const deleteNote = async (noteId: string): Promise<boolean> => {
@@ -454,5 +463,6 @@ export function useMockVault() {
     upsertReminder,
     removeReminder,
     toggleDailyCompletion,
+    toggleReminderFavorite,
   }
 }

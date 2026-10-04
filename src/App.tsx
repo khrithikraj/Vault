@@ -1,8 +1,8 @@
 import { useVault } from './hooks/useVault'
 import { useMockVault } from './hooks/useMockVault'
 import { useDocuments } from './hooks/useDocuments'
-import type { Note, VaultDocument, VaultItem, Weekday } from './types/app'
-import type { ReminderRecurrence } from './lib/reminders'
+import type { ChecklistReminder, Note, VaultDocument, VaultItem, Weekday } from './types/app'
+import { isCompletedToday, type ReminderRecurrence } from './lib/reminders'
 import { consumeSharedPhoto } from './lib/shareTarget'
 import { AuthScreen } from './components/AuthScreen'
 import { UpdatePasswordScreen } from './components/UpdatePasswordScreen'
@@ -23,7 +23,8 @@ import { CommandSearch } from './components/home/CommandSearch'
 import { ArchiveObjects } from './components/home/ArchiveObjects'
 import { CategoryIndex } from './components/home/CategoryIndex'
 import { FloatingNav } from './components/home/FloatingNav'
-import { RemindersPanel } from './components/reminders/RemindersPanel'
+import { RemindersPanel, ReminderCard } from './components/reminders/RemindersPanel'
+import { ReminderEditorDialog } from './components/reminders/ReminderEditorDialog'
 import { DynamicIsland } from './components/home/DynamicIsland'
 import { searchVault } from './lib/search'
 import type { SearchScope } from './lib/search'
@@ -144,6 +145,13 @@ export default function App({ onReturnToLanding = () => window.location.assign('
       void docs.toggleFavorite(doc)
     },
     [docs],
+  )
+
+  const handleToggleReminderFavorite = useCallback(
+    (reminder: ChecklistReminder) => {
+      void vault.toggleReminderFavorite(reminder)
+    },
+    [vault],
   )
 
   const handleUpsertReminder = useCallback(
@@ -369,16 +377,31 @@ export default function App({ onReturnToLanding = () => window.location.assign('
   //    vault + Everything         → a chooser (Item / Note / Document)
   //    notes                      → a fresh note opened in the editor
   //    documents                  → the document uploader
+  //    reminders                  → opens the new reminder editor
   //    trash                      → hidden
   // ---------------------------------------------------------------------------
-  const quickAdd = useMemo<'choose' | 'item' | 'note' | 'document'>(() => {
+  const [reminderEditorOpen, setReminderEditorOpen] = useState(false)
+  const [activeEditingReminder, setActiveEditingReminder] = useState<ChecklistReminder | null>(null)
+
+  const handleOpenNewReminder = useCallback(() => {
+    setActiveEditingReminder(null)
+    setReminderEditorOpen(true)
+  }, [])
+
+  const handleEditReminder = useCallback((reminder: ChecklistReminder) => {
+    setActiveEditingReminder(reminder)
+    setReminderEditorOpen(true)
+  }, [])
+
+  const quickAdd = useMemo<'choose' | 'item' | 'note' | 'document' | 'reminder'>(() => {
     if (mainView === 'notes') return 'note'
     if (mainView === 'documents') return 'document'
-    if (mainView === 'favorites' || mainView === 'reminders') return 'choose'
+    if (mainView === 'reminders') return 'reminder'
+    if (mainView === 'favorites') return 'choose'
     if (vault.selectedCategoryId) return 'item'
     return 'choose'
   }, [mainView, vault.selectedCategoryId])
- 
+
   const handleQuickAddNote = useCallback(() => {
     goToSection('notes')
     void vault.addNote().then((note) => {
@@ -388,11 +411,55 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goToSection, vault])
- 
+
   const handleQuickAddDocument = useCallback(() => {
     goToSection('documents')
     setDocUploadOpen(true)
   }, [goToSection])
+
+  const handleQuickAddReminder = useCallback(() => {
+    goToSection('reminders')
+    handleOpenNewReminder()
+  }, [goToSection, handleOpenNewReminder])
+
+  const handleSaveReminderFromDialog = useCallback(
+    (input: {
+      id?: string
+      title: string
+      localTime: string
+      recurrence: ReminderRecurrence
+      dayOfWeek?: Weekday | null
+      fireOnDate?: string | null
+      enabled: boolean
+    }) => {
+      if (activeEditingReminder && activeEditingReminder.note_id) {
+        handleUpsertReminder({
+          id: activeEditingReminder.id,
+          noteId: activeEditingReminder.note_id,
+          checklistItemId: activeEditingReminder.checklist_item_id,
+          localTime: input.localTime,
+          recurrence: input.recurrence,
+          dayOfWeek: input.dayOfWeek,
+          fireOnDate: input.fireOnDate,
+          enabled: input.enabled,
+          timezone: activeEditingReminder.timezone,
+        })
+      } else {
+        handleUpsertReminder({
+          id: input.id,
+          title: input.title,
+          noteId: null,
+          checklistItemId: null,
+          localTime: input.localTime,
+          recurrence: input.recurrence,
+          dayOfWeek: input.dayOfWeek,
+          fireOnDate: input.fireOnDate,
+          enabled: input.enabled,
+        })
+      }
+    },
+    [activeEditingReminder, handleUpsertReminder],
+  )
  
   // Recently Deleted: merged rows for the trash tab + row-level restore/purge.
   const trashRows = useMemo(
@@ -929,6 +996,32 @@ export default function App({ onReturnToLanding = () => window.location.assign('
                   </div>
                 ) : <p className="text-sm text-ink-soft/70">No favorite documents.</p>}
               </section>
+              <section aria-labelledby="favorite-reminders-heading">
+                <h3 id="favorite-reminders-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Reminders</h3>
+                {vault.reminders.filter((reminder) => reminder.is_favorite).length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+                    {vault.reminders.filter((reminder) => reminder.is_favorite).map((reminder, index) => (
+                      <ReminderCard
+                        key={reminder.id}
+                        reminder={reminder}
+                        index={index}
+                        isDone={isCompletedToday(reminder, vault.dailyCompletions)}
+                        note={reminder.note_id ? vault.notes.find((n) => n.id === reminder.note_id) : undefined}
+                        checklistItem={
+                          reminder.note_id && reminder.checklist_item_id
+                            ? vault.notes.find((n) => n.id === reminder.note_id)?.checklist?.find((i) => i.id === reminder.checklist_item_id)
+                            : undefined
+                        }
+                        onOpenNote={handleOpenNote}
+                        onEdit={handleEditReminder}
+                        onDelete={handleRemoveReminder}
+                        onToggleFavorite={handleToggleReminderFavorite}
+                        onToggleComplete={(r) => void vault.toggleDailyCompletion(r)}
+                      />
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-ink-soft/70">No favorite reminders.</p>}
+              </section>
             </div>
           </VaultSection>
         ) : mainView === 'reminders' ? (
@@ -937,8 +1030,9 @@ export default function App({ onReturnToLanding = () => window.location.assign('
             dailyCompletions={vault.dailyCompletions}
             notes={vault.notes}
             onOpenNote={handleOpenNote}
-            onUpsertReminder={handleUpsertReminder}
+            onEditReminder={handleEditReminder}
             onRemoveReminder={handleRemoveReminder}
+            onToggleReminderFavorite={handleToggleReminderFavorite}
             onToggleDailyCompletion={(reminder) => void vault.toggleDailyCompletion(reminder)}
             onEnableNotifications={handleEnableNotifications}
           />
@@ -1016,6 +1110,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
           openToken={sharedPhotoToken}
           onQuickAddNote={handleQuickAddNote}
           onQuickAddDocument={handleQuickAddDocument}
+          onQuickAddReminder={handleQuickAddReminder}
           existingItems={vault.items}
           onViewExistingItem={(id) => handleOpenItem(id)}
         />
@@ -1132,6 +1227,21 @@ export default function App({ onReturnToLanding = () => window.location.assign('
           onResetPassword={vault.resetPassword}
           onSignOut={handleSignOut}
           onReplayTour={onboardingTour.restart}
+        />
+
+        <ReminderEditorDialog
+          open={reminderEditorOpen}
+          reminder={activeEditingReminder}
+          onClose={() => {
+            setReminderEditorOpen(false)
+            setActiveEditingReminder(null)
+          }}
+          onSave={handleSaveReminderFromDialog}
+          onDelete={(id) => {
+            handleRemoveReminder(id)
+            setReminderEditorOpen(false)
+            setActiveEditingReminder(null)
+          }}
         />
       </Suspense>
  

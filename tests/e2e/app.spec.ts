@@ -129,7 +129,7 @@ test('global surfaces follow the canonical layer order', async ({ page }) => {
   await expect(quickAdd).toHaveCSS('z-index', '60')
   await expect(page.getByRole('menuitem', { name: /Item/ })).toBeFocused()
   await page.keyboard.press('End')
-  await expect(page.getByRole('menuitem', { name: /Document/ })).toBeFocused()
+  await expect(page.getByRole('menuitem', { name: /Reminder/ })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('button', { name: 'Add item' })).toBeFocused()
 

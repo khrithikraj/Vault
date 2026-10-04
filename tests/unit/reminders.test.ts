@@ -31,6 +31,7 @@ function makeReminder(overrides: Partial<ChecklistReminder> = {}): ChecklistRemi
     note_id: 'n1',
     checklist_item_id: 'c1',
     enabled: true,
+    is_favorite: false,
     recurrence: 'daily',
     local_time: '13:28',
     timezone: ZONE,
@@ -209,6 +210,7 @@ describe('Supabase reminder persistence contract and state selector simulation',
       checklist_item_id: null,
       local_time: '09:32',
       enabled: true,
+      is_favorite: false,
       recurrence: 'daily' as const,
       day_of_week: null,
       timezone: 'Asia/Kolkata',
@@ -244,6 +246,7 @@ describe('Supabase reminder persistence contract and state selector simulation',
       checklist_item_id: null,
       local_time: '09:32',
       enabled: true,
+      is_favorite: false,
       recurrence: 'daily',
       day_of_week: null,
       timezone: 'Asia/Kolkata',
@@ -292,6 +295,7 @@ describe('Supabase reminder persistence contract and state selector simulation',
       checklist_item_id: 'item_uuid_123',
       local_time: '12:32',
       enabled: true,
+      is_favorite: false,
       recurrence: 'daily' as const,
       day_of_week: null,
       timezone: 'Asia/Kolkata',
@@ -327,6 +331,7 @@ describe('Supabase reminder persistence contract and state selector simulation',
       checklist_item_id: 'item_uuid_123',
       local_time: '12:32',
       enabled: true,
+      is_favorite: false,
       recurrence: 'daily',
       day_of_week: null,
       timezone: 'Asia/Kolkata',
@@ -574,6 +579,18 @@ describe('getReminderDueGroup', () => {
 
     const rLater = makeReminder({ recurrence: 'once', fire_on_date: '2026-10-25', timezone: zone })
     expect(getReminderDueGroup(rLater, baseNow)).toBe('later')
+  })
+
+  it('preserves and toggles is_favorite independently of recurrence and completion', () => {
+    const rDefault = makeReminder()
+    expect(rDefault.is_favorite).toBe(false)
+
+    const rFav = makeReminder({ is_favorite: true })
+    expect(rFav.is_favorite).toBe(true)
+
+    // Editing title or time preserves favorite
+    const rEdited = { ...rFav, title: 'Updated title', local_time: '18:00' }
+    expect(rEdited.is_favorite).toBe(true)
   })
 })
 

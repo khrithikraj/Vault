@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Archive, FolderLock, NotebookPen } from 'lucide-react'
+import { Archive, Bell, FolderLock, NotebookPen } from 'lucide-react'
 import { layers } from '../design/layers'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 
@@ -11,6 +11,7 @@ type AddMenuProps = {
   onPickItem: () => void
   onPickNote: () => void
   onPickDocument: () => void
+  onPickReminder: () => void
 }
 
 type ActionItem = {
@@ -28,9 +29,10 @@ type ActionItem = {
  * Replaces the old centered modal chooser. Actions bloom upward from
  * the FAB position with spring stagger when the + is tapped.
  * Each action reads as a distinct archival gesture:
- *   Archive → save an object to the vault
- *   Note    → write a thought
- *   Record  → upload a document
+ *   Archive  → save an object to the vault
+ *   Note     → write a thought
+ *   Record   → upload a document
+ *   Reminder → set a reminder
  *
  * Inspired by Watermelon gooey-menu + Motion add-to-basket philosophy.
  * Tap-first, hover is enhancement only.
@@ -41,6 +43,7 @@ export function AddMenu({
   onPickItem,
   onPickNote,
   onPickDocument,
+  onPickReminder,
 }: AddMenuProps) {
   const reducedMotion = usePrefersReducedMotion()
   const [activeIndex, setActiveIndex] = useState(0)
@@ -77,6 +80,14 @@ export function AddMenu({
       icon: <FolderLock size={17} strokeWidth={1.7} />,
       accentClass: 'text-ink-soft',
       onClick: onPickDocument,
+    },
+    {
+      id: 'reminder',
+      label: 'Reminder',
+      sublabel: 'Set a reminder',
+      icon: <Bell size={17} strokeWidth={1.7} />,
+      accentClass: 'text-accent',
+      onClick: onPickReminder,
     },
   ]
 

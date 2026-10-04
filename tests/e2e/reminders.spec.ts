@@ -345,10 +345,11 @@ test('standalone reminders create, group, complete, and delete in primary Remind
   await page.getByRole('button', { name: 'Reminders' }).click()
   await expect(page.getByRole('heading', { name: 'Reminders' })).toBeVisible()
 
-  // Create a new standalone reminder
-  await page.getByRole('button', { name: 'New reminder' }).first().click()
+  // Create a new standalone reminder via global + (FAB)
+  await page.getByRole('button', { name: 'Add item' }).click()
   const dialog = page.getByRole('dialog', { name: 'New Reminder' })
   await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Create Reminder' })).toBeVisible()
 
   await dialog.getByPlaceholder(/Renew car insurance/i).fill('Call dentist')
   await dialog.getByRole('button', { name: 'Daily', exact: true }).click()
@@ -363,8 +364,8 @@ test('standalone reminders create, group, complete, and delete in primary Remind
   await completeBtn.click()
   await expect(page.getByRole('button', { name: 'Mark reminder incomplete' })).toBeVisible()
 
-  // Edit reminder
-  await page.getByRole('button', { name: 'Edit reminder' }).click()
+  // Edit reminder by clicking card
+  await page.getByRole('button', { name: /Edit reminder Call dentist/i }).click()
   const editDialog = page.getByRole('dialog', { name: 'Edit Reminder' })
   await expect(editDialog).toBeVisible()
   await editDialog.getByPlaceholder(/Renew car insurance/i).fill('Call dentist office')
@@ -374,6 +375,90 @@ test('standalone reminders create, group, complete, and delete in primary Remind
   // Delete reminder
   await page.getByRole('button', { name: 'Delete reminder' }).click()
   await expect(page.getByText('Call dentist office')).toBeHidden()
+
+  expect(errors).toEqual([])
+})
+
+test('All Items global + menu contains Reminder and triggers New Reminder dialog', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`))
+
+  await openDemo(page)
+  await expect(page.getByRole('heading', { name: 'All items' })).toBeVisible()
+
+  // Tap global + to open menu
+  await page.getByRole('button', { name: 'Add item' }).click()
+
+  // Menu items: Item, Note, Document, Reminder
+  await expect(page.getByRole('menuitem', { name: /Item/i })).toBeVisible()
+  await expect(page.getByRole('menuitem', { name: /Note/i })).toBeVisible()
+  await expect(page.getByRole('menuitem', { name: /Document/i })).toBeVisible()
+  await expect(page.getByRole('menuitem', { name: /Reminder/i })).toBeVisible()
+
+  // Click Reminder
+  await page.getByRole('menuitem', { name: /Reminder/i }).click()
+
+  // Should navigate to Reminders view and open New Reminder dialog
+  const dialog = page.getByRole('dialog', { name: 'New Reminder' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Create Reminder' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeVisible()
+
+  // Cancel closes dialog cleanly
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toBeHidden()
+
+  expect(errors).toEqual([])
+})
+
+test('reminders participate in the unified Favorites system with top-right heart and bottom-right done', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`))
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(`console.error: ${msg.text()}`)
+  })
+
+  await openDemo(page)
+
+  // 1. Navigate to Reminders
+  await page.getByRole('button', { name: 'Reminders' }).click()
+  await expect(page.getByRole('heading', { name: 'Reminders' })).toBeVisible()
+
+  // 2. Create a reminder
+  await page.getByRole('button', { name: 'Add item' }).click()
+  const dialog = page.getByRole('dialog', { name: 'New Reminder' })
+  await expect(dialog).toBeVisible()
+  await dialog.getByPlaceholder(/Renew car insurance/i).fill('Tax payment')
+  await dialog.getByRole('button', { name: 'Daily', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Create Reminder' }).click()
+
+  await expect(page.getByText('Tax payment')).toBeVisible()
+
+  // 3. Top-right favorite button adds reminder to Favorites
+  const favBtn = page.getByRole('button', { name: 'Add Tax payment to favorites' })
+  await expect(favBtn).toBeVisible()
+  await favBtn.click()
+  await expect(page.getByRole('button', { name: 'Remove Tax payment from favorites' })).toBeVisible()
+
+  // 4. Navigate to Favorites view
+  await page.getByRole('button', { name: 'Favorites', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Favorites', exact: true })).toBeVisible()
+
+  // Verify Reminders section in Favorites view
+  await expect(page.getByRole('heading', { name: 'Reminders' })).toBeVisible()
+  await expect(page.getByText('Tax payment')).toBeVisible()
+
+  // 5. Mark as done in Favorites view
+  const doneBtn = page.getByRole('button', { name: 'Mark reminder complete' }).first()
+  await doneBtn.click()
+  await expect(page.getByRole('button', { name: 'Mark reminder incomplete' }).first()).toBeVisible()
+  // Still in Favorites
+  await expect(page.getByText('Tax payment')).toBeVisible()
+
+  // 6. Unfavorite removes it from Favorites view
+  const unfavBtn = page.getByRole('button', { name: 'Remove Tax payment from favorites' })
+  await unfavBtn.click()
+  await expect(page.getByText('No favorite reminders.')).toBeVisible()
 
   expect(errors).toEqual([])
 })

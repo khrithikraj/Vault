@@ -1,4 +1,4 @@
-import type { Note, VaultDocument, VaultItem } from '../types/app'
+import type { ChecklistReminder, Note, VaultDocument, VaultItem } from '../types/app'
 
 type FavoriteRecord = { is_favorite?: boolean | null }
 
@@ -27,4 +27,8 @@ export function isNoteFavorite(note: Note): boolean {
 
 export function isDocumentFavorite(document: VaultDocument): boolean {
   return isFavorite(document)
+}
+
+export function isReminderFavorite(reminder: ChecklistReminder): boolean {
+  return isFavorite(reminder)
 }

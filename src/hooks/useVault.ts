@@ -259,7 +259,14 @@ export function useVault() {
       if (noteError) {
         setMessage(describeSupabaseError(noteError))
       }
-      if (!reminderError) setReminders((reminderData as ChecklistReminder[]) ?? [])
+      if (!reminderError) {
+        setReminders(
+          ((reminderData as ChecklistReminder[]) ?? []).map((r) => ({
+            ...r,
+            is_favorite: Boolean(r.is_favorite),
+          })),
+        )
+      }
       if (!completionError) setDailyCompletions((completionData as DailyChecklistCompletion[]) ?? [])
 
       const nextCategories = ((categoryData as Category[]) ?? []).map(normalizeCategory)
@@ -908,6 +915,24 @@ export function useVault() {
     setDailyCompletions((current) => [...current, completion])
   }
 
+  const toggleReminderFavorite = async (reminder: ChecklistReminder) => {
+    if (!session?.user?.id) return
+    const nextFavorite = !reminder.is_favorite
+    setReminders((current) =>
+      current.map((r) => (r.id === reminder.id ? { ...r, is_favorite: nextFavorite } : r)),
+    )
+    const { error } = await supabase
+      .from('reminders')
+      .update({ is_favorite: nextFavorite })
+      .eq('id', reminder.id)
+    if (error) {
+      setReminders((current) =>
+        current.map((r) => (r.id === reminder.id ? { ...r, is_favorite: reminder.is_favorite } : r)),
+      )
+      setMessage(describeSupabaseError(error))
+    }
+  }
+
   /** Soft-delete: moves the note to Recently Deleted, restorable at any time. */
   const deleteNote = async (noteId: string): Promise<boolean> => {
     const { data, error } = await supabase
@@ -1047,6 +1072,7 @@ export function useVault() {
     upsertReminder,
     removeReminder,
     toggleDailyCompletion,
+    toggleReminderFavorite,
     deleteNote,
     restoreNote,
     purgeNote,
