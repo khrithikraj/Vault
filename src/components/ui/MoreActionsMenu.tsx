@@ -239,7 +239,7 @@ export function MoreActionsMenu({
                     ) : null}
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
                     {item.trailing ? (
-                      <span className="shrink-0 text-[10px] font-semibold text-ink-soft">{item.trailing}</span>
+                      <span className="vault-meta shrink-0 text-ink-soft">{item.trailing}</span>
                     ) : null}
                   </button>
                 </li>

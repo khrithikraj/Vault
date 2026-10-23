@@ -482,8 +482,8 @@ export function CaptureFab({
         variant="sheet"
         backdropOpacity={0.7}
         className="mb-0 mt-auto max-w-lg !p-0 sm:my-auto sm:!p-4"
-        surfaceClassName="flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden rounded-t sm:rounded"
-        bodyClassName="flex min-h-0 flex-1 flex-col p-6 sm:p-7"
+        surfaceClassName="rounded-t sm:rounded"
+        bodyClassName="flex flex-col p-6 sm:p-7"
         returnFocusRef={fabRef}
       >
               {!justSaved ? (
@@ -492,7 +492,7 @@ export function CaptureFab({
                     <span className="vault-meta text-[var(--accession-text-muted)]">
                       Step {currentStep} of {totalSteps}
                     </span>
-                    <span className="text-xs text-ink-soft/70">
+                    <span className="vault-meta text-ink-soft/70">
                       {Object.keys(values).length > 0 ? 'Draft kept in this tab' : `${progress}%`}
                     </span>
                   </div>
@@ -524,21 +524,21 @@ export function CaptureFab({
                       <span className="bg-ink text-cloud flex h-16 w-16 items-center justify-center rounded-full">
                         <CheckCircle2 size={32} />
                       </span>
-                      <p className="text-sm font-medium uppercase tracking-widest text-ink-soft">
+                      <p className="vault-label text-ink-soft">
                         Saved to your vault
                       </p>
                     </motion.div>
                   ) : stage === 'category' ? (
                     <motion.div key="category" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                      <p className="vault-label text-ink-soft">
                         Quick capture
                       </p>
-                      <h2 className="font-display mt-1 text-xl font-bold uppercase tracking-tight">
+                      <h2 className="vault-section-title mt-1">
                         Where does this belong?
                       </h2>
 
                       {categories.length === 0 ? (
-                        <p className="mt-5 text-sm text-ink-soft">
+                        <p className="mt-5 vault-body-secondary text-ink-soft">
                           Add a category first — tap “+ New category” above.
                         </p>
                       ) : (
@@ -563,13 +563,13 @@ export function CaptureFab({
                               }`}
                             >
                               <CategoryIcon icon={category.icon} color={category.color} size={30} />
-                              <span className="text-center text-xs font-medium uppercase tracking-wide text-ink-soft">
+                              <span className="vault-label text-center text-ink-soft">
                                 {category.name}
                               </span>
                             </motion.button>
                           ))}
                           {categoryId ? (
-                            <div className="col-span-full mt-2 rounded border border-dashed border-ink/20 p-3 text-sm text-ink-soft">
+                            <div className="col-span-full mt-2 rounded border border-dashed border-ink/20 p-3 vault-body-secondary text-ink-soft">
                               Selected: {activeCategory?.name ?? 'Default category'}
                             </div>
                           ) : null}
@@ -582,7 +582,7 @@ export function CaptureFab({
                         type="button"
                         onClick={() => categoryId && setStage('photo')}
                         disabled={!categoryId}
-                        className="vault-btn-solid mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
+                        className="vault-btn-solid mt-6 w-full rounded-full px-4 py-3.5 vault-action text-sm disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Continue to screenshot →
                       </motion.button>
@@ -592,12 +592,12 @@ export function CaptureFab({
                       <button
                         type="button"
                         onClick={goBack}
-                        className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
+                        className="vault-action text-ink-soft hover:text-ink transition-colors"
                       >
                         [ ← Back ]
                       </button>
-                      <h2 className="font-display mt-2 text-xl font-bold uppercase tracking-tight">Add a photo?</h2>
-                      <p className="mt-1 text-sm text-ink-soft">
+                      <h2 className="vault-section-title mt-2">Add a photo?</h2>
+                      <p className="mt-1 vault-body-secondary text-ink-soft">
                         It's used only to auto-fill fields — it won't be saved.
                       </p>
 
@@ -615,7 +615,7 @@ export function CaptureFab({
                           <button
                             type="button"
                             onClick={clearPhoto}
-                            className="bg-cloud/80 text-ink absolute right-3 top-3 rounded px-3 py-1 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm"
+                            className="vault-label absolute right-3 top-3 rounded bg-cloud/80 px-3 py-1 text-ink backdrop-blur-sm"
                           >
                             Remove
                           </button>
@@ -629,7 +629,7 @@ export function CaptureFab({
                           className="vault-surface-soft border-ink/30 mt-5 flex h-48 w-full flex-col items-center justify-center gap-2 rounded border-dashed"
                         >
                           <BrandIcon icon={Camera} size={30} />
-<span className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
+<span className="vault-label text-ink-soft">
                               Tap to add a photo
                             </span>
                         </motion.button>
@@ -639,14 +639,14 @@ export function CaptureFab({
                         <div className="border-ink/20 mt-5 rounded border bg-transparent p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                              <p className="vault-label text-ink-soft">
                                 Extracted preview
                               </p>
-                              <p className="mt-1 text-sm text-ink-soft">
+                              <p className="mt-1 vault-body-secondary text-ink-soft">
                                 Confidence {Math.round(ocrExtraction.confidence)}%
                               </p>
                             </div>
-                            <span className="text-xs uppercase tracking-widest text-ink-soft">
+                            <span className="vault-meta text-ink-soft">
                               {autofillSummary?.matchedFields.length ?? autofillPreview?.matchedFields.length ?? 0} field
                               {(autofillSummary?.matchedFields.length ?? autofillPreview?.matchedFields.length ?? 0) === 1
                                 ? ''
@@ -656,7 +656,7 @@ export function CaptureFab({
 
                           <div className="mt-4 grid gap-3">
                             <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft/70">
+                              <p className="vault-label text-ink-soft/70">
                                 Likely fields
                               </p>
                               <div className="mt-2 flex flex-wrap gap-2">
@@ -670,22 +670,22 @@ export function CaptureFab({
                                     </span>
                                   ))
                                 ) : (
-                                  <p className="text-sm text-ink-soft">No confident field matches yet.</p>
+                                  <p className="vault-body-secondary text-ink-soft">No confident field matches yet.</p>
                                 )}
                               </div>
                             </div>
 
                             <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft/70">
+                              <p className="vault-label text-ink-soft/70">
                                 Extracted text
                               </p>
-                              <div className="mt-2 max-h-48 overflow-y-auto overflow-x-hidden rounded border border-dashed border-ink/20 bg-cloud/40 p-3 font-mono text-[13px] leading-6 text-ink-soft">
+                              <div className="mt-2 max-h-48 overflow-y-auto overflow-x-hidden rounded border border-dashed border-ink/20 bg-cloud/40 p-3 vault-transcript text-ink-soft">
                                 {ocrExtraction.rawText ? (
                                   <p className="whitespace-pre-wrap break-words">
                                     {showFullExtraction ? ocrExtraction.rawText : ocrExtraction.rawText.slice(0, 700)}
                                   </p>
                                 ) : (
-                                  <p className="font-sans text-sm">No readable text found.</p>
+                                  <p className="vault-body-secondary">No readable text found.</p>
                                 )}
                               </div>
                             </div>
@@ -695,7 +695,7 @@ export function CaptureFab({
 
                       {photoError ? <p className="mt-2 text-sm text-red-400">{photoError}</p> : null}
                       {ocrStatus === 'running' ? (
-                        <p className="mt-2 text-sm text-ink-soft">Analyzing screenshot for text…</p>
+                        <p className="mt-2 vault-body-secondary text-ink-soft">Analyzing screenshot for text…</p>
                       ) : null}
                       {ocrStatus === 'error' ? (
                         <p className="mt-2 text-sm text-amber-300">
@@ -709,7 +709,7 @@ export function CaptureFab({
                         whileTap={{ scale: 0.98 }}
                         type="button"
                         onClick={() => setStage('fields')}
-                        className="vault-btn-solid mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
+                        className="vault-btn-solid mt-6 w-full rounded-full px-4 py-3.5 vault-action text-sm"
                       >
                         {photoFile ? 'Continue →' : 'Skip →'}
                       </motion.button>
@@ -720,11 +720,11 @@ export function CaptureFab({
                         <button
                           type="button"
                           onClick={goBack}
-                          className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
+                          className="vault-action text-ink-soft hover:text-ink transition-colors"
                         >
                           [ ← Back ]
                         </button>
-                        <span className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                        <span className="vault-label text-ink-soft">
                           [ {stepIndex + 1}/{fieldStepCount} ]
                         </span>
                       </div>
@@ -751,7 +751,7 @@ export function CaptureFab({
                             animate={shakeToken > 0 ? { x: [0, -8, 8, -6, 6, 0] } : undefined}
                             transition={{ duration: 0.4 }}
                           >
-                            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                            <p className="flex items-center gap-1.5 vault-label text-ink-soft">
                               {activeCategory ? (
                                 <CategoryIcon
                                   icon={activeCategory.icon}
@@ -763,7 +763,7 @@ export function CaptureFab({
                             </p>
                             {fieldAtStep(stepIndex) ? (
                               <>
-                                <h3 className="font-display mt-2 text-2xl font-bold uppercase leading-snug tracking-tight">
+                                <h3 className="vault-section-title mt-2">
                                   &gt; {fieldAtStep(stepIndex)!.label}
                                   {fieldAtStep(stepIndex)!.required ? (
                                     <span className="text-ink"> *</span>
@@ -781,12 +781,12 @@ export function CaptureFab({
                                         setFieldValue(fieldAtStep(stepIndex)!.key, event.target.value)
                                       }
                                       rows={3}
-                                      className="vault-input w-full rounded-none px-4 py-3 text-lg text-ink"
+                                      className="vault-input w-full rounded-none px-4 py-3 text-base text-ink"
                                     />
                                   ) : (
                                     <div className="relative">
                                       {fieldAtStep(stepIndex)!.type === 'currency' ? (
-                                        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg text-ink-soft">
+                                        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base text-ink-soft">
                                           ₹
                                         </span>
                                       ) : null}
@@ -799,7 +799,7 @@ export function CaptureFab({
                                         type={fieldInputType(fieldAtStep(stepIndex)!.type)}
                                         aria-invalid={fieldError ? true : undefined}
                                         aria-describedby={fieldError ? 'capture-field-error' : undefined}
-                                        className={`vault-input w-full rounded-none py-3 text-lg text-ink ${
+                                        className={`vault-input w-full rounded-none py-3 text-base text-ink ${
                                           fieldAtStep(stepIndex)!.type === 'currency' ? 'pl-9 pr-4' : 'px-4'
                                         }`}
                                       />
@@ -815,14 +815,14 @@ export function CaptureFab({
                             ) : (
                               <>
                                 <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-                                  <h3 className="font-display text-2xl font-bold uppercase leading-snug tracking-tight">
+                                  <h3 className="vault-section-title">
                                     &gt; Reference Image
                                   </h3>
-                                  <span className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                                  <span className="vault-label text-ink-soft">
                                     Optional
                                   </span>
                                 </div>
-                                <p className="mt-1 text-sm text-ink-soft">Add a photo related to this item.</p>
+                                <p className="mt-1 vault-body-secondary text-ink-soft">Add a photo related to this item.</p>
 
                                 <input
                                   ref={referenceImageInputRef}
@@ -842,7 +842,7 @@ export function CaptureFab({
                                     <button
                                       type="button"
                                       onClick={clearReferenceImage}
-                                      className="bg-cloud/80 text-ink absolute right-3 top-3 rounded px-3 py-1 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm"
+                                      className="vault-label absolute right-3 top-3 rounded bg-cloud/80 px-3 py-1 text-ink backdrop-blur-sm"
                                     >
                                       Remove
                                     </button>
@@ -854,7 +854,7 @@ export function CaptureFab({
                                     className="vault-surface-soft border-ink/30 mt-5 flex w-full flex-col items-center justify-center gap-2 rounded border-dashed py-6"
                                   >
                                     <BrandIcon icon={ImagePlus} size={22} />
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                    <span className="vault-label text-ink-soft">
                                       Add image
                                     </span>
                                   </button>
@@ -872,11 +872,11 @@ export function CaptureFab({
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         type="submit"
-                        className="vault-btn-solid mt-8 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest"
+                        className="vault-btn-solid mt-8 w-full rounded-full px-4 py-3.5 vault-action text-sm"
                       >
                         {stepIndex === fieldStepCount - 1 ? 'Review →' : 'Continue →'}
                       </motion.button>
-                      <p className="mt-2 text-center text-xs text-ink-soft/70">Press Enter ↵</p>
+                      <p className="mt-2 text-center vault-meta text-ink-soft/70">Press Enter ↵</p>
                     </form>
                   </motion.div>
                   ) : (
@@ -888,11 +888,11 @@ export function CaptureFab({
                       <button
                         type="button"
                         onClick={goBack}
-                        className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
+                        className="vault-action text-ink-soft hover:text-ink transition-colors"
                       >
                         [ ← Back ]
                       </button>
-                      <h2 className="font-display mt-2 flex items-center gap-2 text-xl font-bold uppercase tracking-tight text-ink">
+                      <h2 className="vault-section-title mt-2 flex items-center gap-2 text-ink">
                         <span
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-ink/20"
                           style={activeCategory ? { backgroundColor: `${activeCategory.color}18` } : undefined}
@@ -920,10 +920,10 @@ export function CaptureFab({
                       {ocrExtraction && categoryId ? (
                         <div className="border-ink/20 mt-4 rounded border bg-transparent p-4">
                           <div className="flex items-center justify-between gap-3">
-                            <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                            <p className="vault-label text-ink-soft">
                               Extraction preview
                             </p>
-                            <span className="bg-ink/10 border-ink/20 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft">
+                            <span className="bg-ink/10 border-ink/20 rounded-full border px-2.5 py-1 vault-label text-ink-soft">
                               {Math.round(ocrExtraction.confidence)}% confidence
                             </span>
                           </div>
@@ -931,7 +931,7 @@ export function CaptureFab({
                           <div className="mt-4 space-y-3">
                             {autofillPreview && Object.keys(autofillPreview.values).length > 0 ? (
                               <div className="rounded border border-dashed border-ink/20 bg-cloud/40 p-3">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft/70">
+                                <p className="vault-label text-ink-soft/70">
                                   Field matches
                                 </p>
                                 <p className="mt-1 text-xs text-ink-soft">Click any field to correct it.</p>
@@ -961,39 +961,39 @@ export function CaptureFab({
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-sm text-ink-soft">No confident fields mapped yet.</p>
+                              <p className="vault-body-secondary text-ink-soft">No confident fields mapped yet.</p>
                             )}
 
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft/70">
+                            <p className="vault-label text-ink-soft/70">
                               Extracted text
                             </p>
-                            <div className="mt-2 rounded border border-dashed border-ink/20 bg-cloud/40 p-3 text-sm text-ink-soft">
+                            <div className="mt-2 rounded border border-dashed border-ink/20 bg-cloud/40 p-3 vault-transcript text-ink-soft">
                               <div className="flex items-center justify-between gap-3">
-                                <p className="text-xs uppercase tracking-[0.2em] text-ink-soft/70">
+                                <p className="vault-meta text-ink-soft/70">
                                   {showFullExtraction ? 'Full text' : 'Preview'}
                                 </p>
                                 {ocrExtraction.lines.length > 5 ? (
                                   <button
                                     type="button"
                                     onClick={() => setShowFullExtraction((current) => !current)}
-                                    className="text-xs font-semibold uppercase tracking-wide text-ink-soft hover:text-ink"
+                                    className="vault-label text-ink-soft hover:text-ink"
                                   >
                                     {showFullExtraction ? 'Show less' : `Show full text (${ocrExtraction.lines.length})`}
                                   </button>
                                 ) : null}
                               </div>
-                              <div className="vault-scrollbar mt-2 max-h-56 overflow-y-auto overflow-x-hidden pb-4 pr-1 font-mono text-[13px] leading-6 text-ink-soft">
+                              <div className="vault-scrollbar mt-2 max-h-56 overflow-y-auto overflow-x-hidden pb-4 pr-1 vault-transcript text-ink-soft">
                                 {ocrExtraction.rawText ? (
                                   <p className="whitespace-pre-wrap break-words">
                                     {showFullExtraction ? ocrExtraction.rawText : ocrExtraction.rawText.slice(0, 700)}
                                   </p>
                                 ) : (
-                                  <p className="font-sans text-sm">No readable text found.</p>
+                                  <p className="vault-body-secondary">No readable text found.</p>
                                 )}
                               </div>
                               {!showFullExtraction && ocrExtraction.rawText && ocrExtraction.rawText.length > 700 ? (
-                                <p className="mt-2 text-xs text-ink-soft/70">
+                                <p className="mt-2 vault-meta text-ink-soft/70">
                                   Preview trimmed to the first 700 characters. Expand to review the full transcript.
                                 </p>
                               ) : null}
@@ -1012,7 +1012,7 @@ export function CaptureFab({
                               onClick={() => jumpToStep(index)}
                               className="flex w-full min-w-0 flex-col gap-1 px-3.5 py-3 text-left transition-colors hover:bg-ink/5"
                             >
-                              <span className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                              <span className="vault-label text-ink-soft">
                                 {field.label}
                               </span>
                               <span className="min-w-0 break-words text-sm font-medium text-ink">
@@ -1025,7 +1025,7 @@ export function CaptureFab({
 
                       {duplicates.length > 0 && !duplicateAcknowledged ? (
                         <div className="mt-4 rounded border border-amber-500/40 bg-amber-950/20 p-4">
-                          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-amber-300">
+                          <p className="vault-label flex items-center gap-2 text-amber-300">
                             <CopyX size={14} /> This looks like a duplicate
                           </p>
                           <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
@@ -1046,14 +1046,14 @@ export function CaptureFab({
                                 setOpen(false)
                                 onViewExistingItem?.(duplicates[0].item.id)
                               }}
-                              className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink"
+                              className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 vault-label text-ink"
                             >
                               <Eye size={12} /> View existing
                             </button>
                             <button
                               type="button"
                               onClick={() => setDuplicateAcknowledged(true)}
-                              className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent"
+                              className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 vault-label text-accent"
                             >
                               Create anyway
                             </button>
@@ -1067,7 +1067,7 @@ export function CaptureFab({
                         type="button"
                         onClick={handleSave}
                         disabled={duplicates.length > 0 && !duplicateAcknowledged}
-                        className="vault-btn-solid mt-6 w-full rounded-full px-4 py-3.5 text-sm font-semibold uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
+                        className="vault-btn-solid mt-6 w-full rounded-full px-4 py-3.5 vault-action text-sm disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Save to vault
                       </motion.button>

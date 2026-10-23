@@ -17,6 +17,14 @@ import { VaultHeading } from './VaultTypography'
  *   - dialog (default): centered, springs in with a scale/pop
  *   - sheet: docked to the bottom, slides up (mobile-friendly)
  *
+ * Layout contract (owns it so consumers do not have to):
+ *   overlay (also the layout shell) > panel (capped by the shell) > surface
+ *   (flex column) > header (shrink-0) + body (flex-1, own scroll) + footer
+ *   (shrink-0).
+ * The panel is capped by the overlay's height, so on Android the dialog can
+ * never grow past the space left by the soft keyboard, and the body is the
+ * only part that scrolls. Consumers only override padding/styling.
+ *
  * Fully controlled via `open` / `onClose`. Closes on Escape; renders a
  * close icon button by default when `showClose` is set.
  */
@@ -32,6 +40,7 @@ type VaultDialogProps = {
   closeLabel?: string
   className?: string
   surfaceClassName?: string
+  /** Replaces the default body padding — the body is the scrolling region. */
   bodyClassName?: string
   /** Extra content rendered in the footer. */
   footer?: ReactNode
@@ -165,7 +174,18 @@ export function VaultDialog({
       {open ? (
         <div
           ref={overlayRef}
-          className="fixed inset-0 flex overflow-y-auto"
+          className={cn(
+            // The overlay doubles as the layout shell: a fixed, full-height
+            // flex column gives the panel a definite height to be capped by,
+            // so on Android a dialog can never grow past the space the soft
+            // keyboard left. `min-h-0` on the panel lets it shrink instead of
+            // overflowing (which is what let dialogs run under the keyboard).
+            // Sheets dock to the bottom via the consumer's mt-auto className;
+            // dialogs centre via items-center justify-center.
+            // px-3 provides a safe 12 px gutter at 360 px viewport widths.
+            'fixed inset-0 flex h-full w-full flex-col overflow-x-hidden overflow-y-auto px-3 py-4',
+            isSheet ? '' : 'items-center justify-center',
+          )}
           style={{ zIndex: layers.modal }}
         >
           <motion.div
@@ -190,11 +210,18 @@ export function VaultDialog({
             exit={{ opacity: 0, y: isSheet ? 40 : 16, scale: isSheet ? 1 : 0.96 }}
             transition={panelMotion}
             style={{ transformPerspective: 1200 }}
-            className={cn('relative mx-auto my-auto w-full p-4', className)}
+            data-dialog-panel=""
+            className={cn('relative flex w-full min-h-0 flex-col', className)}
           >
-            <div className={cn('vault-surface-overlay w-full rounded', surfaceClassName)}>
+            <div
+              data-dialog-surface=""
+              className={cn(
+                'vault-surface-overlay flex w-full min-h-0 flex-col overflow-hidden rounded',
+                surfaceClassName,
+              )}
+            >
               {title || showClose ? (
-                <div className="flex items-start justify-between gap-3 border-b border-border-dash p-5">
+                <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border-dash p-4 sm:p-5">
                   {title ? (
                     <VaultHeading as="h2" id={titleId} className="pt-1">
                       {title}
@@ -205,14 +232,22 @@ export function VaultDialog({
                       icon={X}
                       label={closeLabel}
                       onClick={onClose}
-                      className="-mr-1 -mt-1"
+                      className="-mr-1 -mt-1 shrink-0"
                     />
                   ) : null}
                 </div>
               ) : null}
-              <div className={cn('p-5', bodyClassName)}>{children}</div>
+              <div
+                data-dialog-body=""
+                className={cn(
+                  'min-w-0 min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain',
+                  bodyClassName ?? 'p-4 sm:p-5',
+                )}
+              >
+                {children}
+              </div>
               {footer ? (
-                <div className="flex items-center justify-end gap-3 border-t border-border-dash p-4">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border-dash p-3 sm:gap-3 sm:p-4">
                   {footer}
                 </div>
               ) : null}

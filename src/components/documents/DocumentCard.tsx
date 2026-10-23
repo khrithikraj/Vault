@@ -60,7 +60,7 @@ export function DocumentCard({ doc, index, onClick, onDelete, onToggleFavorite }
     >
       {/* Header row: name + actions */}
       <div className="flex items-start justify-between gap-2 px-4 pt-3">
-        <h3 className="min-w-0 font-display font-semibold uppercase leading-snug tracking-tight text-ink transition-colors group-hover:text-accent text-sm sm:text-base">
+        <h3 className="vault-card-title min-w-0 line-clamp-2 text-ink transition-colors group-hover:text-accent">
           {doc.name}
         </h3>
         <div className="flex shrink-0 items-center gap-0.5">
@@ -88,7 +88,7 @@ export function DocumentCard({ doc, index, onClick, onDelete, onToggleFavorite }
 
       {/* Metadata line */}
       <div className="flex-1 px-4 pb-3 pt-2">
-        <p className="truncate text-xs text-ink-soft">
+        <p className="vault-body-secondary truncate text-ink-soft">
           {doc.category} · {mimeLabel(doc.mime_type)} · {formatBytes(doc.file_size)}
         </p>
       </div>
@@ -96,7 +96,7 @@ export function DocumentCard({ doc, index, onClick, onDelete, onToggleFavorite }
       {/* Divider + date-only footer */}
       <div className="mx-4 h-px bg-ink/[0.07]" />
       <div className="flex items-center justify-between gap-2 px-4 py-2.5">
-        <span className="folio text-[10px] text-ink-soft/60">
+        <span className="vault-meta text-ink-soft/60">
           {prettyDate.format(new Date(doc.created_at))}
         </span>
       </div>

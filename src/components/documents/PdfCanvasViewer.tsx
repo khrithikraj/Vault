@@ -96,7 +96,7 @@ export function PdfCanvasViewer({ url, fileName }: PdfCanvasViewerProps) {
     return (
       <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 p-8 text-center text-ink-soft">
         <AlertTriangle size={28} className="text-red-400" />
-        <p className="text-sm">{error}</p>
+        <p className="vault-body-secondary">{error}</p>
       </div>
     )
   }
@@ -106,7 +106,7 @@ export function PdfCanvasViewer({ url, fileName }: PdfCanvasViewerProps) {
       {status === 'loading' ? (
         <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 text-ink-soft">
           <Loader2 size={28} className="animate-spin text-accent" />
-          <p className="text-sm uppercase tracking-widest">Rendering PDF…</p>
+          <p className="vault-body-secondary">Rendering PDF…</p>
         </div>
       ) : null}
       <div ref={containerRef} className={`px-2 py-3 sm:px-4 ${status === 'loading' ? 'hidden' : ''}`} />
@@ -121,7 +121,7 @@ export function PdfCanvasViewer({ url, fileName }: PdfCanvasViewerProps) {
         </section>
       ) : null}
       {status === 'ready' && pageCount > 1 ? (
-        <p className="pb-3 text-center text-[10px] uppercase tracking-widest text-ink-soft/50" aria-live="polite">
+        <p className="vault-meta pb-3 text-center text-ink-soft/50" aria-live="polite">
           {pageCount} pages
         </p>
       ) : null}

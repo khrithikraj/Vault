@@ -60,8 +60,8 @@ export function CategoryIndex({
   if (categories.length === 0 && !showForm) {
     return (
       <div className="mt-4 border border-dashed border-ink/12 px-6 py-12 text-center">
-        <p className="vault-meta text-ink-soft/45">No categories yet</p>
-        <p className="mt-2 text-sm text-ink-soft/70">Create a category to define how its items are captured.</p>
+        <p className="vault-card-title text-ink-soft/70">No categories yet</p>
+        <p className="vault-body-secondary mt-2 text-ink-soft/70">Create a category to define how its items are captured.</p>
         <button
           type="button"
           onClick={() => setShowForm(true)}
@@ -78,11 +78,11 @@ export function CategoryIndex({
     <motion.div layout aria-label="Category index" className="mt-2">
       {/* Rail header */}
       <div className="mb-3 flex items-center justify-between">
-        <span className="folio text-[9px] tracking-[0.28em] text-ink/70">Category index</span>
+        <span className="vault-label text-ink/70">Category index</span>
         <button
           type="button"
           onClick={() => setShowForm((value) => !value)}
-          className="vault-action flex items-center gap-1.5 text-[10px] text-ink-soft/45 transition-colors hover:text-accent"
+          className="vault-action flex items-center gap-1.5 text-xs text-ink-soft/45 transition-colors hover:text-accent"
         >
           <Plus size={11} aria-hidden="true" />
           New category
@@ -125,7 +125,7 @@ export function CategoryIndex({
               >
                 {/* Index number */}
                 <span
-                  className={`folio w-6 shrink-0 text-[10px] tabular-nums ${
+                  className={`vault-data w-6 shrink-0 ${
                     active ? 'text-accent' : 'text-[var(--accession-text-muted)]'
                   }`}
                 >
@@ -145,7 +145,7 @@ export function CategoryIndex({
                     size={16}
                   />
                   <span
-                    className={`font-display min-w-0 break-words text-sm leading-snug transition-colors ${
+                    className={`vault-body min-w-0 break-words transition-colors ${
                       active ? 'font-semibold text-ink' : 'font-medium text-ink/75'
                     }`}
                     title={category.name}
@@ -170,7 +170,7 @@ export function CategoryIndex({
 
                 {/* Count */}
                 <span
-                  className={`font-display shrink-0 text-base tabular-nums ${
+                  className={`vault-data shrink-0 text-base ${
                     active ? 'font-semibold text-ink' : 'font-medium text-ink/40'
                   }`}
                 >
@@ -218,7 +218,7 @@ export function CategoryIndex({
               onChange={(event) => setIcon(event.target.value)}
               maxLength={4}
               aria-label="Category icon"
-              className="vault-input w-11 px-1.5 py-1.5 text-center text-sm"
+              className="vault-input w-11 px-1.5 py-1.5 text-center text-base"
             />
             <input
               value={name}
@@ -226,7 +226,7 @@ export function CategoryIndex({
               placeholder="Category name"
               required
               autoFocus
-              className="vault-input min-w-0 flex-1 px-2.5 py-1.5 text-sm"
+              className="vault-input min-w-0 flex-1 px-2.5 py-1.5 text-base"
             />
             <input
               type="color"
@@ -237,14 +237,14 @@ export function CategoryIndex({
             />
             <button
               type="submit"
-              className="shrink-0 bg-accent border border-accent px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink transition-opacity hover:opacity-90"
+              className="vault-action shrink-0 rounded-sm border border-accent bg-accent px-3 py-1.5 text-xs text-ink transition-opacity hover:opacity-90"
             >
               Add
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="shrink-0 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-soft/50 transition-colors hover:text-ink-soft"
+              className="vault-action shrink-0 px-2 py-1.5 text-xs text-ink-soft/50 transition-colors hover:text-ink-soft"
             >
               Cancel
             </button>
@@ -256,7 +256,7 @@ export function CategoryIndex({
       {onSelectTrash ? (
         <div className="mt-8 border-t border-ink/10 pt-4">
           <div className="mb-2 flex items-center justify-between">
-            <span className="folio text-[9px] uppercase tracking-[0.28em] text-ink/70">
+            <span className="vault-label text-ink/70">
               Vault Tools
             </span>
           </div>
@@ -267,12 +267,12 @@ export function CategoryIndex({
               className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
             >
               <Trash2 size={16} className="text-ink/65 transition-colors group-hover:text-ink" />
-              <span className="font-display text-sm font-medium text-ink/80 transition-colors group-hover:text-ink">
+              <span className="vault-body font-medium text-ink/80 transition-colors group-hover:text-ink">
                 Trash
               </span>
             </button>
             {typeof trashCount === 'number' && trashCount > 0 ? (
-              <span className="folio text-[10px] tabular-nums text-ink/60">
+              <span className="vault-data text-ink/60">
                 {trashCount}
               </span>
             ) : null}

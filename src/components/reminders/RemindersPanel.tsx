@@ -10,6 +10,7 @@ import {
 import { VaultSection } from '../ui/VaultSection'
 import { FavoriteButton } from '../ui/FavoriteButton'
 import { DoneStamp } from '../DoneStamp'
+import { AlarmToneCard } from './AlarmToneCard'
 import {
   formatRecurrenceLabel,
   formatReminderDate,
@@ -111,12 +112,15 @@ export function RemindersPanel({
             <button
               type="button"
               onClick={handleEnablePush}
-              className="font-display shrink-0 rounded-lg border border-ink/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-ink transition-colors hover:border-accent hover:text-accent"
+              className="vault-action shrink-0 rounded-lg border border-ink/20 px-3 py-1 text-xs text-ink transition-colors hover:border-accent hover:text-accent"
             >
               Enable
             </button>
           </div>
         ) : null}
+
+        {/* Native Alarm Audio Preferences */}
+        <AlarmToneCard />
 
         {/* Reminders List by Groups */}
         {totalCount === 0 && todayCompleted.length === 0 ? (
@@ -124,8 +128,8 @@ export function RemindersPanel({
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-deep text-ink-soft/40">
               <Bell size={24} />
             </div>
-            <p className="vault-meta mt-4 text-ink-soft/45">No reminders scheduled</p>
-            <p className="mt-2 text-sm text-ink-soft/70">
+            <p className="vault-card-title mt-4 text-ink-soft/70">No reminders scheduled</p>
+            <p className="vault-body-secondary mt-2 text-ink-soft/70">
               Create standalone reminders or add checklists with reminders inside Notes.
             </p>
           </div>
@@ -223,11 +227,11 @@ function ReminderGroupSection({
       <div className="mb-3 flex items-center justify-between border-b border-ink/10 pb-2">
         <h3
           id={`heading-reminder-${title.toLowerCase().replace(/\s+/g, '-')}`}
-          className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-ink"
+          className="vault-group-title text-ink"
         >
           {title}
         </h3>
-        <span className="folio text-[10px] tabular-nums text-ink-soft/40">{count}</span>
+        <span className="vault-data text-ink-soft/40">{count}</span>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
@@ -330,7 +334,7 @@ export function ReminderCard({
       {/* Header row: title + top-right actions (Favorite + Delete) */}
       <div className="flex items-start justify-between gap-2 px-4 pt-3 min-h-[3rem]">
         <h3
-          className={`min-w-0 font-display font-semibold uppercase leading-snug tracking-tight text-ink transition-colors group-hover:text-accent text-[0.95rem] sm:text-base line-clamp-2 ${
+          className={`vault-card-title min-w-0 line-clamp-2 text-ink transition-colors group-hover:text-accent ${
             isDone ? 'text-ink-soft/50 line-through' : ''
           }`}
         >
@@ -369,7 +373,7 @@ export function ReminderCard({
                 e.stopPropagation()
                 onOpenNote(reminder.note_id!)
               }}
-              className="inline-flex items-center gap-1.5 rounded bg-ink/5 px-2 py-0.5 text-xs text-ink-soft transition-colors hover:bg-ink/10 hover:text-ink max-w-full"
+              className="vault-meta inline-flex max-w-full items-center gap-1.5 rounded bg-ink/5 px-2 py-0.5 text-ink-soft transition-colors hover:bg-ink/10 hover:text-ink"
               title="Open note in editor"
             >
               <NotebookPen size={12} className="shrink-0 text-accent" />
@@ -378,7 +382,7 @@ export function ReminderCard({
           </div>
         ) : (
           <div className="flex items-center gap-1.5 overflow-hidden">
-            <span className="inline-flex items-center gap-1.5 rounded bg-ink/5 px-2 py-0.5 text-xs text-ink-soft max-w-full">
+            <span className="vault-meta inline-flex max-w-full items-center gap-1.5 rounded bg-ink/5 px-2 py-0.5 text-ink-soft">
               <Bell size={12} className="shrink-0 text-accent/80" />
               <span className="truncate font-medium">Standalone reminder</span>
             </span>
@@ -389,9 +393,9 @@ export function ReminderCard({
       {/* Divider + footer: time/schedule on left + Mark as Done / DoneStamp on right */}
       <div className="mx-4 h-px bg-ink/[0.07]" />
       <div className="flex items-center justify-between gap-2 px-4 py-2.5 min-h-[2.25rem]">
-        <span className="flex min-w-0 items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-ink-soft/50">
+        <span className="vault-meta flex min-w-0 items-center gap-1.5 text-ink-soft/50">
           <Clock size={11} className="shrink-0 text-accent" />
-          <span className="font-semibold text-ink-soft/80">{formatReminderTime(reminder.local_time)}</span>
+          <span className="vault-data text-ink-soft/80">{formatReminderTime(reminder.local_time)}</span>
           <span className="shrink-0 text-ink-soft/30" aria-hidden="true">·</span>
           <span className="truncate">{scheduleText}</span>
         </span>
@@ -411,7 +415,7 @@ export function ReminderCard({
                 event.stopPropagation()
                 onToggleComplete(reminder)
               }}
-              className="inline-flex items-center gap-1 rounded border border-ink/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft/60 transition-colors hover:border-accent hover:bg-accent/10 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="vault-action inline-flex items-center gap-1 rounded border border-ink/15 px-2 py-0.5 text-xs text-ink-soft/60 transition-colors hover:border-accent hover:bg-accent/10 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               title="Mark reminder complete"
               aria-label="Mark reminder complete"
             >

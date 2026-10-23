@@ -225,8 +225,8 @@ export function OnboardingTour({ active, onFinish }: OnboardingTourProps) {
             <Icon size={16} />
           </span>
           <div className="min-w-0">
-            <p className="font-display text-sm font-semibold text-ink">{step.title}</p>
-            <p className="mt-1 text-xs leading-relaxed text-ink-soft">{step.body}</p>
+            <p className="vault-card-title text-ink">{step.title}</p>
+            <p className="vault-body-secondary mt-1 text-ink-soft">{step.body}</p>
           </div>
         </div>
 
@@ -234,7 +234,7 @@ export function OnboardingTour({ active, onFinish }: OnboardingTourProps) {
           <button
             type="button"
             onClick={onFinish}
-            className="text-[11px] font-medium uppercase tracking-wider text-ink-soft/60 transition-colors hover:text-ink-soft"
+            className="vault-action text-xs text-ink-soft/60 transition-colors hover:text-ink-soft"
           >
             Skip tour
           </button>

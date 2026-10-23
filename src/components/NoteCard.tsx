@@ -51,7 +51,7 @@ export function NoteCard({ note, index, matchFields, onClick, onDelete, onToggle
     >
       {/* Header row — title (flexible, wraps) + pinned actions */}
       <div className="flex items-start justify-between gap-2 px-4 pt-3">
-        <h3 className={`min-w-0 font-display font-semibold uppercase leading-snug tracking-tight text-ink transition-colors group-hover:text-accent text-[0.95rem] sm:text-base ${allDone ? 'pr-1' : ''}`}>
+        <h3 className={`vault-card-title min-w-0 line-clamp-2 text-ink transition-colors group-hover:text-accent ${allDone ? 'pr-1' : ''}`}>
           {titleText}
         </h3>
         <div className="flex shrink-0 items-center gap-0.5">
@@ -82,24 +82,24 @@ export function NoteCard({ note, index, matchFields, onClick, onDelete, onToggle
         {showMatch && matchFields ? (
           <div className="space-y-0.5">
             {matchFields.slice(0, 2).map((hit, hitIndex) => (
-              <p key={`${hit.label}-${hitIndex}`} className="truncate text-xs sm:text-sm text-ink-soft">
+              <p key={`${hit.label}-${hitIndex}`} className="vault-body-secondary truncate text-ink-soft">
                 <span className="font-medium">{hit.label}:</span> {hit.value}
               </p>
             ))}
           </div>
         ) : note.body.trim() ? (
-          <p className="line-clamp-2 text-xs sm:text-sm text-ink-soft leading-relaxed">
+          <p className="vault-body-secondary line-clamp-2 text-ink-soft">
             {note.body}
           </p>
         ) : (
-          <p className="text-xs italic text-ink-soft/50">No text content</p>
+          <p className="vault-body-secondary italic text-ink-soft/50">No text content</p>
         )}
       </div>
 
       {/* Divider + footer — date + checklist progress, same slot language as Items */}
       <div className="mx-4 h-px bg-ink/[0.07]" />
       <div className="flex items-center justify-between gap-2 px-4 py-2.5">
-        <span className="flex min-w-0 items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-ink-soft/40">
+        <span className="vault-meta flex min-w-0 items-center gap-1.5 text-ink-soft/40">
           <span className="shrink-0">{prettyDate.format(new Date(note.updated_at || note.created_at))}</span>
           {note.checklist.length > 0 ? (
             <>

@@ -37,8 +37,8 @@ export function ItemIdentitySection({
   if (editing) {
     return (
       <section aria-labelledby="item-identity-heading" className="grid gap-3 border-b border-ink/15 pb-4">
-        <h3 id="item-identity-heading" className="vault-meta text-ink-soft/55">Identity</h3>
-        <label className="grid gap-1 text-xs font-semibold uppercase tracking-widest text-ink-soft">
+        <h3 id="item-identity-heading" className="vault-label text-ink-label">Identity</h3>
+        <label className="vault-label grid gap-1 text-ink-soft">
           Category
           <VaultSelect
             options={categories.map((entry) => ({ value: entry.id, label: `${entry.icon} ${entry.name}` }))}
@@ -47,7 +47,7 @@ export function ItemIdentitySection({
             ariaLabel="Category"
           />
         </label>
-        <label className="grid gap-1 text-xs font-semibold uppercase tracking-widest text-ink-soft">
+        <label className="vault-label grid gap-1 text-ink-soft">
           Title
           <VaultInput
             value={title}
@@ -66,27 +66,33 @@ export function ItemIdentitySection({
 
   return (
     <section aria-labelledby="item-identity-heading" className="border-b border-ink/15 pb-4">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-soft">
+      <p className="vault-meta text-ink-soft">
         {categoryLabel} · {metaDate}
       </p>
-      <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
-        <h2
-          id="item-identity-heading"
-          className="min-w-0 flex-1 font-display text-xl font-semibold uppercase leading-tight text-ink sm:text-2xl"
-        >
-          {item.title}
-        </h2>
-        {rating != null ? (
-          <span className="vault-chip inline-flex shrink-0 items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] font-semibold text-ink">
-            <StarRating value={Math.round(rating)} size={11} /> {rating}
-          </span>
-        ) : null}
-        <FavoriteButton
-          active={isFavorite(item)}
-          label={isFavorite(item) ? 'Remove from favorites' : 'Add to favorites'}
-          onToggle={onToggleFavorite}
-        />
-        <MoreActionsMenu triggerLabel="More actions" items={moreItems} />
+      <div className="mt-1.5 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+          <h2
+            id="item-identity-heading"
+            className="vault-section-title min-w-0 break-words text-ink"
+          >
+            {item.title}
+          </h2>
+          {rating != null ? (
+            <div className="flex shrink-0 items-center">
+              <span className="vault-chip vault-data inline-flex shrink-0 items-center gap-1 rounded-sm px-2 py-0.5 text-ink">
+                <StarRating value={Math.round(rating)} size={11} /> {rating}
+              </span>
+            </div>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <FavoriteButton
+            active={isFavorite(item)}
+            label={isFavorite(item) ? 'Remove from favorites' : 'Add to favorites'}
+            onToggle={onToggleFavorite}
+          />
+          <MoreActionsMenu triggerLabel="More actions" items={moreItems} />
+        </div>
       </div>
     </section>
   )

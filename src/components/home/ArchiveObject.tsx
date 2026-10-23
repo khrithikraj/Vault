@@ -101,7 +101,7 @@ export function ArchiveObject({
             />
           ) : null}
           <span
-            className="folio min-w-0 truncate text-[9px] tracking-[0.2em]"
+            className="folio min-w-0 truncate"
             style={{ color: accentColor }}
           >
             {showCategory && category ? category.name : category?.name ?? 'Archive'}
@@ -110,7 +110,7 @@ export function ArchiveObject({
         <div className="flex shrink-0 items-center gap-0.5">
           {rating != null ? (
             <span
-              className="text-accent text-[9px] font-semibold"
+              className="vault-data text-accent"
               aria-label={`Rated ${rating} out of 5`}
             >
               ★ {rating}
@@ -148,17 +148,17 @@ export function ArchiveObject({
         {/* Text */}
         <div className="min-w-0 flex-1">
           <h3
-            className={`font-display font-semibold leading-[1.1] tracking-tight text-ink ${
-              large ? 'text-[1.55rem] sm:text-[1.85rem]' : 'text-[1.05rem] sm:text-[1.2rem]'
+            className={`vault-card-title line-clamp-2 text-ink ${
+              large ? 'text-xl sm:text-2xl' : ''
             }`}
           >
             {item.title}
           </h3>
 
           {preview ? (
-            <p className={`mt-2 line-clamp-2 leading-relaxed text-ink-soft ${large ? 'text-sm' : 'text-xs'}`}>
+            <p className="vault-body-secondary mt-2 line-clamp-2 text-ink-soft">
               {previewLabel ? (
-                <span className="font-semibold text-ink/50 uppercase tracking-[0.1em] text-[9px] mr-1.5">
+                <span className="vault-label mr-1.5 text-ink/50">
                   {previewLabel}
                 </span>
               ) : null}
@@ -188,7 +188,7 @@ export function ArchiveObject({
       {/* Footer — date + completion toggle */}
       <div className="mx-4 h-px bg-ink/[0.07]" />
       <div className="flex flex-col items-start gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-        <span className="flex min-w-0 items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-ink-soft/40">
+        <span className="vault-meta flex min-w-0 items-center gap-1.5 text-ink-soft/40">
           {prettyDate.format(new Date(item.created_at))}
         </span>
 

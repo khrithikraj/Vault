@@ -37,7 +37,7 @@ type SearchResultsProps = {
 
 function GroupHeader({ icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <h3 className="font-display mt-10 mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink">
+    <h3 className="vault-group-title mt-10 mb-3 flex items-center gap-2 text-ink">
       <BrandIcon icon={icon} size={14} /> {label}
     </h3>
   )
@@ -85,10 +85,10 @@ export function SearchResults({
   if (mode === 'trash') {
     return (
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-10">
-        <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-ink">
+        <h2 className="vault-section-title flex items-center gap-2 text-ink">
           <BrandIcon icon={Trash2} size={16} />
           <span>Search results</span>
-          <span className="ml-1 text-xs font-normal text-ink-soft/70">
+          <span className="vault-meta ml-1 text-ink-soft/70">
             · {total} {total === 1 ? 'result' : 'results'} · {scopeLabel}
           </span>
         </h2>
@@ -105,10 +105,10 @@ export function SearchResults({
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-10">
-      <h2 className="font-display flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-ink">
+      <h2 className="vault-section-title flex items-center gap-2 text-ink">
         <BrandIcon icon={Search} size={16} />
         <span>Search results</span>
-        <span className="ml-1 text-xs font-normal text-ink-soft/70">
+        <span className="vault-meta ml-1 text-ink-soft/70">
           · {total} {total === 1 ? 'result' : 'results'} · {scopeLabel}
         </span>
       </h2>

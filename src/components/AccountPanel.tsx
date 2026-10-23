@@ -84,45 +84,44 @@ export function AccountPanel({
         title="Account"
         showClose
         variant="sheet"
-        bodyClassName="max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain"
       >
         <div className="flex flex-col gap-6">
           {preview ? (
-            <p className="rounded border border-dashed border-ink/25 bg-ink/5 px-3 py-2 text-xs text-ink-soft">
+            <p className="vault-body-secondary rounded border border-dashed border-ink/25 bg-ink/5 px-3 py-2 text-ink-soft">
               You're in preview mode — nothing here is saved to a real account.
             </p>
           ) : null}
 
           {/* Identity */}
           <header>
-            <p className="vault-meta text-[10px] uppercase tracking-[0.2em] text-ink-soft/60">Account</p>
+            <p className="vault-label text-ink-soft/60">Account</p>
             {displayName ? (
-              <h3 className="font-display mt-1.5 break-words text-2xl font-bold uppercase leading-none tracking-tight text-ink">
+              <h3 className="vault-page-title mt-1.5 break-words text-ink">
                 {displayName}
               </h3>
             ) : null}
             {email ? (
-              <p className="mt-2 break-all text-sm text-ink-soft">{email}</p>
+              <p className="vault-body-secondary mt-2 break-all text-ink-soft">{email}</p>
             ) : (
-              <p className="mt-2 text-sm text-ink-soft">No email on this session.</p>
+              <p className="vault-body-secondary mt-2 text-ink-soft">No email on this session.</p>
             )}
           </header>
 
           {/* Account details */}
           <section className="border-t border-dashed border-ink/15 pt-4">
-            <h4 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft">
+            <h4 className="vault-label text-ink-soft">
               Account details
             </h4>
 
             <div className="mt-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink">Display name</p>
+              <p className="vault-label text-ink">Display name</p>
               {editingName ? (
                 <div className="mt-1.5 flex items-center gap-2">
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your name"
-                    className="vault-input w-full min-w-0 flex-1 rounded-none px-3 py-2 text-sm text-ink"
+                    className="vault-input w-full min-w-0 flex-1 rounded-none px-3 py-2 text-base text-ink"
                   />
                   <VaultButton
                     variant="chip"
@@ -150,13 +149,13 @@ export function AccountPanel({
                 </div>
               ) : (
                 <div className="mt-1.5 flex items-center justify-between gap-3">
-                  <p className="min-w-0 truncate text-sm text-ink-soft/80">
+                  <p className="vault-body-secondary min-w-0 truncate text-ink-soft/80">
                     {displayName ? displayName : <em className="not-italic text-ink-soft/50">Not set</em>}
                   </p>
                   <button
                     type="button"
                     onClick={() => setEditingName(true)}
-                    className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-ink-soft/70 transition-colors hover:text-ink"
+                    className="vault-action shrink-0 text-xs text-ink-soft/70 transition-colors hover:text-ink"
                   >
                     Edit
                   </button>
@@ -165,18 +164,18 @@ export function AccountPanel({
             </div>
 
             <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink">Email</p>
-              <p className="mt-1.5 truncate text-sm text-ink-soft/80">{email || '—'}</p>
+              <p className="vault-label text-ink">Email</p>
+              <p className="vault-body-secondary mt-1.5 truncate text-ink-soft/80">{email || '—'}</p>
             </div>
           </section>
 
           {/* Security */}
           <section className="border-t border-dashed border-ink/15 pt-4">
-            <h4 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft">Security</h4>
+            <h4 className="vault-label text-ink-soft">Security</h4>
             <div className="mt-3 flex flex-col gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink">Reset password</p>
-                <p className="mt-1 text-sm leading-relaxed text-ink-soft/80">
+                <p className="vault-label text-ink">Reset password</p>
+                <p className="vault-body-secondary mt-1 text-ink-soft/80">
                   Send a password reset email
                 </p>
               </div>
@@ -185,7 +184,7 @@ export function AccountPanel({
                 size="sm"
                 onClick={() => void handleSendReset()}
                 disabled={sendingReset || !email || resetSent}
-                className="self-start uppercase"
+                className="self-start"
               >
                 {sendingReset ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -204,9 +203,9 @@ export function AccountPanel({
 
           {/* Sign out */}
           <section className="border-t border-dashed border-ink/15 pt-4">
-            <h4 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft">Sign out</h4>
+            <h4 className="vault-label text-ink-soft">Sign out</h4>
             <div className="mt-3 flex flex-col gap-3">
-              <p className="min-w-0 text-sm leading-relaxed text-ink-soft/80">
+              <p className="vault-body-secondary min-w-0 text-ink-soft/80">
                 {preview ? 'Exit preview mode. Nothing is saved to a real account.' : 'Sign out of Vault'}
               </p>
               <VaultButton
@@ -214,7 +213,7 @@ export function AccountPanel({
                 size="sm"
                 icon={LogOut}
                 onClick={() => setConfirmSignOut(true)}
-                className="self-start uppercase"
+                className="self-start"
               >
                 {preview ? 'Exit preview' : 'Sign out'}
               </VaultButton>
@@ -229,11 +228,11 @@ export function AccountPanel({
                 onClose()
                 onReplayTour()
               }}
-              className="text-[11px] font-medium uppercase tracking-widest text-ink-soft/50 transition-colors hover:text-ink-soft"
+              className="vault-action text-xs text-ink-soft/50 transition-colors hover:text-ink-soft"
             >
               Replay tour
             </button>
-            <p className="text-[10px] uppercase tracking-widest text-ink-soft/40">
+            <p className="vault-meta text-ink-soft/40">
               Raj&apos;s Vault · v{APP_VERSION}
             </p>
           </div>

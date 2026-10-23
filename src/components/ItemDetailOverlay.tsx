@@ -284,7 +284,28 @@ export function ItemDetailOverlay({
         showClose
         closeLabel="Close item details"
         className="max-w-lg"
-        bodyClassName="vault-scrollbar max-h-[calc(100dvh-8rem)] overflow-y-auto overflow-x-hidden p-5 sm:p-7"
+        bodyClassName="vault-scrollbar p-5 sm:p-7"
+        footer={
+          isEditing ? (
+            <div className="flex w-full flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving || !editTitle.trim()}
+                className="vault-btn-solid vault-action flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs sm:text-sm disabled:opacity-50"
+              >
+                <Check size={14} /> {saving ? 'Saving…' : 'Save changes'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="vault-action rounded-outline border border-ink/30 px-4 py-2.5 text-xs text-ink-soft hover:text-ink sm:text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : null
+        }
       >
         {item ? (
             <motion.div
@@ -330,10 +351,10 @@ export function ItemDetailOverlay({
               {/* Dynamic Metadata Fields */}
               {isEditing ? (
                 <section aria-labelledby="item-fields-heading" className="mt-4 grid gap-3 border-t border-ink/15 pt-3">
-                  <h3 id="item-fields-heading" className="vault-meta text-ink-soft/55">Filed details</h3>
+                  <h3 id="item-fields-heading" className="vault-label text-ink-label">Filed details</h3>
                   {metadataFields.map((field) => (
                     <div key={field.key}>
-                      <label className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                      <label className="vault-label text-ink-soft">
                         {field.label} {field.required ? '*' : ''}
                       </label>
                       {field.type === 'textarea' ? (
@@ -369,7 +390,7 @@ export function ItemDetailOverlay({
                   ))}
 
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                    <label className="vault-label text-ink-soft">
                       Notes
                     </label>
                     <VaultTextarea
@@ -385,13 +406,13 @@ export function ItemDetailOverlay({
                 <>
                   {metadataFields.length > 0 ? (
                     <section aria-labelledby="item-fields-heading" className="mt-4">
-                      <h3 id="item-fields-heading" className="vault-meta mb-3 text-ink-soft/55">Filed details</h3>
+                      <h3 id="item-fields-heading" className="vault-label mb-3 text-ink-label">Filed details</h3>
                       <dl className="grid gap-3">
                       {metadataFields
                         .filter((field) => String(item.metadata?.[field.key] ?? '').length > 0)
                         .map((field) => (
-                          <div key={field.key} className="flex flex-col gap-1 text-sm">
-                            <dt className="w-28 shrink-0 text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                          <div key={field.key} className="vault-body-secondary flex flex-col gap-1">
+                            <dt className="vault-label w-28 shrink-0 text-ink-soft">
                               {field.label}
                             </dt>
                             <dd className="break-words font-medium text-ink">
@@ -427,15 +448,15 @@ export function ItemDetailOverlay({
 
                   {item.notes ? (
                     <section aria-labelledby="item-notes-heading" className="mt-4 border border-dashed border-ink/20 bg-ink/5 p-3">
-                      <h3 id="item-notes-heading" className="text-[10px] font-semibold uppercase tracking-widest text-ink-soft mb-1">
+                      <h3 id="item-notes-heading" className="vault-label mb-1 text-ink-soft">
                         Notes
                       </h3>
-                      <p className="text-sm leading-relaxed text-ink-soft whitespace-pre-wrap">
+                      <p className="vault-body whitespace-pre-wrap text-ink-soft">
                         {item.notes}
                       </p>
                     </section>
                   ) : !metadataFields.some((f) => item.metadata?.[f.key]) ? (
-                    <p className="mt-4 text-sm italic text-ink-soft/70">No extra details added.</p>
+                    <p className="vault-body-secondary mt-4 italic text-ink-soft/70">No extra details added.</p>
                   ) : null}
 
                   {selectedCategory?.name === 'Food Spots' ? (
@@ -449,7 +470,7 @@ export function ItemDetailOverlay({
                   {/* Tried entries + ratings — e.g. multiple dishes tried at one food spot */}
                   {item.status === 'done' ? (
                     <section aria-labelledby="item-tried-heading" className="mt-4 border border-dashed border-ink/20 p-3">
-                      <h3 id="item-tried-heading" className="text-[10px] font-semibold uppercase tracking-widest text-ink-soft mb-2">
+                      <h3 id="item-tried-heading" className="vault-label mb-2 text-ink-soft">
                         Tried
                       </h3>
                       {getTriedEntries(item).length > 0 ? (
@@ -474,7 +495,7 @@ export function ItemDetailOverlay({
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-sm italic text-ink-soft/70">Nothing logged yet.</p>
+                        <p className="vault-body-secondary italic text-ink-soft/70">Nothing logged yet.</p>
                       )}
 
                       <div className="mt-2.5 flex flex-wrap items-center gap-2">
@@ -492,7 +513,7 @@ export function ItemDetailOverlay({
                           variant="chip"
                           size="sm"
                           icon={Plus}
-                          className="shrink-0 uppercase disabled:opacity-40"
+                          className="shrink-0 disabled:opacity-40"
                         >
                           Add
                         </VaultButton>
@@ -501,33 +522,16 @@ export function ItemDetailOverlay({
                   ) : null}
 
                   {/* Folio metadata row */}
-                  <p className="folio mt-5 flex items-center justify-between border-t border-dashed border-ink/20 pt-3 text-xs text-ink-soft/70">
+                  <p className="vault-meta mt-5 flex items-center justify-between border-t border-dashed border-ink/20 pt-3 text-ink-soft/70">
                     <span>Saved {prettyDateTime.format(new Date(item.created_at))}</span>
                   </p>
                 </>
               )}
 
-              {/* Bottom Buttons */}
-              <div className="mt-5 border-t border-ink/15 pt-1">
-                {isEditing ? (
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={saving || !editTitle.trim()}
-                      className="vault-btn-solid flex-1 rounded-full px-4 py-2.5 text-xs sm:text-sm font-semibold uppercase tracking-wide flex items-center justify-center gap-1.5 disabled:opacity-50"
-                    >
-                      <Check size={14} /> {saving ? 'Saving…' : 'Save changes'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="border-ink/30 rounded-outline border px-4 py-2.5 text-xs sm:text-sm font-medium uppercase tracking-wide text-ink-soft hover:text-ink"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
+              {/* Bottom Buttons — view mode only; edit mode Save/Cancel live in the
+                  pinned dialog footer so they stay reachable above the keyboard. */}
+              {!isEditing ? (
+                <div className="mt-5 border-t border-ink/15 pt-1">
                   <div className="flex justify-end">
                     <CompletionControl
                       done={item.status === 'done'}
@@ -536,8 +540,8 @@ export function ItemDetailOverlay({
                       onToggle={() => onToggle(item)}
                     />
                   </div>
-                )}
-              </div>
+                </div>
+              ) : null}
             </motion.div>
         ) : null}
       </VaultDialog>

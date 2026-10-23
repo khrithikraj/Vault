@@ -43,3 +43,12 @@ test-results/
 # Local AI Lab artifacts — Vision Pipeline work
 ai-lab/datasets/
 ai-lab/results/
+
+# Capacitor / Android local and build artifacts
+android/local.properties
+android/app/build/
+android/.gradle/
+android/build/
+android/.idea/
+android/*.iml
+android/app/*.iml

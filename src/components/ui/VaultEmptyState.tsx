@@ -25,8 +25,8 @@ export function VaultEmptyState({ icon, title, description, action, className }:
           {icon}
         </div>
       ) : null}
-      <p className="vault-meta text-ink-soft/55">{title}</p>
-      {description ? <p className="max-w-sm text-sm text-ink-soft/70">{description}</p> : null}
+      <p className="vault-card-title text-ink">{title}</p>
+      {description ? <p className="vault-body-secondary max-w-sm text-ink-soft/70">{description}</p> : null}
       {action ? <div className="mt-2">{action}</div> : null}
     </div>
   )

@@ -260,7 +260,7 @@ export function CustomDatePicker({
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">Date</span>
+      <span className="vault-label text-ink-soft">Date</span>
 
       {/* The field itself. A real button so it is focusable and operable from the
           keyboard, with the chosen date spelled out in Vault typography. */}
@@ -323,7 +323,7 @@ export function CustomDatePicker({
               <ChevronLeft size={16} />
             </button>
 
-            <div aria-live="polite" className="font-display text-sm font-semibold tracking-wide text-ink">
+            <div aria-live="polite" className="vault-card-title text-ink">
               {MONTH_NAMES[view.month - 1]}{' '}
               <span className="text-ink-soft">{view.year}</span>
             </div>
@@ -343,7 +343,7 @@ export function CustomDatePicker({
             {WEEKDAYS.map((day) => (
               <div
                 key={day}
-                className="text-center text-[9px] font-bold uppercase tracking-wider text-ink-soft/60"
+                className="vault-label text-center text-ink-soft/60"
               >
                 {formatWeekdayLabel(day).slice(0, 3)}
               </div>
@@ -375,7 +375,7 @@ export function CustomDatePicker({
                   aria-current={isToday && !isSelected ? 'date' : undefined}
                   aria-label={formatDateAriaLabel(dateStr)}
                   className={cn(
-                    'mx-auto flex h-10 w-full max-w-10 items-center justify-center rounded-full text-xs tabular-nums transition-colors',
+                    'mx-auto flex h-10 w-full max-w-10 items-center justify-center rounded-full text-sm font-medium tabular-nums transition-colors',
                     'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent',
                     isSelected
                       ? 'bg-accent font-bold text-ink'
@@ -400,11 +400,11 @@ export function CustomDatePicker({
               type="button"
               onClick={() => minDate && commit(minDate)}
               disabled={!minDate}
-              className="rounded px-1.5 py-1 text-[10px] font-bold uppercase tracking-widest text-ink-soft transition-colors hover:text-ink disabled:opacity-25"
+              className="vault-action rounded px-1.5 py-1 text-xs text-ink-soft transition-colors hover:text-ink disabled:opacity-25"
             >
               Today
             </button>
-            <span className="pr-1.5 text-[10px] text-ink-soft/50">Esc to close</span>
+            <span className="vault-meta pr-1.5 text-ink-soft/50">Esc to close</span>
           </div>
         </div>,
         document.body,

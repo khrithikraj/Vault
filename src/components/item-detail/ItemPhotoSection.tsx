@@ -52,7 +52,7 @@ export function ItemPhotoSection({
             className="flex h-24 w-full flex-col items-center justify-center gap-1.5 border border-dashed border-ink/30 text-ink-soft transition-colors hover:border-ink/60 hover:text-ink"
           >
             <Camera size={20} aria-hidden="true" />
-            <span className="text-xs font-medium uppercase tracking-wide">Attach photo</span>
+            <span className="vault-action text-xs">Attach photo</span>
           </button>
         )}
       </div>

@@ -18,7 +18,7 @@ export const VaultInput = forwardRef<HTMLInputElement, VaultInputProps>(function
     <input
       ref={ref}
       className={cn(
-        'w-full rounded px-3 py-2.5 text-sm transition-colors placeholder:text-ink-soft/80',
+        'w-full rounded px-3 py-2.5 text-base transition-colors placeholder:text-ink-soft/80',
         variant === 'overlay' ? 'vault-input-overlay' : 'vault-input',
         className,
       )}
@@ -40,7 +40,7 @@ export const VaultTextarea = forwardRef<HTMLTextAreaElement, VaultTextareaProps>
       <textarea
         ref={ref}
         className={cn(
-          'w-full rounded px-3 py-2.5 text-sm transition-colors placeholder:text-ink-soft/80',
+          'w-full rounded px-3 py-2.5 text-base transition-colors placeholder:text-ink-soft/80',
           variant === 'overlay' ? 'vault-input-overlay' : 'vault-input',
           className,
         )}

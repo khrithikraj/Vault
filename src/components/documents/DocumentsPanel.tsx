@@ -82,12 +82,12 @@ export function DocumentsPanel({
       {/* Message banner                                                        */}
       {/* ------------------------------------------------------------------ */}
       {message && (
-        <div className="mb-4 flex items-start justify-between gap-3 rounded border border-dashed border-ink/30 bg-transparent p-4 text-sm text-ink">
+        <div className="vault-body-secondary mb-4 flex items-start justify-between gap-3 rounded border border-dashed border-ink/30 bg-transparent p-4 text-ink">
           <p>{message}</p>
           <button
             type="button"
             onClick={onDismissMessage}
-            className="vault-chip shrink-0 rounded-full px-2 py-1 text-xs font-medium uppercase tracking-wide"
+            className="vault-action shrink-0 rounded-full px-2 py-1 text-xs"
           >
             Dismiss
           </button>
@@ -99,7 +99,7 @@ export function DocumentsPanel({
       {/* ------------------------------------------------------------------ */}
       {documents.length > 0 && (
         <div
-          className="mb-4 flex items-center gap-1.5 overflow-x-auto py-0.5"
+          className="no-scrollbar mb-4 flex max-w-full items-center gap-1.5 overflow-x-auto py-0.5"
           style={{ scrollbarWidth: 'none' }}
         >
           {(['All', ...DOCUMENT_CATEGORIES] as const).map((cat) => {
@@ -113,11 +113,11 @@ export function DocumentsPanel({
                 type="button"
                 onClick={() => setFilterCategory(cat)}
                 data-active={filterCategory === cat ? 'true' : undefined}
-                className="vault-chip shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-all"
+                className="vault-label vault-chip shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition-all"
               >
                 {cat}
                 {count > 0 && (
-                  <span className="ml-1.5 text-[10px] opacity-70">{count}</span>
+                  <span className="vault-data ml-1.5 opacity-70">{count}</span>
                 )}
               </button>
             )
@@ -143,7 +143,7 @@ export function DocumentsPanel({
             <button
               type="button"
               onClick={() => setFilterCategory('All')}
-              className="text-xs font-semibold uppercase tracking-wide text-accent underline"
+              className="vault-action text-xs text-accent underline"
             >
               Show all
             </button>

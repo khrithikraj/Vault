@@ -59,7 +59,7 @@ export function ConfirmDialog({
           className="mt-0.5 shrink-0 text-red-400"
           aria-hidden="true"
         />
-        <div className="text-sm leading-relaxed text-ink-soft">{message}</div>
+        <div className="vault-body-secondary text-ink-soft">{message}</div>
       </div>
     </VaultDialog>
   )

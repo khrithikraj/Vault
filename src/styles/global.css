@@ -54,6 +54,11 @@
     margin: 0;
     min-height: 100%;
   }
+
+  html,
+  body {
+    overflow-x: hidden;
+  }
  
   body {
     font-family: var(--font-body);
@@ -126,6 +131,21 @@
   }
  
   .vault-scrollbar::-webkit-scrollbar:horizontal {
+    height: 0;
+  }
+
+  /* Utility to suppress scrollbars across WebKit, Blink, Gecko, and legacy engines
+     while preserving touch and pointer scrolling. */
+  .no-scrollbar,
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+    width: 0;
     height: 0;
   }
  
@@ -314,6 +334,167 @@
   }
  
   /* ----------------------------------------------------------------------
+     SEMANTIC TYPOGRAPHY ROLES
+
+     Precedence contract:
+       1. These roles live in the components layer, below Tailwind utilities.
+          A utility on the same element (e.g. `text-ink`, `text-sm`) therefore
+          wins predictably instead of being silently overridden by the role.
+       2. Component variants may override a role with a later component-layer
+          rule or a more specific component selector.
+       3. Role classes own family/size/weight/line-height/tracking/casing only
+          (plus `.vault-meta`'s documented muted colour); they never use
+          `!important`.
+     ---------------------------------------------------------------------- */
+  /* Editorial display — Instrument Serif, intentional marketing/auth moments. */
+  .vault-display {
+    font-family: var(--font-accession-serif);
+    font-size: var(--text-display);
+    font-weight: 400;
+    line-height: var(--leading-display);
+    letter-spacing: -0.02em;
+    text-transform: none;
+    text-wrap: balance;
+  }
+
+  /* Primary screen title — Inter, 28–32px. */
+  .vault-page-title {
+    font-family: var(--font-body);
+    font-size: clamp(1.75rem, 1.55rem + 0.9vw, 2rem);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-transform: none;
+    text-wrap: balance;
+  }
+
+  /* Section heading — Inter, 20–24px. `.vault-heading` is the legacy alias. */
+  .vault-section-title,
+  .vault-heading {
+    min-width: 0;
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: clamp(1.25rem, 1.14rem + 0.5vw, 1.5rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    overflow-wrap: anywhere;
+  }
+
+  /* Nested group heading — Inter, 18px. */
+  .vault-group-title {
+    font-family: var(--font-body);
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    text-transform: none;
+  }
+
+  /* Card / saved-item title — Inter, 16–18px, natural casing. */
+  .vault-card-title {
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    text-transform: none;
+  }
+
+  /* Normal readable content — Inter. */
+  .vault-body {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 400;
+    line-height: 1.55;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* Descriptions and supporting copy — Inter. */
+  .vault-body-secondary {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.55;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* Compact structural label — Space Grotesk, uppercase, 12px. */
+  .vault-label {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Button / action label — Inter, natural casing, 14px default. */
+  .vault-action {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  /* Timestamps, counts and secondary metadata — Inter, 12px. */
+  .vault-meta {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    color: var(--color-ink-soft);
+  }
+
+  /* Numeric / time / hex data — the one explicitly chosen mono voice. */
+  .vault-data {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* OCR / extracted transcript blocks — mono for glyph fidelity. */
+  .vault-transcript {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* Legacy folio marker: a compact Space Grotesk label. */
+  .folio {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .vault-section-folio {
+    color: var(--accession-text-subtle);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* ----------------------------------------------------------------------
      SEMANTIC FEEDBACK SURFACES
      New roles replacing repeated raw Tailwind danger/warning usage.
      Backed by the semantic tokens in tokens.css.
@@ -347,12 +528,6 @@
   border-top: 1px dashed var(--color-border-dash);
 }
  
-input,
-textarea,
-button {
-  font: inherit;
-}
- 
 /* ---------------------------------------------------------------------------
  * Touch-aware reveal helper (preserved from V1).
  * Cards that hide delete controls behind opacity-0 group-hover:opacity-100
@@ -383,94 +558,6 @@ button {
 }
  
 @layer utilities {
-  /* Giant editorial display heading — the Oryzo signature: uppercase,
-     weight 500, line-height 0.9 so the letterforms overlap into a block. */
-  .text-display {
-    font-family: var(--font-display);
-    font-weight: 500;
-    text-transform: uppercase;
-    line-height: var(--leading-display);
-    letter-spacing: 0;
-    font-size: var(--text-display);
-    text-wrap: balance;
-  }
- 
-  /* Small uppercase serial/eyebrow label — wide tracked, muted. */
-  .text-micro {
-    font-size: var(--text-micro);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-  }
- 
-  /* Page folio number — Space Grotesk, wide tracked. */
-  .folio {
-    font-family: var(--font-display);
-    font-weight: 600;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-  }
- 
-  /* ----------------------------------------------------------------------
-     TYPOGRAPHY ROLES (V2)
-     Semantic type roles for primitives + future screens.
-     ---------------------------------------------------------------------- */
-  /* Hero/editorial heading — large display face. */
-  .vault-display {
-    font-family: var(--font-display);
-    font-weight: 500;
-    text-transform: uppercase;
-    line-height: var(--leading-display);
-    letter-spacing: 0;
-    font-size: var(--text-display);
-    text-wrap: balance;
-  }
- 
-  /* Section heading — small caps display. */
-  .vault-heading {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: var(--text-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-  }
- 
-  /* Body text — Inter. */
-  .vault-body {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    line-height: var(--leading-normal);
-    color: var(--color-ink);
-  }
- 
-  /* Label — small semibold body for inputs/forms. */
-  .vault-label {
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--color-ink);
-  }
- 
-  /* Meta — compact muted secondary text. */
-  .vault-meta {
-    font-family: var(--font-body);
-    font-size: var(--text-2xs);
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-ink-soft);
-  }
- 
-  /* Action — uppercase button label. */
-  .vault-action {
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
- 
   .vault-page {
     position: relative;
     z-index: var(--z-content);
@@ -498,24 +585,6 @@ button {
     gap: var(--space-3);
     min-height: 64px;
     padding: var(--space-3) 0 var(--space-4);
-  }
- 
-  .vault-section-folio {
-    color: var(--accession-text-subtle);
-    font-family: var(--font-display);
-    font-size: var(--text-2xs);
-    font-weight: 600;
-    letter-spacing: 0.18em;
-  }
- 
-  .vault-section-title {
-    min-width: 0;
-    margin: 0;
-    font-family: var(--font-accession-serif);
-    font-size: clamp(1.5rem, 3vw, 2rem);
-    font-weight: 400;
-    line-height: 1;
-    overflow-wrap: anywhere;
   }
  
   .vault-section-actions {
@@ -580,14 +649,6 @@ button {
     -webkit-backdrop-filter: blur(14px) saturate(1.2);
   }
 
-  /* The capsule's count labels sit on the pill's own translucent surface over
-     the Vault canvas, where the shared `.vault-meta` ink-soft (#7a6e60) reads
-     below 4.5:1 and fails WCAG AA. Relight them to a warmer secondary ink
-     (~6:1) that stays clearly dimmer than the numerals. Specificity beats the
-     unlayered `.vault-meta` colour. */
-  .vault-capsule .vault-meta {
-    color: #9a8f80;
-  }
  
   /* Fixed film-grain overlay — positioning/opacity only. */
 
@@ -950,6 +1011,14 @@ button {
     0 8px 28px -12px rgba(0, 0, 0, 0.65),
     0 0 20px -8px rgba(196, 72, 0, 0.18),
     inset 0 1px 0 rgba(245, 234, 216, 0.055);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.float-nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
  
 /* Vault hairline — ultra-fine spanning rule used for archive index rows. */

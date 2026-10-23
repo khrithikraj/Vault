@@ -35,7 +35,7 @@ export function FoodSpotBranches({ item, onUpdate }: FoodSpotBranchesProps) {
   return (
     <section aria-labelledby="food-spot-branches-heading" className="mt-4 border border-dashed border-ink/20 p-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 id="food-spot-branches-heading" className="text-[10px] font-semibold uppercase tracking-widest text-ink-soft">
+        <h3 id="food-spot-branches-heading" className="vault-label text-ink-soft">
           Branches
         </h3>
         <VaultButton type="button" variant="chip" size="sm" icon={Plus} onClick={beginAdd}>
@@ -51,10 +51,10 @@ export function FoodSpotBranches({ item, onUpdate }: FoodSpotBranchesProps) {
                 <div className="flex items-start gap-2">
                   <MapPin size={14} className="mt-0.5 shrink-0 text-accent" />
                   <div className="min-w-0 flex-1">
-                    {branch.name.trim() ? <p className="text-sm font-semibold text-ink">{branch.name}</p> : null}
-                    <p className="text-xs text-ink-soft">{branch.address}</p>
+                    {branch.name.trim() ? <p className="vault-body-secondary font-semibold text-ink">{branch.name}</p> : null}
+                    <p className="vault-body-secondary text-ink-soft">{branch.address}</p>
                     {branch.mapUrl ? (
-                      <a href={branch.mapUrl} target="_blank" rel="noopener noreferrer" className="mt-0.5 inline-block text-xs text-accent underline">
+                      <a href={branch.mapUrl} target="_blank" rel="noopener noreferrer" className="vault-action mt-0.5 inline-block text-xs text-accent underline">
                         Open map
                       </a>
                     ) : null}
@@ -79,7 +79,7 @@ export function FoodSpotBranches({ item, onUpdate }: FoodSpotBranchesProps) {
           })}
         </ul>
       ) : (
-        <p className="mt-3 text-sm italic text-ink-soft/70">No branches added.</p>
+        <p className="vault-body-secondary mt-3 italic text-ink-soft/70">No branches added.</p>
       )}
       {draft ? (
         <div className="mt-3 grid gap-2 border-t border-ink/15 pt-3">

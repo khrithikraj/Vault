@@ -348,6 +348,59 @@ export function to24HourTime(hour12: number, minute: number, period: 'AM' | 'PM'
   return `${String(hour24).padStart(2, '0')}:${String(clampedMin).padStart(2, '0')}`
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Time draft — the 12-hour working copy a time picker holds while the user
+ * is choosing a time. Pure and storage-free so the picker UI (typed on
+ * desktop, tapped on mobile) and its tests can share one set of rules.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export type TimePeriod = 'AM' | 'PM'
+
+export type TimeDraft = {
+  /** 1–12 (12-hour clock, so 12 AM is midnight and 12 PM is noon). */
+  hour12: number
+  /** 0–59. */
+  minute: number
+  period: TimePeriod
+}
+
+/** The draft a picker starts from when nothing is selected yet. */
+export const DEFAULT_TIME_DRAFT: TimeDraft = { hour12: 9, minute: 0, period: 'AM' }
+
+/**
+ * Reads a committed "HH:MM" value into a 12-hour draft.
+ * An unparseable/empty value falls back to {@link DEFAULT_TIME_DRAFT} so the
+ * picker always has a complete, valid draft to work from.
+ */
+export function timeDraftFromValue(value: string): TimeDraft {
+  const parsed = parseLocalTime(value)
+  if (!parsed) return { ...DEFAULT_TIME_DRAFT }
+  return { hour12: parsed.hour12, minute: parsed.minute, period: parsed.period }
+}
+
+/** Commits a draft back to the canonical 24-hour "HH:MM" string. */
+export function timeDraftToValue(draft: TimeDraft): string {
+  return to24HourTime(draft.hour12, draft.minute, draft.period)
+}
+
+/** Steps a 12-hour clock value, wrapping 12 → 1 and 1 → 12. */
+export function stepHour12(hour12: number, delta: number): number {
+  const base = Number.isFinite(hour12) ? hour12 : DEFAULT_TIME_DRAFT.hour12
+  let next = base + delta
+  if (next > 12) next = 1
+  if (next < 1) next = 12
+  return next
+}
+
+/** Steps a minute value, wrapping 59 → 0 and 0 → 59. */
+export function stepMinute(minute: number, delta: number): number {
+  const base = Number.isFinite(minute) ? minute : DEFAULT_TIME_DRAFT.minute
+  let next = base + delta
+  if (next >= 60) next = 0
+  if (next < 0) next = 59
+  return next
+}
+
 /** Computes calendar day difference (B - A) between two "YYYY-MM-DD" dates. */
 export function daysBetween(dateStrA: string, dateStrB: string): number {
   const [yA, mA, dA] = dateStrA.split('-').map(Number)

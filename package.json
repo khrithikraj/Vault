@@ -11,9 +11,15 @@
     "test:e2e": "node scripts/clean-test-artifacts.mjs && playwright test",
     "test:e2e:ci": "node scripts/clean-test-artifacts.mjs && playwright test --grep-invert @visual",
     "test:visual": "node scripts/clean-test-artifacts.mjs && playwright test --grep @visual",
-    "test:unit": "vitest run --config vitest.config.ts"
+    "test:unit": "vitest run --config vitest.config.ts",
+    "splash:android": "python scripts/build_android_splash.py",
+    "cap:sync": "npm run build && cap sync android",
+    "cap:open": "cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/core": "^7.6.9",
     "@supabase/supabase-js": "^2.54.0",
     "lucide-react": "^1.30.0",
     "motion": "^12.23.12",
@@ -24,6 +30,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@capacitor/cli": "^7.6.9",
     "@eslint/js": "^9.31.0",
     "@playwright/test": "^1.63.0",
     "@supabase/server": "^1.7.0",

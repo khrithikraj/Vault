@@ -92,14 +92,14 @@ export function DocumentEditDialog({ doc, onSave, onCancel }: DocumentEditDialog
     >
       {doc ? (
         <>
-          <p className="mb-5 text-xs leading-relaxed text-ink-soft">
+          <p className="vault-body-secondary mb-5 text-ink-soft">
             Only the name and category change. The stored file is untouched.
           </p>
           <form id="document-edit-form" onSubmit={handleSubmit} className="grid gap-4">
               <div>
                 <label
                   htmlFor="doc-edit-name"
-                  className="text-xs font-semibold uppercase tracking-widest text-ink-soft"
+                  className="vault-label text-ink-soft"
                 >
                   Document name *
                 </label>
@@ -117,7 +117,7 @@ export function DocumentEditDialog({ doc, onSave, onCancel }: DocumentEditDialog
               </div>
 
               <div>
-                <label className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                <label className="vault-label text-ink-soft">
                   Category *
                 </label>
                 <VaultSelect<DocumentCategory>
@@ -129,7 +129,7 @@ export function DocumentEditDialog({ doc, onSave, onCancel }: DocumentEditDialog
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 rounded border border-red-900/50 bg-red-950/40 px-3 py-2.5 text-xs text-red-400">
+                <div className="vault-body-secondary flex items-start gap-2 rounded border border-red-900/50 bg-red-950/40 px-3 py-2.5 text-red-400">
                   <AlertTriangle size={13} className="mt-0.5 shrink-0" />
                   <span>{error}</span>
                 </div>

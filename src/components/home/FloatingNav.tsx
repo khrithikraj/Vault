@@ -138,7 +138,7 @@ export function FloatingNav({
       style={{ bottom: 'max(env(safe-area-inset-bottom, 0px), 0.875rem)', zIndex: layers.navigation }}
     >
       <div
-        className="float-nav flex max-w-full items-stretch gap-0.5 overflow-x-auto rounded-full px-2 py-1.5"
+        className="float-nav no-scrollbar flex max-w-full items-stretch gap-0.5 overflow-x-auto rounded-full px-2 py-1.5"
         style={{ scrollbarWidth: 'none' }}
       >
         {/* Category section — toggle + category pills */}
@@ -152,7 +152,7 @@ export function FloatingNav({
                 label: activeCategoryItem?.label ?? 'Sections',
                 icon: () => (
                   <span
-                    className="font-display text-[10px] font-semibold uppercase tracking-wider"
+                    className="vault-data"
                     style={{
                       color:
                         selectedCategoryId
@@ -268,7 +268,9 @@ function NavButton({
       <span className="relative z-10 block leading-none">
         {item.icon(18)}
       </span>
-      <span className="relative z-10 max-w-16 truncate text-[9px] font-medium leading-none text-current">
+      {/* Bottom dock labels are a genuine tight-space exception: the dock scrolls
+          horizontally instead of clipping any destination's name. */}
+      <span className="vault-label relative z-10 whitespace-nowrap leading-none text-current">
         {item.label}
       </span>
     </motion.button>

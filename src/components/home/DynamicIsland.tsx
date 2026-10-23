@@ -114,7 +114,7 @@ export function DynamicIsland({
             >
               {Icon}
             </span>
-            <span className="font-display text-xs font-medium tracking-wide text-ink truncate">
+            <span className="vault-body-secondary truncate text-ink">
               {label}
             </span>
             {action ? <span className="ml-1 shrink-0">{action}</span> : null}

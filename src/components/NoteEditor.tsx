@@ -325,7 +325,7 @@ export function NoteEditor({
           Only favorite and  ⋯  stay visible; an active reminder surfaces its own
           time chip (◷ 09:25 AM), which doubles as the reminder picker trigger. */}
       <div className="border-b border-ink/15 pb-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-soft">
+        <p className="vault-label text-ink-soft">
           Note · {metaDate}
         </p>
         <div className="mt-1.5 flex min-w-0 items-start gap-1.5 sm:gap-2">
@@ -334,7 +334,7 @@ export function NoteEditor({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Note title..."
             aria-label="Note title"
-            className="min-w-0 flex-1 bg-transparent px-1 py-1.5 font-display text-xl sm:text-2xl font-semibold leading-tight text-ink outline-none placeholder:font-body placeholder:text-base placeholder:font-normal placeholder:leading-normal placeholder:text-ink-soft/50"
+            className="vault-section-title min-w-0 flex-1 bg-transparent px-1 py-1.5 text-ink outline-none placeholder:text-ink-soft/50"
           />
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <FavoriteButton
@@ -352,7 +352,7 @@ export function NoteEditor({
                 aria-label={reminderChipLabel}
                 title={reminderChipLabel}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[11px] font-medium transition-colors',
+                  'inline-flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 vault-meta transition-colors',
                   isReminderDoneToday
                     ? 'text-emerald-400/80 hover:text-emerald-400'
                     : 'text-accent/70 hover:text-accent',
@@ -363,9 +363,9 @@ export function NoteEditor({
                 ) : (
                   <Clock size={11} className="shrink-0" aria-hidden="true" />
                 )}
-                <span className="font-mono">{reminderTime}</span>
+                <span className="vault-data">{reminderTime}</span>
                 {reminderChipMeta ? (
-                  <span className="text-[10px] tracking-wide opacity-70">
+                  <span className="vault-meta opacity-70">
                     &middot;&thinsp;{reminderChipMeta}
                   </span>
                 ) : null}
@@ -378,12 +378,12 @@ export function NoteEditor({
         {saving || notificationMessage ? (
           <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             {saving ? (
-              <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
+              <span className="vault-label flex items-center gap-1 text-ink-soft">
                 <Loader2 size={10} className="animate-spin" /> Saving…
               </span>
             ) : null}
             {notificationMessage ? (
-              <p className="min-w-0 text-xs text-ink-soft" role="status">{notificationMessage}</p>
+              <p className="vault-meta min-w-0 text-ink-soft" role="status">{notificationMessage}</p>
             ) : null}
           </div>
         ) : null}
@@ -429,7 +429,7 @@ export function NoteEditor({
 
       {/* Note Body — editorial writing surface */}
       <div>
-        <label className="text-[10px] font-semibold uppercase tracking-widest text-ink-soft">
+        <label className="vault-label text-ink-soft">
           Content
         </label>
         <div className="mt-1.5 border-b border-dashed border-ink/15" aria-hidden="true" />
@@ -438,14 +438,14 @@ export function NoteEditor({
           onChange={(e) => setBody(e.target.value)}
           placeholder="Write anything down (ideas, markdown, reminders, lists)..."
           rows={6}
-          className="mt-3 w-full min-w-0 resize-y bg-transparent text-sm text-ink leading-relaxed outline-none placeholder:text-ink-soft/50"
+          className="vault-body mt-3 w-full min-w-0 resize-y bg-transparent text-ink outline-none placeholder:text-ink-soft/50"
         />
       </div>
 
       {/* Checklist Section */}
       <div className="rounded border border-ink/15 p-3.5 bg-ink/5 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+          <p className="vault-label text-ink-soft">
             Checklist ({checklist.filter((i) => i.done).length}/{checklist.length})
           </p>
           {checklist.length > 1 ? (
@@ -453,7 +453,7 @@ export function NoteEditor({
               type="button"
               onClick={() => setReorderMode((mode) => !mode)}
               aria-pressed={reorderMode}
-              className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
+              className="vault-action inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
             >
               {reorderMode ? (
                 <Check size={11} className="shrink-0 stroke-[2.5]" aria-hidden="true" />
@@ -515,12 +515,12 @@ export function NoteEditor({
               }
             }}
             placeholder="Add new task or list item..."
-            className="vault-input min-w-0 flex-1 rounded-none px-3 py-2 text-sm text-ink"
+            className="vault-input min-w-0 flex-1 rounded-none px-3 py-2 text-base text-ink"
           />
           <button
             type="button"
             onClick={addChecklistItem}
-            className="vault-btn-solid shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-1"
+            className="vault-btn-solid vault-action flex shrink-0 items-center gap-1 rounded-full px-3.5 py-2 text-xs"
           >
             <Plus size={13} /> Add
           </button>
@@ -616,7 +616,7 @@ function ChecklistRow({
         value={item.text}
         onChange={(e) => onTextChange(e.target.value)}
         placeholder="Checklist item..."
-        className={`w-full min-w-0 flex-1 bg-transparent text-sm border-none outline-none ${
+        className={`vault-body w-full min-w-0 flex-1 border-none bg-transparent outline-none ${
           item.done ? 'text-ink-soft line-through' : 'text-ink'
         }`}
       />
@@ -626,7 +626,7 @@ function ChecklistRow({
             <span
               aria-label={reminderLabel}
               title={reminderLabel}
-              className={`inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
+              className={`vault-data inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 transition-colors ${
                 isDoneToday
                   ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
                   : 'border-accent/20 bg-accent/5 text-accent'
@@ -641,7 +641,7 @@ function ChecklistRow({
             </span>
           ) : null}
           {item.done ? (
-            <span className="border-accent text-accent rounded-sm border px-1 text-[9px] font-bold uppercase tracking-widest shrink-0" aria-hidden="true">
+            <span className="vault-label shrink-0 rounded-sm border border-accent px-1  text-accent" aria-hidden="true">
               ✓
             </span>
           ) : null}

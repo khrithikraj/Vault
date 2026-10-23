@@ -51,7 +51,7 @@ export function TrashList({ rows, onRestore, onPurge }: TrashListProps) {
         >
           {/* Top row: name + compact actions */}
           <div className="flex items-start justify-between gap-2">
-            <p className="min-w-0 font-display text-sm font-semibold uppercase leading-snug tracking-tight text-ink">
+            <p className="vault-card-title min-w-0 line-clamp-2 text-ink">
               {row.name}
             </p>
             <div className="flex shrink-0 items-center gap-0.5">
@@ -78,7 +78,7 @@ export function TrashList({ rows, onRestore, onPurge }: TrashListProps) {
 
           {/* Metadata line */}
           <div className="min-w-0 flex-1 px-0 pb-3 pt-2">
-            <p className="truncate text-xs text-ink-soft">
+            <p className="vault-body-secondary truncate text-ink-soft">
               {row.meta} · Deleted
             </p>
           </div>
@@ -86,7 +86,7 @@ export function TrashList({ rows, onRestore, onPurge }: TrashListProps) {
           {/* Divider + deletion date */}
           <div className="mx-0 h-px bg-ink/[0.07]" />
           <div className="flex items-center justify-between gap-2 px-0 pt-2.5">
-            <span className="folio text-[10px] text-ink-soft/60">
+            <span className="vault-meta text-ink-soft/60">
               {deletedDate.format(new Date(row.deletedAt))}
             </span>
           </div>

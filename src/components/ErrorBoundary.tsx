@@ -35,17 +35,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <p className="flex justify-center">
               <BrandIcon icon={AlertTriangle} size={32} tone="warn" />
             </p>
-            <h1 className="mt-3 text-xl font-bold uppercase tracking-tight">
+            <h1 className="vault-section-title mt-3">
               Something went sideways.
             </h1>
-            <p className="mt-2 text-sm text-ink-soft">
+            <p className="vault-body-secondary mt-2 text-ink-soft">
               Raj&apos;s Vault hit an unexpected error. Your saved items are safe — reloading
               usually fixes this.
             </p>
             <button
               type="button"
               onClick={this.handleReload}
-              className="vault-btn-solid mt-5 w-full rounded-full px-4 py-2.5 text-sm font-medium uppercase tracking-widest"
+              className="vault-btn-solid vault-action mt-5 w-full rounded-full px-4 py-2.5 text-sm"
             >
               Reload
             </button>

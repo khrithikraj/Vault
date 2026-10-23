@@ -28,7 +28,7 @@ export function MarkDoneAction({ label, onClick, className }: MarkDoneActionProp
       onClick={onClick}
       aria-label={label}
       className={cn(
-        'inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-ink/15 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-accent/50 hover:text-accent',
+        'vault-label inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-ink/15 px-2.5 py-1 text-ink-soft transition-colors hover:border-accent/50 hover:text-accent',
         className,
       )}
     >

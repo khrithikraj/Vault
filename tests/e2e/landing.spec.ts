@@ -74,5 +74,10 @@ test('@visual landing frontispiece and anatomy remain stable', async ({ page }) 
 
   const anatomy = page.locator('.anatomy-frame')
   await anatomy.scrollIntoViewIfNeeded()
+  const anatomyImage = page.locator('.anatomy-plate img')
+  await expect(anatomyImage).toHaveJSProperty('complete', true)
+  await anatomyImage.evaluate(async (image: HTMLImageElement) => {
+    await image.decode()
+  })
   await expect(anatomy).toHaveScreenshot('anatomy.png')
 })

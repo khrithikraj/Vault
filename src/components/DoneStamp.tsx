@@ -24,7 +24,7 @@ type DoneStampProps = {
  * This is the ONLY place the whole-record DONE markup lives.
  */
 const STAMP_CLASSES =
-  'border-accent text-accent rounded-sm border-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] opacity-90'
+  'vault-label rounded-sm border-2 border-accent px-1.5 py-0.5  text-accent opacity-90'
 
 const STAMP_ROTATE = -12
 

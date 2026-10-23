@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { AppBootstrap } from './AppBootstrap'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './styles/global.css'
+import './native/alarmBridge'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

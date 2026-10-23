@@ -19,7 +19,8 @@
  *   - Closing via X / backdrop / Escape triggers unified history pop/dismiss.
  *
  * LAYOUT:
- *   - Uses the shared `VaultDialog` sheet contract at `100dvh`.
+ *   - Uses the shared `VaultDialog` sheet contract; the sheet fills the
+ *     overlay the WebView gives it, so it never runs under the soft keyboard.
  *   - The preview content owns scrolling below the fixed title and action regions.
  */
 
@@ -192,9 +193,9 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate, onToggleFavor
         closeLabel="Close viewer"
         variant="sheet"
         backdropOpacity={0.8}
-        className="my-0 h-[100dvh] max-w-3xl !p-0 sm:my-auto sm:!p-4"
-        surfaceClassName="flex h-full flex-col overflow-hidden"
-        bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
+        className="my-0 h-full max-w-3xl !p-0 sm:my-auto sm:!p-4"
+        surfaceClassName="h-full"
+        bodyClassName="flex flex-col p-0"
       >
         {doc ? (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -210,7 +211,7 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate, onToggleFavor
 
               {/* Metadata */}
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] text-ink-soft uppercase tracking-widest">
+                <p className="vault-meta text-ink-soft">
                   {doc.category} · {formatBytes(doc.file_size)}
                 </p>
               </div>
@@ -257,7 +258,7 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate, onToggleFavor
                 Download error banner (below header, above content)
             ---------------------------------------------------------------- */}
             {downloadError && (
-              <div className="flex shrink-0 items-center gap-2 border-b border-red-900/50 bg-red-950/40 px-4 py-2 text-xs text-red-400">
+              <div className="vault-body-secondary flex shrink-0 items-center gap-2 border-b border-red-900/50 bg-red-950/40 px-4 py-2 text-red-400">
                 <AlertTriangle size={13} className="shrink-0" />
                 <span>{downloadError}</span>
                 <button
@@ -278,7 +279,7 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate, onToggleFavor
               {loadingUrl && (
                 <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 text-ink-soft">
                   <Loader2 size={28} className="animate-spin text-accent" />
-                  <p className="text-sm uppercase tracking-widest">Loading…</p>
+                  <p className="vault-body-secondary">Loading…</p>
                 </div>
               )}
 
@@ -286,7 +287,7 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate, onToggleFavor
               {urlError && !loadingUrl && (
                 <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 p-8 text-center text-ink-soft">
                   <AlertTriangle size={28} className="text-red-400" />
-                  <p className="text-sm">{urlError}</p>
+                  <p className="vault-body-secondary">{urlError}</p>
                   <VaultButton
                     type="button"
                     onClick={() => {
@@ -296,7 +297,7 @@ export function DocumentViewer({ doc, onClose, onDelete, onUpdate, onToggleFavor
                     }}
                     variant="solid"
                     size="sm"
-                    className="mt-2 uppercase"
+                    className="mt-2"
                   >
                     Retry
                   </VaultButton>

@@ -1,13 +1,26 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { setTime, usesTouchTimePicker } from './support/timePicker'
 
 async function expectDialogContainedInViewport(page: Page, dialog: Locator) {
-  const box = await dialog.boundingBox()
-  const viewport = page.viewportSize()
-  if (!box || !viewport) throw new Error('Missing dialog box or viewport size')
-  expect(box.x).toBeGreaterThanOrEqual(-1)
-  expect(box.y).toBeGreaterThanOrEqual(-1)
-  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1)
-  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1)
+  await expect
+    .poll(
+      async () => {
+        const box = await dialog.boundingBox()
+        const viewport = page.viewportSize()
+        if (!box || !viewport) return false
+        return (
+          box.x >= -1 &&
+          box.y >= -1 &&
+          box.x + box.width <= viewport.width + 1 &&
+          box.y + box.height <= viewport.height + 1
+        )
+      },
+      {
+        message: 'Dialog bounding box should be contained within viewport',
+        timeout: 10_000,
+      },
+    )
+    .toBe(true)
 }
 
 const CALENDAR_VIEWPORTS = [
@@ -49,11 +62,8 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   await expect(dialog.getByText('--:-- --')).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
 
-  // Type 09:46 AM via real keystrokes (not .fill)
-  await dialog.getByRole('textbox', { name: 'Hour' }).click()
-  await page.keyboard.type('09')
-  await dialog.getByRole('textbox', { name: 'Minute' }).click()
-  await page.keyboard.type('46')
+  // Set 09:46 AM — typed on desktop, tapped on touch
+  await setTime(page, dialog, 9, 46, 'AM')
   await expect(dialog.getByText('09:46 AM')).toBeVisible({ timeout: 5000 })
   await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeEnabled()
 
@@ -68,8 +78,13 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   await page.getByRole('menuitem', { name: /Daily\b.*09:46 AM/i }).click()
   const dialog2 = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(dialog2).toBeVisible()
-  await expect(dialog2.getByRole('textbox', { name: 'Hour' })).toHaveValue('09')
-  await expect(dialog2.getByRole('textbox', { name: 'Minute' })).toHaveValue('46')
+  if (usesTouchTimePicker(page)) {
+    // The touched surface shows the committed time on its trigger.
+    await expect(dialog2.getByTestId('reminder-time-trigger')).toContainText('09:46 AM')
+  } else {
+    await expect(dialog2.getByRole('textbox', { name: 'Hour' })).toHaveValue('09')
+    await expect(dialog2.getByRole('textbox', { name: 'Minute' })).toHaveValue('46')
+  }
   await expect(dialog2.getByText('09:46 AM')).toBeVisible()
 
   // Switch to Weekly + pick a weekday different from today
@@ -109,14 +124,9 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   await expectDialogContainedInViewport(page, itemDialog)
 
   // The item ReminderControl is the same component instance that held the note's
-  // 09:46 AM, so the picker opens pre-filled. Note-level typing above already proves
-  // the real-keystroke path; here fill() sets each field deterministically (the
-  // picker's onChange eagerly commits full 2-digit values, avoiding the keystroke
-  // race this machine hits under full parallel load).
-  await itemDialog.getByRole('textbox', { name: 'Hour' }).fill('12')
-  await expect(itemDialog.getByRole('textbox', { name: 'Hour' })).toHaveValue('12')
-  await itemDialog.getByRole('button', { name: 'PM', exact: true }).click()
-  await itemDialog.getByRole('textbox', { name: 'Minute' }).fill('32')
+  // 09:46 AM, so the picker opens pre-filled. setTime drives whichever surface
+  // this viewport uses (typed on desktop, tapped on touch).
+  await setTime(page, itemDialog, 12, 32, 'PM')
   await expect(itemDialog.getByText('12:32 PM')).toBeVisible({ timeout: 5000 })
   await itemDialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(editor.locator('[title*="reminder at 12:32 PM"]')).toBeVisible({ timeout: 5000 })
@@ -126,8 +136,7 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   await page.getByRole('menuitem', { name: 'Edit reminder' }).click()
   const itemDialog2 = page.getByRole('dialog', { name: 'Reminder settings' })
   await expect(itemDialog2).toBeVisible()
-  await expect(itemDialog2.getByRole('textbox', { name: 'Minute' })).toHaveValue('32')
-  await itemDialog2.getByRole('textbox', { name: 'Minute' }).fill('46')
+  await setTime(page, itemDialog2, 12, 46, 'PM')
   await expect(itemDialog2.getByText('12:46 PM')).toBeVisible({ timeout: 5000 })
   await itemDialog2.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(editor.locator('[title*="reminder at 12:46 PM"]')).toBeVisible({ timeout: 5000 })
@@ -164,10 +173,7 @@ test('a "Once" reminder saves its exact date, hides it for repeating modes, and 
   await expect(dialog).toBeVisible()
 
   // Time first, so Save is otherwise ready to go.
-  await dialog.getByRole('textbox', { name: 'Hour' }).click()
-  await page.keyboard.type('09')
-  await dialog.getByRole('textbox', { name: 'Minute' }).click()
-  await page.keyboard.type('46')
+  await setTime(page, dialog, 9, 46, 'AM')
 
   // ── No date field until the mode is "Once" ──────────────────────────────────
   await expect(dialog.getByText('Date', { exact: true })).toHaveCount(0)
@@ -463,3 +469,136 @@ test('reminders participate in the unified Favorites system with top-right heart
   expect(errors).toEqual([])
 })
 
+/**
+ * Mobile footer containment — regression guard for the "Save Changes clips off
+ * the right edge" bug (fixed: deliberate two-row mobile layout).
+ *
+ * Opens the standalone New Reminder editor at four mobile widths (320, 360, 390, 414)
+ * and asserts:
+ * 1. No horizontal overflow on the document
+ * 2. Dialog panel is fully inside viewport
+ * 3. Save / Create and Cancel buttons are visible and fully inside dialog bounds
+ * 4. Buttons do not overlap
+ * 5. Cancel button cleanly dismisses dialog
+ */
+const MOBILE_FOOTER_VIEWPORTS = [
+  { label: '320 px', width: 320, height: 780 },
+  { label: '360 px', width: 360, height: 780 },
+  { label: '390 px', width: 390, height: 780 },
+  { label: '414 px', width: 414, height: 780 },
+]
+
+for (const vp of MOBILE_FOOTER_VIEWPORTS) {
+  test(`reminder editor footer fully contained at ${vp.label} viewport`, async ({ page }) => {
+    await page.setViewportSize({ width: vp.width, height: vp.height })
+    await openDemo(page)
+
+    // Open standalone New Reminder dialog via global + -> Reminder menu item
+    await page.getByRole('button', { name: 'Add item' }).click()
+    await page.getByRole('menuitem', { name: /Reminder/i }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'New Reminder' })
+    await expect(dialog).toBeVisible({ timeout: 10_000 })
+
+    // 1. No horizontal document overflow
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
+    expect(scrollWidth).toBeLessThanOrEqual(vp.width)
+
+    // 2. Dialog panel bounding box is inside the viewport
+    const dialogBox = await dialog.boundingBox()
+    expect(dialogBox).not.toBeNull()
+    expect(dialogBox!.x).toBeGreaterThanOrEqual(-1)
+    expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(vp.width + 1)
+
+    // 3. Both visible buttons on mobile are rendered
+    const saveBtn = dialog.getByRole('button', { name: /Create Reminder/i })
+    const cancelBtn = dialog.getByRole('button', { name: 'Cancel' })
+    await expect(saveBtn).toBeVisible()
+    await expect(cancelBtn).toBeVisible()
+
+    // 4. Each button's bounding box is fully inside the dialog panel (2 px tolerance)
+    const tolerance = 2
+    for (const btn of [saveBtn, cancelBtn]) {
+      const btnBox = await btn.boundingBox()
+      expect(btnBox).not.toBeNull()
+      expect(btnBox!.x).toBeGreaterThanOrEqual(dialogBox!.x - tolerance)
+      expect(btnBox!.x + btnBox!.width).toBeLessThanOrEqual(
+        dialogBox!.x + dialogBox!.width + tolerance,
+      )
+    }
+
+    // 5. Buttons do not overlap vertically (two-row deliberate layout on mobile)
+    const saveBox = await saveBtn.boundingBox()
+    const cancelBox = await cancelBtn.boundingBox()
+    if (saveBox && cancelBox) {
+      expect(saveBox.y).toBeGreaterThanOrEqual(cancelBox.y + cancelBox.height - 2)
+    }
+
+    // 6. Cancel closes dialog cleanly
+    await cancelBtn.click()
+    await expect(dialog).toBeHidden()
+  })
+}
+
+
+/**
+ * Recurrence switching — regression guard for the single-scroll-region layout.
+ *
+ * Opens the standalone New Reminder editor at a mobile viewport and cycles
+ * Once -> Weekly -> Daily, asserting after each switch:
+ * 1. The mode-specific field appears/disappears correctly
+ * 2. The dialog panel stays fully inside the viewport
+ * 3. Footer actions remain visible and inside the dialog
+ */
+test('reminder editor recurrence switching stays contained at mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 })
+  await openDemo(page)
+
+  await page.getByRole('button', { name: 'Add item' }).click()
+  await page.getByRole('menuitem', { name: /Reminder/i }).click()
+
+  const dialog = page.getByRole('dialog', { name: 'New Reminder' })
+  await expect(dialog).toBeVisible({ timeout: 10_000 })
+
+  const saveBtn = dialog.getByRole('button', { name: /Create Reminder/i })
+  const cancelBtn = dialog.getByRole('button', { name: 'Cancel' })
+
+  const expectContained = async () => {
+    const dialogBox = await dialog.boundingBox()
+    const viewport = page.viewportSize()
+    expect(dialogBox).not.toBeNull()
+    expect(viewport).not.toBeNull()
+    expect(dialogBox!.x).toBeGreaterThanOrEqual(-1)
+    expect(dialogBox!.y).toBeGreaterThanOrEqual(-1)
+    expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(viewport!.width + 1)
+    expect(dialogBox!.y + dialogBox!.height).toBeLessThanOrEqual(viewport!.height + 1)
+    await expect(saveBtn).toBeVisible()
+    await expect(cancelBtn).toBeVisible()
+  }
+
+  // Default is Daily — no date field, no weekday row
+  await expect(dialog.getByText('Day of the Week')).toHaveCount(0)
+  await expectContained()
+
+  // Once — date field appears, dialog stays contained on the short 640 px viewport
+  await dialog.getByRole('button', { name: 'Once', exact: true }).click()
+  await expect(dialog.getByText('Date *')).toBeVisible()
+  await expect(dialog.getByText('Day of the Week')).toHaveCount(0)
+  await expectContained()
+
+  // Weekly — weekday row appears, date field disappears
+  await dialog.getByRole('button', { name: 'Weekly', exact: true }).click()
+  await expect(dialog.getByText('Day of the Week')).toBeVisible()
+  await expect(dialog.getByText('Date *')).toHaveCount(0)
+  await expectContained()
+
+  // Back to Daily — both mode-specific fields gone, no leftover scroll residue
+  await dialog.getByRole('button', { name: 'Daily', exact: true }).click()
+  await expect(dialog.getByText('Day of the Week')).toHaveCount(0)
+  await expect(dialog.getByText('Date *')).toHaveCount(0)
+  await expectContained()
+
+  // Escape closes the dialog and focus returns cleanly
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+})

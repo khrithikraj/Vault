@@ -50,16 +50,16 @@ export function ArchiveIdentity({
 
         <div className="min-w-0">
           <h1
-            className="min-w-0 font-display text-[1.3rem] font-semibold uppercase leading-[0.9] tracking-[0.08em] text-ink sm:text-[1.6rem]"
+            className="vault-page-title min-w-0 text-ink"
             aria-label="Raj's Vault"
           >
             {/* Phone: one single line, never wrapping. */}
             <span className="block whitespace-nowrap sm:hidden">Raj&apos;s Vault</span>
             {/* Wide: the original stacked treatment. */}
             <span className="hidden sm:block">Raj&apos;s</span>
-            <span className="hidden sm:block tracking-[0.22em] text-ink-soft/60">Vault</span>
+            <span className="hidden sm:block text-ink-soft/70">Vault</span>
           </h1>
-          <p className="vault-meta mt-1.5 hidden text-[9px] tracking-[0.18em] text-ink-soft/60 sm:mt-2 sm:block">
+          <p className="vault-meta mt-1.5 hidden text-ink-soft/60 sm:mt-2 sm:block">
             Private catalogue
           </p>
         </div>
@@ -69,7 +69,7 @@ export function ArchiveIdentity({
         <button
           type="button"
           onClick={onOpenAccount}
-          className="group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 sm:h-auto sm:w-auto sm:shrink sm:items-center sm:gap-1.5 sm:rounded sm:py-1.5 sm:pl-2 sm:pr-1.5 sm:text-[11px] sm:font-semibold sm:uppercase sm:tracking-[0.12em] sm:text-ink-soft sm:transition-colors sm:hover:text-ink sm:active:scale-100"
+          className="vault-label group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 sm:h-auto sm:w-auto sm:shrink sm:items-center sm:gap-1.5 sm:rounded sm:py-1.5 sm:pl-2 sm:pr-1.5 sm:text-ink-soft sm:transition-colors sm:hover:text-ink sm:active:scale-100"
           aria-label={preview ? 'Preview mode account panel' : 'Account settings'}
           title={preview ? 'Preview mode account panel' : 'Account settings'}
           data-tour="account"
@@ -90,18 +90,18 @@ export function ArchiveIdentity({
         </button>
 
         {/* Subordinate tallies — phone reads them in the status capsule. */}
-        <div className="hidden items-center gap-1.5 text-[9px] uppercase tracking-[0.12em] text-ink-soft/55 sm:flex sm:text-[10px]">
+        <div className="vault-meta hidden items-center gap-1.5 text-ink-soft/55 sm:flex">
           <AnimatedNumber
             value={savedCount}
-            className="font-display text-[10px] font-semibold tabular-nums text-ink sm:text-[11px]"
+            className="vault-data text-ink"
           />
-          <span>saved</span>
+          <span className="vault-label text-ink-label">saved</span>
           <span className="h-3 w-px bg-ink/10" aria-hidden="true" />
           <AnimatedNumber
             value={doneCount}
-            className="font-display text-[10px] font-semibold tabular-nums text-ink sm:text-[11px]"
+            className="vault-data text-ink"
           />
-          <span>done</span>
+          <span className="vault-label text-ink-label">done</span>
         </div>
       </div>
     </header>

@@ -302,7 +302,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
           aria-haspopup="dialog"
           className={
             triggerClassName ||
-            `inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-all ${
+            `vault-action inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-all ${
               reminder && reminder.enabled
                 ? isDoneToday
                   ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
@@ -342,7 +342,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
           className={
             triggerClassName ||
             (reminder && reminder.enabled
-              ? `inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold transition-all ${
+              ? `vault-meta inline-flex items-center gap-1 rounded px-1.5 py-0.5 transition-all ${
                   isDoneToday
                     ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
                     : 'bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25'
@@ -357,7 +357,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
               ) : (
                 <Bell size={11} />
               )}
-              <span className="font-mono text-[10px]">
+              <span className="vault-data">
                 {reminder.recurrence === 'once' && isValidFireOnDate(reminder.fire_on_date)
                   ? `${formatReminderDate(reminder.fire_on_date).slice(0, 6)} `
                   : ''}
@@ -393,7 +393,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
           <div className="flex items-center justify-between border-b border-ink/10 pb-2.5">
             <div className="flex items-center gap-1.5">
               <Bell size={14} className="text-accent" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-ink">
+              <h3 className="vault-card-title text-ink">
                 {targetType === 'item' ? 'Item Reminder' : 'Daily Reminder'}
               </h3>
             </div>
@@ -410,7 +410,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
           {/* Context / Target display */}
           {targetTitle ? (
             <div className="rounded bg-ink/5 px-2.5 py-1.5 border border-ink/10">
-              <p className="text-xs text-ink-soft line-clamp-2 font-medium italic">
+              <p className="vault-body-secondary font-medium italic text-ink-soft line-clamp-2">
                 &ldquo;{targetTitle.trim()}&rdquo;
               </p>
             </div>
@@ -426,7 +426,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
 
           {/* Repeat Selector */}
           <div className="flex flex-col gap-1 relative">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+            <span className="vault-label text-ink-soft">
               Repeat
             </span>
             <button
@@ -437,7 +437,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
               }}
               aria-haspopup="listbox"
               aria-expanded={recurrenceMenuOpen}
-              className="flex items-center justify-between rounded px-3 py-2 text-xs font-medium text-ink bg-ink/5 border border-ink/10 hover:border-ink/25 transition-all text-left"
+              className="vault-action flex items-center justify-between rounded border border-ink/10 bg-ink/5 px-3 py-2 text-xs text-ink transition-all hover:border-ink/25"
             >
               <span className="font-semibold">{formatRecurrenceLabel(recurrence)}</span>
               <ChevronDown size={14} className="text-ink-soft" />
@@ -450,7 +450,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
                     key={opt}
                     type="button"
                     onClick={() => handleRecurrenceChange(opt)}
-                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left transition-colors ${
+                    className={`vault-action flex w-full items-center justify-between px-3 py-1.5 text-xs text-left transition-colors ${
                       recurrence === opt
                         ? 'bg-accent/15 text-accent font-bold'
                         : 'text-ink hover:bg-ink/5'
@@ -477,7 +477,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
           {/* Day Selector (only when recurrence is Weekly) */}
           {recurrence === 'weekly' && (
             <div className="flex flex-col gap-1 relative">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+              <span className="vault-label text-ink-soft">
                 Day
               </span>
               <button
@@ -488,7 +488,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
                 }}
                 aria-haspopup="listbox"
                 aria-expanded={dayMenuOpen}
-                className="flex items-center justify-between rounded px-3 py-2 text-xs font-medium text-ink bg-ink/5 border border-ink/10 hover:border-ink/25 transition-all text-left"
+                className="vault-action flex items-center justify-between rounded border border-ink/10 bg-ink/5 px-3 py-2 text-xs text-ink transition-all hover:border-ink/25"
               >
                 <span className="font-semibold">{formatWeekdayLabel(dayOfWeek)}</span>
                 <ChevronDown size={14} className="text-ink-soft" />
@@ -504,7 +504,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
                         setDayOfWeek(day)
                         setDayMenuOpen(false)
                       }}
-                      className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left transition-colors ${
+                      className={`vault-action flex w-full items-center justify-between px-3 py-1.5 text-xs text-left transition-colors ${
                         dayOfWeek === day
                           ? 'bg-accent/15 text-accent font-bold'
                           : 'text-ink hover:bg-ink/5'
@@ -525,7 +525,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
               <button
                 type="button"
                 onClick={handleRemove}
-                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors"
+                className="vault-action inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-400/10 hover:text-red-300"
               >
                 <Trash2 size={12} />
                 <span>Remove</span>
@@ -534,7 +534,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
               <button
                 type="button"
                 onClick={() => requestOpen(false)}
-                className="rounded px-2.5 py-1 text-xs font-medium text-ink-soft hover:text-ink hover:bg-ink/5 transition-colors"
+                className="vault-action rounded px-2.5 py-1 text-xs text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
               >
                 Cancel
               </button>
@@ -544,7 +544,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
               type="button"
               disabled={cannotSave}
               onClick={handleSave}
-              className={`vault-btn-solid rounded-full px-4 py-1 text-xs font-bold uppercase tracking-wide transition-opacity ${
+              className={`vault-btn-solid vault-action rounded-full px-4 py-1 text-xs transition-opacity ${
                 cannotSave ? 'opacity-40 cursor-not-allowed' : ''
               }`}
               title={dateMissing ? 'Pick a date for a one-time reminder' : undefined}

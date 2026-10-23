@@ -22,16 +22,14 @@ type VaultStatusCapsuleProps = {
  */
 export function VaultStatusCapsule({ savedCount, doneCount }: VaultStatusCapsuleProps) {
   return (
-    // `mx-[calc(50%_-_50vw)]` makes this row exactly 100vw wide and centred on the
-    // viewport, so the pill is centred on the *screen* rather than on whatever the
-    // page column happens to measure. That keeps it visually balanced even though
-    // the Vault title and the account icon are very different widths — the pill is
-    // not centred between them, it is centred on the screen.
+    // The capsule is centered within `.vault-page`, which already has symmetrical
+    // horizontal margins (`margin-inline: auto`). Using `w-full flex justify-center`
+    // keeps it visually centered without 100vw negative margins that cause horizontal overflow.
     //
     // `mt-4` is half the search's own margin, so the air above the pill and the
     // air below it measure the same and the row still clears the identity rather
     // than crowding it.
-    <div className="mx-[calc(50%_-_50vw)] mt-4 flex justify-center sm:hidden">
+    <div className="mt-4 flex w-full justify-center sm:hidden">
       <p
         className="vault-capsule inline-flex max-w-full items-center gap-2 rounded-full px-3.5 py-1"
         aria-label={`${savedCount} saved, ${doneCount} done`}
@@ -39,9 +37,9 @@ export function VaultStatusCapsule({ savedCount, doneCount }: VaultStatusCapsule
         <span className="flex shrink-0 items-baseline gap-1">
           <AnimatedNumber
             value={savedCount}
-            className="vault-meta font-display text-[10px] font-semibold tabular-nums text-ink"
+            className="vault-data text-ink"
           />
-          <span className="vault-meta text-[9px] text-ink-soft/60">saved</span>
+          <span className="vault-label text-ink-label">saved</span>
         </span>
 
         <span className="h-2.5 w-px shrink-0 bg-ink/12" aria-hidden="true" />
@@ -49,9 +47,9 @@ export function VaultStatusCapsule({ savedCount, doneCount }: VaultStatusCapsule
         <span className="flex shrink-0 items-baseline gap-1">
           <AnimatedNumber
             value={doneCount}
-            className="vault-meta font-display text-[10px] font-semibold tabular-nums text-ink"
+            className="vault-data text-ink"
           />
-          <span className="vault-meta text-[9px] text-ink-soft/60">done</span>
+          <span className="vault-label text-ink-label">done</span>
         </span>
       </p>
     </div>

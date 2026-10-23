@@ -78,7 +78,7 @@ export function CommandSearch({ value, onChange, placeholder }: CommandSearchPro
           enterKeyHint="search"
           autoComplete="off"
           spellCheck={false}
-          className="min-w-0 flex-1 bg-transparent text-sm text-ink focus:outline-none focus-visible:outline-none sm:text-base [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden"
+          className="vault-body min-w-0 flex-1 bg-transparent text-base text-ink focus:outline-none focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden"
         />
 
         {/* Clear button — fades in with text */}
@@ -115,7 +115,7 @@ export function CommandSearch({ value, onChange, placeholder }: CommandSearchPro
             className="mt-2.5 hidden items-center justify-center gap-3 sm:flex"
           >
             <span aria-hidden="true" className="h-px flex-1 max-w-[3rem] bg-ink/10" />
-            <span className="folio text-[9px] tracking-[0.28em] text-ink-soft/30">
+            <span className="vault-label text-ink-soft/30">
               Enter the archive
             </span>
             <span aria-hidden="true" className="h-px flex-1 max-w-[3rem] bg-ink/10" />

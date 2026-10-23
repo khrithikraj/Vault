@@ -30,6 +30,9 @@
   --color-background-alt: #080503;
   --color-text: var(--color-ink);
   --color-text-muted: var(--color-ink-soft);
+  /* Brighter secondary ink for tiny labels on translucent/dark capsule surfaces.
+     #9a8f80 measures ~6.1:1 against the capsule fill; ink-soft is ~3.9:1. */
+  --color-ink-label: #9a8f80;
   --color-border: var(--color-border-dash);
  
   /* Radius vocabulary — tightened */
@@ -44,10 +47,14 @@
   --shadow-glass-lg: 5px 5px 0 rgba(0, 0, 0, 0.7);
   --shadow-overlay: 0 24px 56px -16px rgba(0, 0, 0, 0.85);
  
-  /* Typography faces */
-  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
-  --font-body: 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
-   --font-accession-serif: 'Instrument Serif', Georgia, serif;
+  /* Typography faces — single authoritative declaration (Tailwind @theme).
+     Inter is the default application face; Space Grotesk is the structural
+     accent; Instrument Serif is reserved for editorial display moments. */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-accession-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
  
    /* Accession document geometry */
    --accession-document-width: 1184px;
@@ -82,12 +89,6 @@
  
 :root {
   /* ----------------------------------------------------------------------
-     FONT FACES
-     ---------------------------------------------------------------------- */
-  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
-  --font-body: 'Inter', ui-sans-serif, 'Söhne', system-ui, sans-serif;
- 
-  /* ----------------------------------------------------------------------
      SEMANTIC COLOR ROLES
      ---------------------------------------------------------------------- */
   --background: var(--color-cloud);
@@ -121,13 +122,19 @@
      TYPOGRAPHY ROLES
      ---------------------------------------------------------------------- */
   --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 0.875rem;
   --text-micro: 0.75rem;
+  --text-micro--line-height: 1rem;
   --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
   --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
   --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
   --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
   --text-xl: 1.25rem;
-  --text-heading: 2.5625rem;
+  --text-xl--line-height: 1.75rem;
   --text-display: clamp(2.5rem, 7vw, 5rem);
   --leading-display: 0.9;
   --leading-tight: 1.15;

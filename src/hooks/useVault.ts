@@ -13,6 +13,11 @@ import { sortTrashedByDeletedAt } from '../lib/trash'
 import type { AuthPresentationState } from '../types/auth'
 import type { Category, ChecklistItem, ChecklistReminder, DailyChecklistCompletion, FieldDefinition, Note, VaultItem, Weekday } from '../types/app'
 import { browserTimezone, isValidFireOnDate, localDateInTimezone, resolveNextFireAt, validateReminderTime, type ReminderRecurrence } from '../lib/reminders'
+import {
+  scheduleNativeAlarm,
+  cancelNativeAlarmById,
+  reconcileNativeAlarms,
+} from '../native/alarmBridge'
 
 // The remote `reminders` table may predate migration 20260916000008 (adds the
 // day_of_week column). Writing `day_of_week` to a schema that lacks it fails every
@@ -260,12 +265,14 @@ export function useVault() {
         setMessage(describeSupabaseError(noteError))
       }
       if (!reminderError) {
-        setReminders(
-          ((reminderData as ChecklistReminder[]) ?? []).map((r) => ({
-            ...r,
-            is_favorite: Boolean(r.is_favorite),
-          })),
-        )
+        const loadedReminders = ((reminderData as ChecklistReminder[]) ?? []).map((r) => ({
+          ...r,
+          is_favorite: Boolean(r.is_favorite),
+        }))
+        const loadedCompletions = (completionData as DailyChecklistCompletion[]) ?? []
+        setReminders(loadedReminders)
+        const liveNotes = ((noteData as Note[]) ?? []).filter((note) => !note.deleted_at)
+        void reconcileNativeAlarms(loadedReminders, loadedCompletions, liveNotes)
       }
       if (!completionError) setDailyCompletions((completionData as DailyChecklistCompletion[]) ?? [])
 
@@ -887,9 +894,47 @@ export function useVault() {
       data = inserted as ChecklistReminder
     }
     setReminders((current) => [...current.filter((entry) => entry.id !== data!.id), data!])
+
+    // Native Android alarm synchronization for all enabled reminders
+    if (data) {
+      if (data.enabled && data.next_fire_at) {
+        let triggerTime = new Date(data.next_fire_at).getTime()
+        const noteTitle = input.noteId ? notes.find((n) => n.id === input.noteId)?.title : null
+        const reminderTitle = input.title?.trim() || noteTitle?.trim() || 'Vault Reminder'
+        const recurrence = data.recurrence || 'once'
+
+        if (triggerTime <= Date.now() && recurrence !== 'once') {
+          const nextIso = resolveNextFireAt({
+            localTime: data.local_time,
+            recurrence: data.recurrence,
+            timezone: data.timezone,
+            dayOfWeek: data.day_of_week,
+            now: new Date(),
+          })
+          triggerTime = new Date(nextIso).getTime()
+        }
+
+        if (triggerTime > Date.now()) {
+          void scheduleNativeAlarm({
+            reminderId: data.id,
+            triggerTimeMillis: triggerTime,
+            title: reminderTitle,
+            recurrence: data.recurrence,
+            localTime: data.local_time,
+            timezone: data.timezone,
+            dayOfWeek: data.day_of_week,
+          })
+        } else {
+          void cancelNativeAlarmById(data.id)
+        }
+      } else {
+        void cancelNativeAlarmById(data.id)
+      }
+    }
   }
 
   const removeReminder = async (reminderId: string) => {
+    void cancelNativeAlarmById(reminderId)
     const { error } = await supabase.from('reminders').delete().eq('id', reminderId)
     if (error) {
       setMessage(describeSupabaseError(error))
@@ -906,13 +951,17 @@ export function useVault() {
     if (existing) {
       const { error } = await supabase.from('daily_checklist_completions').delete().match({ reminder_id: reminder.id, local_date: localDate })
       if (error) { setMessage(describeSupabaseError(error)); return }
-      setDailyCompletions((current) => current.filter((entry) => !(entry.reminder_id === reminder.id && entry.local_date === localDate)))
+      const nextCompletions = dailyCompletions.filter((entry) => !(entry.reminder_id === reminder.id && entry.local_date === localDate))
+      setDailyCompletions(nextCompletions)
+      void reconcileNativeAlarms(reminders, nextCompletions, notes)
       return
     }
     const completion = { reminder_id: reminder.id, local_date: localDate, completed_at: new Date().toISOString() }
     const { error } = await supabase.from('daily_checklist_completions').upsert(completion)
     if (error) { setMessage(describeSupabaseError(error)); return }
-    setDailyCompletions((current) => [...current, completion])
+    const nextCompletions = [...dailyCompletions, completion]
+    setDailyCompletions(nextCompletions)
+    void reconcileNativeAlarms(reminders, nextCompletions, notes)
   }
 
   const toggleReminderFavorite = async (reminder: ChecklistReminder) => {

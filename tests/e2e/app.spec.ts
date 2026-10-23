@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { setTime } from './support/timePicker'
 
 /** The reminder popover must never overflow the viewport on any breakpoint. */
 async function expectDialogContainedInViewport(page: Page, dialog: Locator) {
@@ -830,6 +831,78 @@ test('item detail uses the shared dialog and history contract', async ({ page })
   await expect(page.getByRole('dialog', { name: 'Item details' })).toBeVisible()
 })
 
+test('item edit mode pins Save/Cancel in the dialog footer and saves correctly', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 })
+  await openDemo(page)
+
+  // Create an item via the capture wizard (demo vault starts empty).
+  await page.getByRole('button', { name: 'Add item' }).click()
+  await page.getByRole('menuitem', { name: /Item/ }).click()
+  const capture = page.getByRole('dialog', { name: 'Add item' })
+  await capture.getByRole('button', { name: 'Food Spots' }).click()
+  await capture.getByRole('button', { name: 'Skip →' }).click()
+  await expect(capture.getByRole('heading', { name: /> Place name/ })).toBeVisible()
+  await capture.getByRole('textbox').fill('Edit Footer Cafe')
+  await capture.getByRole('button', { name: 'Continue →' }).click()
+  await expect(capture.getByRole('heading', { name: /> Dish to try/ })).toBeVisible()
+  await capture.getByRole('textbox').fill('Dosa')
+  await capture.getByRole('button', { name: 'Continue →' }).click()
+  await expect(capture.getByRole('heading', { name: /> Address/ })).toBeVisible()
+  await capture.getByRole('button', { name: 'Continue →' }).click()
+  await expect(capture.getByRole('heading', { name: /> Price/ })).toBeVisible()
+  await capture.getByRole('button', { name: 'Continue →' }).click()
+  await expect(capture.getByRole('heading', { name: /> Reference Image/ })).toBeVisible()
+  await capture.getByRole('button', { name: 'Continue →' }).click()
+  await expect(capture.getByRole('heading', { name: /> Notes/ })).toBeVisible()
+  await capture.getByRole('button', { name: 'Review →' }).click()
+  await capture.getByRole('button', { name: 'Save to vault' }).click()
+  await expect(capture).toBeHidden()
+
+  const itemCard = page.getByRole('button', { name: 'Edit Footer Cafe, archived item' })
+  await itemCard.focus()
+  await page.keyboard.press('Enter')
+
+  const detail = page.getByRole('dialog', { name: 'Item details' })
+  await expect(detail).toBeVisible()
+
+  // Enter edit mode via the overflow menu.
+  await detail.getByRole('button', { name: 'More actions' }).click()
+  await page.getByRole('menuitem', { name: 'Edit' }).click()
+
+  // Save/Cancel now live in the dialog footer, not the scrolling body.
+  const saveBtn = detail.getByRole('button', { name: /Save changes/i })
+  const cancelBtn = detail.getByRole('button', { name: 'Cancel' })
+  await expect(saveBtn).toBeVisible()
+  await expect(cancelBtn).toBeVisible()
+
+  // Both footer buttons are inside the viewport and inside the dialog panel.
+  await expectDialogContainedInViewport(page, detail)
+  const dialogBox = await detail.boundingBox()
+  for (const btn of [saveBtn, cancelBtn]) {
+    const box = await btn.boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.y + box!.height).toBeLessThanOrEqual(640)
+    expect(box!.x).toBeGreaterThanOrEqual(dialogBox!.x - 2)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 2)
+  }
+
+  // Retype the title and save — edit semantics still work end to end.
+  const title = detail.getByRole('textbox', { name: 'Title' })
+  await title.fill('Edit Footer Cafe Renamed')
+  await saveBtn.click()
+  await expect(saveBtn).toHaveCount(0)
+  await expect(detail.getByRole('heading', { name: 'Edit Footer Cafe Renamed' })).toBeVisible()
+
+  // Cancel from a fresh edit session exits edit mode without saving.
+  await detail.getByRole('button', { name: 'More actions' }).click()
+  await page.getByRole('menuitem', { name: 'Edit' }).click()
+  await detail.getByRole('textbox', { name: 'Title' }).fill('Discarded title')
+  await detail.getByRole('button', { name: 'Cancel' }).click()
+  await expect(detail.getByRole('button', { name: /Save changes/i })).toHaveCount(0)
+  await expect(detail.getByRole('textbox', { name: 'Title' })).toHaveCount(0)
+  await expect(detail.getByRole('heading', { name: 'Edit Footer Cafe Renamed' })).toBeVisible()
+})
+
 test('note-level reminders and checklist completion controls', async ({ page }) => {
   await openDemo(page)
   await page.getByRole('button', { name: 'Notes' }).click()
@@ -849,11 +922,9 @@ test('note-level reminders and checklist completion controls', async ({ page }) 
   const saveButton = reminderDialog.getByRole('button', { name: 'Save', exact: true })
   await expect(saveButton).toBeDisabled()
 
-  // Type custom minute directly (09:46 AM)
-  const hourInput = reminderDialog.getByRole('textbox', { name: 'Hour' })
-  const minuteInput = reminderDialog.getByRole('textbox', { name: 'Minute' })
-  await hourInput.fill('09')
-  await minuteInput.fill('46')
+  // Set the time through whichever surface this viewport uses (typed on
+  // desktop, tapped on touch) — 09:46 AM
+  await setTime(page, reminderDialog, 9, 46, 'AM')
   await expect(reminderDialog.getByText('09:46 AM')).toBeVisible()
   await expect(saveButton).toBeEnabled()
 
@@ -885,9 +956,7 @@ test('note-level reminders and checklist completion controls', async ({ page }) 
   await expect(itemReminderDialog.getByText('DSA practice')).toBeVisible()
 
   // Set 01:00 PM via the time fields and save
-  await itemReminderDialog.getByRole('textbox', { name: 'Hour' }).fill('01')
-  await itemReminderDialog.getByRole('textbox', { name: 'Minute' }).fill('00')
-  await itemReminderDialog.getByRole('button', { name: 'PM', exact: true }).click()
+  await setTime(page, itemReminderDialog, 1, 0, 'PM')
   await expect(itemReminderDialog.getByText('01:00 PM')).toBeVisible()
   await itemReminderDialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(editor.locator('[title="Daily reminder at 01:00 PM"]')).toBeVisible()
@@ -1453,4 +1522,66 @@ test('@visual authenticated home remains stable', async ({ page }) => {
   await expect(page.locator('main')).toHaveScreenshot('authenticated-home.png', {
     animations: 'disabled',
   })
+})
+test('note editor scrolls long bodies while keeping the header and close control usable', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 })
+  await openDemo(page)
+  await page.getByRole('button', { name: 'Notes' }).click()
+  await page.getByRole('button', { name: 'Add item' }).click()
+
+  const editor = page.getByRole('dialog', { name: 'Note editor' })
+  await expect(editor).toBeVisible()
+
+  // A long body scrolls inside the textarea itself (rows={6} writing surface)
+  // without breaking the dialog out of the viewport.
+  const body = editor.getByPlaceholder('Write anything down (ideas, markdown, reminders, lists)...')
+  const longText = Array.from({ length: 40 }, (_, i) => `Paragraph ${i + 1} with some line content.`).join('\n\n')
+  await body.fill(longText)
+
+  const textareaScroll = await body.evaluate((el) => ({
+    scrollHeight: el.scrollHeight,
+    clientHeight: el.clientHeight,
+  }))
+  expect(textareaScroll.scrollHeight).toBeGreaterThan(textareaScroll.clientHeight)
+  await expectDialogContainedInViewport(page, editor)
+
+  // Adding many checklist rows makes the dialog body itself the scroll region:
+  // it must overflow while the close button stays inside the viewport.
+  const newTask = editor.getByPlaceholder('Add new task or list item...')
+  for (let i = 1; i <= 15; i++) {
+    await newTask.fill(`Checklist overflow item ${i}`)
+    await editor.getByRole('button', { name: 'Add', exact: true }).click()
+  }
+
+  const scrollable = await editor.evaluate((el) => {
+    const scroller = el.querySelector('.vault-scrollbar')
+    if (!(scroller instanceof HTMLElement)) return null
+    return { scrollHeight: scroller.scrollHeight, clientHeight: scroller.clientHeight }
+  })
+  expect(scrollable).not.toBeNull()
+  expect(scrollable!.scrollHeight).toBeGreaterThan(scrollable!.clientHeight)
+
+  // …while the dialog panel and its close button stay inside the viewport.
+  await expectDialogContainedInViewport(page, editor)
+  const closeBtn = editor.getByRole('button', { name: 'Close' })
+  await expect(closeBtn).toBeVisible()
+  const closeBox = await closeBtn.boundingBox()
+  expect(closeBox).not.toBeNull()
+  expect(closeBox!.y + closeBox!.height).toBeLessThanOrEqual(640)
+
+  // Focusing the last visible point of the textarea and scrolling the body
+  // brings the caret into view without moving the page behind the dialog.
+  await body.focus()
+  const scrolled = await editor.evaluate((el) => {
+    const scroller = el.querySelector('.vault-scrollbar')
+    if (!(scroller instanceof HTMLElement)) return false
+    scroller.scrollTop = scroller.scrollHeight
+    return scroller.scrollTop > 0
+  })
+  expect(scrolled).toBe(true)
+  await expectDialogContainedInViewport(page, editor)
+
+  // Escape closes the editor cleanly (autosave keeps the content).
+  await page.keyboard.press('Escape')
+  await expect(editor).toBeHidden()
 })

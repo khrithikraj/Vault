@@ -46,8 +46,8 @@ function FilePill({ file, onClear }: { file: File; onClear: () => void }) {
         : <Image size={18} className="shrink-0 text-warn" style={{ filter: 'drop-shadow(0 0 4px rgba(242,177,52,0.5))' }} />
       }
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-ink">{file.name}</p>
-        <p className="text-xs text-ink-soft">{formatBytes(file.size)}</p>
+        <p className="vault-body-secondary truncate font-medium text-ink">{file.name}</p>
+        <p className="vault-meta text-ink-soft">{formatBytes(file.size)}</p>
       </div>
       <button
         type="button"
@@ -160,7 +160,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
       showClose={!uploading}
       closeLabel="Cancel upload"
       className="max-w-md"
-      bodyClassName="max-h-[calc(100dvh-8rem)] overflow-y-auto"
+      bodyClassName="vault-scrollbar p-4 sm:p-5"
       initialFocusRef={nameInputRef}
       footer={
         <>
@@ -210,10 +210,10 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                   }`}
                 >
                   <Upload size={22} />
-                  <span className="text-xs font-semibold uppercase tracking-wide">
+                  <span className="vault-label">
                     Choose file or drag &amp; drop
                   </span>
-                  <span className="text-[10px] text-ink-soft/70 uppercase tracking-wider">
+                  <span className="vault-meta text-ink-soft/70">
                     PDF · JPEG · PNG · WebP · Max {MAX_DOC_BYTES / (1024 * 1024)} MB
                   </span>
                 </button>
@@ -224,11 +224,11 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                 <div className="rounded border border-accent/40 bg-accent/5 p-3">
                   <div className="flex items-center gap-2">
                     <Minimize2 size={14} className="text-accent shrink-0" />
-                    <p className="text-xs font-semibold uppercase tracking-wide text-ink">
+                    <p className="vault-label text-ink">
                       This image is over 5 MB
                     </p>
                   </div>
-                  <p className="mt-1 text-xs text-ink-soft">
+                  <p className="vault-meta mt-1 text-ink-soft">
                     Optimize it to upload faster and save storage, or keep the original file.
                   </p>
                   <div className="mt-2.5 flex gap-2">
@@ -236,7 +236,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                       type="button"
                       onClick={() => setOptimizeChoice('optimize')}
                       disabled={optimizing}
-                      className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-50 ${
+                      className={`vault-action flex-1 rounded-full px-3 py-2 text-xs transition-colors disabled:opacity-50 ${
                         optimizeChoice === 'optimize' ? 'vault-btn-solid' : 'border border-ink/30 text-ink-soft hover:text-ink'
                       }`}
                     >
@@ -254,7 +254,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
                       type="button"
                       onClick={() => { setOptimizeChoice('original'); setOptimizedFile(null) }}
                       disabled={optimizing}
-                      className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-50 ${
+                      className={`vault-action flex-1 rounded-full px-3 py-2 text-xs transition-colors disabled:opacity-50 ${
                         optimizeChoice === 'original' ? 'vault-btn-solid' : 'border border-ink/30 text-ink-soft hover:text-ink'
                       }`}
                     >
@@ -266,7 +266,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
 
               {/* File validation error */}
               {fileError && (
-                <div className="flex items-start gap-2 rounded border border-red-900/50 bg-red-950/40 px-3 py-2.5 text-xs text-red-400">
+                <div className="vault-body-secondary flex items-start gap-2 rounded border border-red-900/50 bg-red-950/40 px-3 py-2.5 text-red-400">
                   <AlertTriangle size={13} className="mt-0.5 shrink-0" />
                   <span>{fileError}</span>
                 </div>
@@ -276,7 +276,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
               <div>
                 <label
                   htmlFor="doc-name"
-                  className="text-xs font-semibold uppercase tracking-widest text-ink-soft"
+                  className="vault-label text-ink-soft"
                 >
                   Document name *
                 </label>
@@ -297,7 +297,7 @@ export function DocumentUploader({ open, uploading, onClose, onUpload }: Documen
               <div>
                 <label
                   htmlFor="doc-category"
-                  className="text-xs font-semibold uppercase tracking-widest text-ink-soft"
+                  className="vault-label text-ink-soft"
                 >
                   Category *
                 </label>

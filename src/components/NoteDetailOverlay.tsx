@@ -43,7 +43,7 @@ export function NoteDetailOverlay({
       title="Note editor"
       showClose
       className="max-w-2xl"
-      bodyClassName="vault-scrollbar max-h-[calc(100dvh-8rem)] min-w-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6"
+      bodyClassName="vault-scrollbar p-4 sm:p-6"
     >
       {note ? (
         <NoteEditor

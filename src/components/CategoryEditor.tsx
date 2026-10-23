@@ -154,7 +154,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
       showClose
       closeLabel="Cancel category changes"
       className="max-w-lg"
-      bodyClassName="vault-scrollbar max-h-[calc(100dvh-8rem)] overflow-y-auto overflow-x-hidden"
+      bodyClassName="vault-scrollbar p-4 sm:p-5"
       initialFocusRef={nameInputRef}
       footer={
         <>
@@ -177,10 +177,10 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                   <CategoryIcon icon={icon} color={color} size={22} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-ink-soft">
+                  <p className="vault-label text-ink-soft">
                     Edit category
                   </p>
-                  <h2 className="font-display truncate text-lg sm:text-xl font-bold uppercase tracking-tight text-ink">
+                  <h2 className="vault-section-title truncate text-ink">
                     {name.trim() || 'Category'}
                   </h2>
                 </div>
@@ -192,7 +192,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                 type="button"
                 onClick={() => setActiveTab('general')}
                 aria-pressed={activeTab === 'general'}
-                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                className={`vault-label flex items-center gap-1.5 rounded-full px-3.5 py-1.5 transition-colors ${
                   activeTab === 'general'
                     ? 'vault-btn-solid'
                     : 'border border-ink/20 text-ink-soft hover:text-ink'
@@ -204,7 +204,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                 type="button"
                 onClick={() => setActiveTab('fields')}
                 aria-pressed={activeTab === 'fields'}
-                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                className={`vault-label flex items-center gap-1.5 rounded-full px-3.5 py-1.5 transition-colors ${
                   activeTab === 'fields'
                     ? 'vault-btn-solid'
                     : 'border border-ink/20 text-ink-soft hover:text-ink'
@@ -214,13 +214,14 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
               </button>
             </div>
 
-            {/* Content area with smooth scrolling */}
-            <div className="vault-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4 pr-1">
+            {/* Content area — scrolling happens at the shared dialog body level;
+                this container only handles spacing so there's no nested scroll. */}
+            <div className="py-4 pr-1">
               {activeTab === 'general' ? (
                 <div className="grid gap-4">
                   {/* Category Name */}
                   <div>
-                    <label htmlFor="category-name" className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                    <label htmlFor="category-name" className="vault-label text-ink-soft">
                       Category name
                     </label>
                     <VaultInput
@@ -235,7 +236,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
 
                   {/* Icon Selection */}
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                    <label className="vault-label text-ink-soft">
                       Icon & Emoji
                     </label>
                     <div className="mt-1.5 flex items-center gap-2">
@@ -244,9 +245,9 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                         onChange={(e) => setIcon(e.target.value)}
                         maxLength={4}
                         aria-label="Custom emoji icon"
-                        className="vault-input h-10 w-14 rounded-none px-2 text-center text-lg text-ink"
+                        className="vault-input h-10 w-14 rounded-none px-2 text-center text-base text-ink"
                       />
-                      <span className="text-xs text-ink-soft">Custom icon or pick below:</span>
+                      <span className="vault-meta text-ink-soft">Custom icon or pick below:</span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {PRESET_EMOJIS.map((emoji) => (
@@ -268,7 +269,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
 
                   {/* Color Selection */}
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-widest text-ink-soft">
+                    <label className="vault-label text-ink-soft">
                       Accent Color
                     </label>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -298,7 +299,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                           aria-label="Custom color picker"
                           className="h-7 w-8 cursor-pointer rounded border border-ink/30 bg-transparent p-0"
                         />
-                        <span className="font-mono text-xs text-ink-soft">{color.toUpperCase()}</span>
+                        <span className="vault-data text-ink-soft">{color.toUpperCase()}</span>
                       </div>
                     </div>
                   </div>
@@ -306,7 +307,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
               ) : (
                 <div className="grid w-full max-w-full gap-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-ink-soft">
+                    <p className="vault-meta text-ink-soft">
                       Define the custom fields captured when adding items to this category.
                     </p>
                   </div>
@@ -337,7 +338,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                             onChange={(event) => updateField(index, { label: event.target.value })}
                             placeholder="Field label (e.g. Website, Price, Username)"
                             disabled={field.key === 'title'}
-                            className="vault-input min-w-0 flex-1 rounded-none px-2.5 py-1.5 text-sm disabled:opacity-60"
+                            className="vault-input min-w-0 flex-1 rounded-none px-2.5 py-1.5 text-base disabled:opacity-60"
                           />
                           <div className="flex shrink-0 items-center gap-1">
                             <button
@@ -386,7 +387,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                               ariaLabel={`Field type for ${field.label || 'field'}`}
                             />
                           </div>
-                          <label className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-ink-soft cursor-pointer">
+                          <label className="vault-label flex cursor-pointer items-center gap-1.5 text-ink-soft">
                             <input
                               type="checkbox"
                               checked={field.required}
@@ -406,7 +407,7 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                   <button
                     type="button"
                     onClick={addField}
-                    className="border-ink/30 rounded-outline mt-2 flex items-center justify-center gap-1.5 border-2 border-dashed py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-soft hover:border-ink/60 hover:text-ink transition-colors"
+                    className="vault-action mt-2 flex items-center justify-center gap-1.5 rounded-outline border-2 border-dashed border-ink/30 py-2.5 text-ink-soft transition-colors hover:border-ink/60 hover:text-ink"
                   >
                     <Plus size={14} /> Add new field
                   </button>
@@ -416,15 +417,15 @@ export function CategoryEditor({ category, onClose, onSave }: CategoryEditorProp
                     <div className="mt-2 grid gap-2">
                       {fields.map((field, index) => (
                         <div key={`preview-${field.key}-${index}`} className="flex items-center justify-between gap-4 border-b border-ink/[0.07] py-2">
-                          <span className="min-w-0 break-words text-sm text-ink">{field.label.trim() || 'Untitled field'}</span>
-                          <span className="shrink-0 text-xs text-ink-soft">
+                          <span className="vault-body-secondary min-w-0 break-words text-ink">{field.label.trim() || 'Untitled field'}</span>
+                          <span className="vault-meta shrink-0 text-ink-soft">
                             {FIELD_TYPE_OPTIONS.find((option) => option.value === field.type)?.label}
                             {field.required ? ' · Required' : ' · Optional'}
                           </span>
                         </div>
                       ))}
                     </div>
-                    <p className="mt-3 text-xs text-ink-soft/70">Use Alt+Arrow Up or Alt+Arrow Down while focused in a field to reorder it.</p>
+                    <p className="vault-meta mt-3 text-ink-soft/70">Use Alt+Arrow Up or Alt+Arrow Down while focused in a field to reorder it.</p>
                   </div>
                 </div>
               )}

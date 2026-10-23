@@ -40,10 +40,16 @@ import { VaultSkeleton } from './components/ui/VaultSkeleton'
 import { OnboardingTour } from './components/OnboardingTour'
 import { useOnboardingTour } from './hooks/useOnboardingTour'
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
+import { App as CapApp } from '@capacitor/app'
 import { AccessionDocument } from './components/accession/AccessionDocument'
 import { enablePushNotifications, disablePushNotifications } from './lib/notifications'
 import { NoteCard } from './components/NoteCard'
 import { DocumentCard } from './components/documents/DocumentCard'
+import {
+  reconcileNativeAlarms,
+  getLaunchReminderId,
+  clearLaunchReminderId,
+} from './native/alarmBridge'
  
 // Modals opened on demand only — lazy-loaded to keep the initial bundle lean.
 const ItemDetailOverlay = lazy(() =>
@@ -122,6 +128,19 @@ export default function App({ onReturnToLanding = () => window.location.assign('
   useEffect(() => {
     window.localStorage.setItem('vault:itemSort', itemSortKey)
   }, [itemSortKey])
+
+  // Reconcile native alarms whenever the app returns to the foreground
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && vault.reminders && vault.reminders.length > 0) {
+        void reconcileNativeAlarms(vault.reminders, vault.dailyCompletions, vault.notes)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [vault.reminders, vault.dailyCompletions, vault.notes])
  
   const handleToggleFavorite = useCallback(
     (item: VaultItem) => {
@@ -210,7 +229,9 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     | { kind: 'note'; record: Note; name: string }
     | { kind: 'document'; record: VaultDocument; name: string }
   const [undoTarget, setUndoTarget] = useState<UndoTarget | null>(null)
- 
+  const [reminderEditorOpen, setReminderEditorOpen] = useState(false)
+  const [activeEditingReminder, setActiveEditingReminder] = useState<ChecklistReminder | null>(null)
+
   // ---------------------------------------------------------------------------
   // Search — client-side, in-memory, scoped automatically by the current section.
   // The query is cleared whenever the section/category changes so switching tabs
@@ -290,43 +311,111 @@ export default function App({ onReturnToLanding = () => window.location.assign('
   // Unified Overlay + Section History Architecture
   // Ensures hardware/browser Back closes open overlays first, then walks back
   // through the main section history (Vault ⇄ Notes ⇄ Documents), without
-  // leaving stale/duplicate entries or closing the PWA while something is open.
+  // leaving stale/duplicate entries or closing the app while something is open.
   // ---------------------------------------------------------------------------
-  const closeAllOverlays = useCallback(() => {
-    setOpenItemId(null)
-    setOpenNoteId(null)
-    setOpenDocId(null)
-  }, [])
- 
-  // Live mirror of whether any overlay is open, so the single popstate listener
-  // always sees current state without stale closures.
+
+  // Live mirror of all open overlays, dialogs, and search states so Back handlers
+  // (both native Android and browser popstate) always see current state without stale closures.
+  const activeOverlaysRef = useRef({
+    purgeTarget: null as PurgeTarget | null,
+    reminderEditorOpen: false,
+    editingCategoryId: null as string | null,
+    docUploadOpen: false,
+    accountPanelOpen: false,
+    openDocId: null as string | null,
+    openNoteId: null as string | null,
+    openItemId: null as string | null,
+    searchQuery: '',
+  })
+  activeOverlaysRef.current = {
+    purgeTarget,
+    reminderEditorOpen,
+    editingCategoryId,
+    docUploadOpen,
+    accountPanelOpen,
+    openDocId,
+    openNoteId,
+    openItemId,
+    searchQuery,
+  }
+
+  const isAnyOverlayOpen = Boolean(
+    openItemId ||
+    openNoteId ||
+    openDocId ||
+    reminderEditorOpen ||
+    docUploadOpen ||
+    accountPanelOpen ||
+    editingCategoryId ||
+    purgeTarget
+  )
+
   const overlayOpenRef = useRef(false)
-  overlayOpenRef.current = !!(openItemId || openNoteId || openDocId)
+  overlayOpenRef.current = isAnyOverlayOpen
   const overlayDismissPendingRef = useRef(false)
- 
+
   // Stack of the base (non-overlay) sections we've navigated into. The top entry
   // is the section currently visible underneath any open overlay. Only grows when
   // the user actually switches main section.
   const sectionStackRef = useRef<
     ('vault' | 'notes' | 'documents' | 'reminders' | 'trash' | 'favorites')[]
   >(['vault'])
- 
+
+  // Closes the single topmost open overlay in priority order.
+  const closeTopmostOverlay = useCallback((): boolean => {
+    const o = activeOverlaysRef.current
+    if (o.purgeTarget) {
+      setPurgeTarget(null)
+      return true
+    }
+    if (o.reminderEditorOpen) {
+      setReminderEditorOpen(false)
+      setActiveEditingReminder(null)
+      return true
+    }
+    if (o.editingCategoryId) {
+      setEditingCategoryId(null)
+      return true
+    }
+    if (o.docUploadOpen) {
+      setDocUploadOpen(false)
+      return true
+    }
+    if (o.accountPanelOpen) {
+      setAccountPanelOpen(false)
+      return true
+    }
+    if (o.openDocId) {
+      setOpenDocId(null)
+      return true
+    }
+    if (o.openNoteId) {
+      setOpenNoteId(null)
+      return true
+    }
+    if (o.openItemId) {
+      setOpenItemId(null)
+      return true
+    }
+    return false
+  }, [])
+
   const handleDismissOverlay = useCallback(() => {
     if (window.history.state?.vaultOverlay) {
       if (overlayDismissPendingRef.current) return
       overlayDismissPendingRef.current = true
       window.history.back()
     } else {
-      closeAllOverlays()
+      closeTopmostOverlay()
     }
-  }, [closeAllOverlays])
- 
+  }, [closeTopmostOverlay])
+
   const pushOverlay = useCallback(() => {
     if (!window.history.state?.vaultOverlay) {
       window.history.pushState({ vaultOverlay: true }, '')
     }
   }, [])
- 
+
   const handleOpenItem = useCallback(
     (id: string) => {
       pushOverlay()
@@ -336,7 +425,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     },
     [pushOverlay],
   )
- 
+
   const handleOpenNote = useCallback(
     (id: string) => {
       pushOverlay()
@@ -346,7 +435,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     },
     [pushOverlay],
   )
- 
+
   const handleOpenDoc = useCallback(
     (doc: VaultDocument) => {
       pushOverlay()
@@ -356,7 +445,39 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     },
     [pushOverlay],
   )
- 
+
+  const handleOpenNewReminder = useCallback(() => {
+    pushOverlay()
+    setActiveEditingReminder(null)
+    setReminderEditorOpen(true)
+  }, [pushOverlay])
+
+  const handleEditReminder = useCallback((reminder: ChecklistReminder) => {
+    pushOverlay()
+    setActiveEditingReminder(reminder)
+    setReminderEditorOpen(true)
+  }, [pushOverlay])
+
+  const handleOpenCategoryEditor = useCallback((categoryId: string) => {
+    pushOverlay()
+    setEditingCategoryId(categoryId)
+  }, [pushOverlay])
+
+  const handleOpenDocUploader = useCallback(() => {
+    pushOverlay()
+    setDocUploadOpen(true)
+  }, [pushOverlay])
+
+  const handleOpenAccount = useCallback(() => {
+    pushOverlay()
+    setAccountPanelOpen(true)
+  }, [pushOverlay])
+
+  const handleRequestPurge = useCallback((target: PurgeTarget) => {
+    pushOverlay()
+    setPurgeTarget(target)
+  }, [pushOverlay])
+
   // Switch the base section and record a history entry so Back can return to it.
   const goToSection = useCallback(
     (next: 'vault' | 'notes' | 'documents' | 'reminders' | 'trash' | 'favorites') => {
@@ -370,28 +491,52 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     },
     [],
   )
- 
-  // ---------------------------------------------------------------------------
-  // Smart Quick Add — the Floating Action Button adapts to the current section:
-  //    vault + selected category → directly into that category's item wizard
-  //    vault + Everything         → a chooser (Item / Note / Document)
-  //    notes                      → a fresh note opened in the editor
-  //    documents                  → the document uploader
-  //    reminders                  → opens the new reminder editor
-  //    trash                      → hidden
-  // ---------------------------------------------------------------------------
-  const [reminderEditorOpen, setReminderEditorOpen] = useState(false)
-  const [activeEditingReminder, setActiveEditingReminder] = useState<ChecklistReminder | null>(null)
 
-  const handleOpenNewReminder = useCallback(() => {
-    setActiveEditingReminder(null)
-    setReminderEditorOpen(true)
-  }, [])
+  // Handle navigation from native full-screen alarm ("VIEW IN VAULT")
+  useEffect(() => {
+    if (vault.loadingData || !vault.session) return
+    let isCancelled = false
 
-  const handleEditReminder = useCallback((reminder: ChecklistReminder) => {
-    setActiveEditingReminder(reminder)
-    setReminderEditorOpen(true)
-  }, [])
+    const checkLaunch = async () => {
+      const reminderId = await getLaunchReminderId()
+      if (!reminderId || isCancelled) return
+      await clearLaunchReminderId()
+
+      const reminder = vault.reminders.find((r) => r.id === reminderId)
+      if (reminder) {
+        if (reminder.note_id) {
+          handleOpenNote(reminder.note_id)
+        } else {
+          goToSection('reminders')
+          handleEditReminder(reminder)
+        }
+      } else {
+        goToSection('reminders')
+      }
+    }
+
+    void checkLaunch()
+
+    const handleResume = () => {
+      if (document.visibilityState === 'visible') {
+        void checkLaunch()
+      }
+    }
+    document.addEventListener('visibilitychange', handleResume)
+    window.addEventListener('focus', handleResume)
+    return () => {
+      isCancelled = true
+      document.removeEventListener('visibilitychange', handleResume)
+      window.removeEventListener('focus', handleResume)
+    }
+  }, [
+    vault.loadingData,
+    vault.session,
+    vault.reminders,
+    handleOpenNote,
+    goToSection,
+    handleEditReminder,
+  ])
 
   const quickAdd = useMemo<'choose' | 'item' | 'note' | 'document' | 'reminder'>(() => {
     if (mainView === 'notes') return 'note'
@@ -414,8 +559,8 @@ export default function App({ onReturnToLanding = () => window.location.assign('
 
   const handleQuickAddDocument = useCallback(() => {
     goToSection('documents')
-    setDocUploadOpen(true)
-  }, [goToSection])
+    handleOpenDocUploader()
+  }, [goToSection, handleOpenDocUploader])
 
   const handleQuickAddReminder = useCallback(() => {
     goToSection('reminders')
@@ -627,16 +772,15 @@ export default function App({ onReturnToLanding = () => window.location.assign('
  
   useEffect(() => {
     const handlePopState = () => {
-      // An overlay is open → this Back closed the overlay entry. Close it and stay
-      // put in the current section.
+      // 1. If an overlay was open or an overlay dismiss was triggered,
+      // close only the topmost overlay.
       if (overlayDismissPendingRef.current || overlayOpenRef.current) {
         overlayDismissPendingRef.current = false
-        closeAllOverlays()
+        closeTopmostOverlay()
         return
       }
-      // Otherwise this was a section Back: pop to the previous section. If we're
-      // already at the base (nothing left to unwind), let the browser behave
-      // normally (e.g. leave the PWA) rather than intercepting forever.
+
+      // 2. Otherwise this was a section Back: pop to the previous section.
       if (sectionStackRef.current.length > 1) {
         const stack = sectionStackRef.current
         stack.pop()
@@ -646,7 +790,72 @@ export default function App({ onReturnToLanding = () => window.location.assign('
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
-  }, [closeAllOverlays])
+  }, [closeTopmostOverlay])
+
+  // Native Android Back button dispatcher (via @capacitor/app)
+  useEffect(() => {
+    let removeListener: (() => void) | undefined
+
+    const setupListener = async () => {
+      try {
+        const listener = await CapApp.addListener('backButton', async () => {
+          // Priority 1: Check if an inner sub-dialog is open in the DOM (e.g. ConfirmDialog inside ItemDetailOverlay or DocumentViewer)
+          const openModals = document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]')
+          if (openModals.length > 1) {
+            const topmost = openModals[openModals.length - 1]
+            const escEvent = new KeyboardEvent('keydown', {
+              key: 'Escape',
+              code: 'Escape',
+              bubbles: true,
+              cancelable: true,
+            })
+            topmost.dispatchEvent(escEvent)
+            return
+          }
+
+          // Priority 2: Dismiss topmost overlay
+          if (overlayOpenRef.current) {
+            handleDismissOverlay()
+            return
+          }
+
+          // Priority 3: Clear search query if active
+          if (activeOverlaysRef.current.searchQuery.trim().length > 0) {
+            setSearchQuery('')
+            return
+          }
+
+          // Priority 4: Navigate to previous section
+          if (sectionStackRef.current.length > 1) {
+            if (window.history.state?.vaultSection) {
+              window.history.back()
+              return
+            }
+            const stack = sectionStackRef.current
+            stack.pop()
+            const prev = stack[stack.length - 1]
+            setMainView(prev)
+            return
+          }
+
+          // Priority 5: At root screen ('vault' with no overlays and no history) — exit/background the app
+          await CapApp.exitApp()
+        })
+
+        removeListener = () => {
+          void listener.remove()
+        }
+      } catch {
+        // Non-native / PWA environment
+      }
+    }
+
+    void setupListener()
+
+    return () => {
+      if (removeListener) removeListener()
+    }
+  }, [handleDismissOverlay])
  
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has('shared')) {
@@ -825,7 +1034,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
           <ArchiveIdentity
             savedCount={vault.items.length}
             doneCount={vault.doneCount}
-            onOpenAccount={() => setAccountPanelOpen(true)}
+            onOpenAccount={handleOpenAccount}
             preview={devPreview}
           />
         }
@@ -942,7 +1151,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
                   onSelect={vault.setSelectedCategoryId}
                   onDelete={(id) => void vault.deleteCategory(id)}
                   onAdd={(input) => void vault.addCategory(input)}
-                  onEdit={(category) => setEditingCategoryId(category.id)}
+                  onEdit={(category) => handleOpenCategoryEditor(category.id)}
                   onSelectTrash={() => goToSection('trash')}
                   trashCount={
                     vault.trashedItems.length +
@@ -963,7 +1172,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
           >
             <div className="space-y-10">
               <section aria-labelledby="favorite-items-heading">
-                <h3 id="favorite-items-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Items</h3>
+                <h3 id="favorite-items-heading" className="vault-group-title mb-3 text-ink">Items</h3>
                 <ArchiveObjects
                   items={sortItems(vault.items.filter(isFavorite), itemSortKey)}
                   categories={vault.categories}
@@ -977,27 +1186,27 @@ export default function App({ onReturnToLanding = () => window.location.assign('
                 />
               </section>
               <section aria-labelledby="favorite-notes-heading">
-                <h3 id="favorite-notes-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Notes</h3>
+                <h3 id="favorite-notes-heading" className="vault-group-title mb-3 text-ink">Notes</h3>
                 {vault.notes.filter((note) => note.is_favorite).length > 0 ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                     {vault.notes.filter((note) => note.is_favorite).map((note, index) => (
                       <NoteCard key={note.id} note={note} index={index} onClick={() => handleOpenNote(note.id)} onDelete={() => void handleDeleteNote(note.id)} onToggleFavorite={() => handleToggleNoteFavorite(note)} />
                     ))}
                   </div>
-                ) : <p className="text-sm text-ink-soft/70">No favorite notes.</p>}
+                ) : <p className="vault-body-secondary text-ink-soft/70">No favorite notes.</p>}
               </section>
               <section aria-labelledby="favorite-documents-heading">
-                <h3 id="favorite-documents-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Documents</h3>
+                <h3 id="favorite-documents-heading" className="vault-group-title mb-3 text-ink">Documents</h3>
                 {docs.documents.filter((doc) => doc.is_favorite).length > 0 ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                     {docs.documents.filter((doc) => doc.is_favorite).map((doc, index) => (
                       <DocumentCard key={doc.id} doc={doc} index={index} onClick={() => handleOpenDoc(doc)} onDelete={() => void handleDeleteDocument(doc)} onToggleFavorite={() => handleToggleDocumentFavorite(doc)} />
                     ))}
                   </div>
-                ) : <p className="text-sm text-ink-soft/70">No favorite documents.</p>}
+                ) : <p className="vault-body-secondary text-ink-soft/70">No favorite documents.</p>}
               </section>
               <section aria-labelledby="favorite-reminders-heading">
-                <h3 id="favorite-reminders-heading" className="font-display mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink">Reminders</h3>
+                <h3 id="favorite-reminders-heading" className="vault-group-title mb-3 text-ink">Reminders</h3>
                 {vault.reminders.filter((reminder) => reminder.is_favorite).length > 0 ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                     {vault.reminders.filter((reminder) => reminder.is_favorite).map((reminder, index) => (
@@ -1020,7 +1229,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
                       />
                     ))}
                   </div>
-                ) : <p className="text-sm text-ink-soft/70">No favorite reminders.</p>}
+                ) : <p className="vault-body-secondary text-ink-soft/70">No favorite reminders.</p>}
               </section>
             </div>
           </VaultSection>
@@ -1044,11 +1253,11 @@ export default function App({ onReturnToLanding = () => window.location.assign('
             categories={vault.categories}
             onRestoreItem={(item) => void vault.restoreItem(item)}
             onPurgeItem={(item) =>
-              setPurgeTarget({ kind: 'item', id: item.id, name: item.title })
+              handleRequestPurge({ kind: 'item', id: item.id, name: item.title })
             }
             onRestoreNote={(note) => void vault.restoreNote(note)}
             onPurgeNote={(note) =>
-              setPurgeTarget({
+              handleRequestPurge({
                 kind: 'note',
                 id: note.id,
                 name: note.title.trim() || 'Untitled note',
@@ -1056,7 +1265,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
             }
             onRestoreDoc={(doc) => void docs.restoreDocument(doc)}
             onPurgeDoc={(doc) =>
-              setPurgeTarget({ kind: 'document', id: doc.id, name: doc.name })
+              handleRequestPurge({ kind: 'document', id: doc.id, name: doc.name })
             }
           />
         ) : mainView === 'notes' ? (
@@ -1120,11 +1329,11 @@ export default function App({ onReturnToLanding = () => window.location.assign('
         <DocumentUploader
           open={docUploadOpen}
           uploading={docs.uploading}
-          onClose={() => setDocUploadOpen(false)}
+          onClose={handleDismissOverlay}
           onUpload={async (file, name, category) => {
             const result = await docs.addDocument(file, name, category)
             if (result) {
-              setDocUploadOpen(false)
+              handleDismissOverlay()
             }
           }}
         />
@@ -1149,7 +1358,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
         busyLabel="Deleting…"
         onCancel={() => {
           if (!purgeBusy) {
-            setPurgeTarget(null)
+            handleDismissOverlay()
           }
         }}
         onConfirm={() =>
@@ -1158,7 +1367,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
             const ok = await handlePurgeTarget()
             setPurgeBusy(false)
             if (ok) {
-              setPurgeTarget(null)
+              handleDismissOverlay()
             }
           })()
         }
@@ -1179,7 +1388,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
         <CategoryEditor
           key={editingCategoryId ?? 'none'}
           category={editingCategory}
-          onClose={() => setEditingCategoryId(null)}
+          onClose={handleDismissOverlay}
           onSave={(id, name, icon, color, fields) =>
             void vault.updateCategory(id, name, icon, color, fields)
           }
@@ -1220,7 +1429,7 @@ export default function App({ onReturnToLanding = () => window.location.assign('
  
         <AccountPanel
           open={accountPanelOpen}
-          onClose={() => setAccountPanelOpen(false)}
+          onClose={handleDismissOverlay}
           session={vault.session}
           preview={devPreview}
           onUpdateDisplayName={vault.updateDisplayName}
@@ -1232,15 +1441,11 @@ export default function App({ onReturnToLanding = () => window.location.assign('
         <ReminderEditorDialog
           open={reminderEditorOpen}
           reminder={activeEditingReminder}
-          onClose={() => {
-            setReminderEditorOpen(false)
-            setActiveEditingReminder(null)
-          }}
+          onClose={handleDismissOverlay}
           onSave={handleSaveReminderFromDialog}
           onDelete={(id) => {
             handleRemoveReminder(id)
-            setReminderEditorOpen(false)
-            setActiveEditingReminder(null)
+            handleDismissOverlay()
           }}
         />
       </Suspense>

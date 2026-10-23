@@ -200,10 +200,10 @@ export function AddMenu({
 
                   {/* Labels */}
                   <span className="min-w-0">
-                    <span className="block text-sm font-semibold leading-tight text-ink">
+                    <span className="vault-body-secondary block font-semibold leading-tight text-ink">
                       {item.label}
                     </span>
-                    <span className="block text-[11px] leading-tight text-ink-soft/60 mt-0.5">
+                    <span className="vault-meta mt-0.5 block leading-tight text-ink-soft/60">
                       {item.sublabel}
                     </span>
                   </span>

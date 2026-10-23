@@ -143,7 +143,7 @@ export function SortMenu<T extends string>({ value, options, onChange }: SortMen
             setOpen(true)
           }
         }}
-        className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide"
+        className="vault-chip vault-action flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}

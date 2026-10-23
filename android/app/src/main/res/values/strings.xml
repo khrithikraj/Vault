@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Raj\'s Vault</string>
+    <string name="title_activity_main">Raj\'s Vault</string>
+    <string name="package_name">com.khrithikraj.vault</string>
+    <string name="custom_url_scheme">com.khrithikraj.vault</string>
+</resources>
