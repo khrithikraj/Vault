@@ -47,6 +47,7 @@ export type ReminderRowForDelivery = {
   checklist_item_id: string | null
   recurrence: ReminderRecurrence
   day_of_week?: Weekday | null
+  weekdays?: Weekday[] | null
   /** Exact calendar date for a 'once' reminder; NULL for repeating modes and for
    *  legacy 'once' rows written before the column existed. */
   fire_on_date?: string | null

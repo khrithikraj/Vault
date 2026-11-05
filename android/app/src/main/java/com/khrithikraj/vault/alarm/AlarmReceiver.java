@@ -12,8 +12,24 @@ public class AlarmReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String title = intent != null ? intent.getStringExtra("title") : null;
         String reminderId = intent != null ? intent.getStringExtra("reminderId") : null;
+        long triggerTimeMillis = intent != null
+            ? intent.getLongExtra("triggerTimeMillis", 0L)
+            : 0L;
+        String triggerId = intent != null ? intent.getStringExtra("triggerId") : null;
         if (title == null || title.trim().isEmpty()) {
             title = "Vault Alarm";
+        }
+        if (triggerId == null || triggerId.trim().isEmpty()) {
+            triggerId = AlarmScheduler.buildTriggerId(reminderId, triggerTimeMillis);
+        }
+
+        if (reminderId != null
+            && triggerTimeMillis > 0
+            && !AlarmPreferences.isCurrentTrigger(context, reminderId, triggerId)) {
+            return;
+        }
+        if (!AlarmPreferences.claimActiveAlarm(context, reminderId, triggerId, title)) {
+            return;
         }
 
         // Advance recurring alarms to next occurrence; clean up one-time alarms
@@ -57,6 +73,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         // 1. Start foreground audio & vibration service
         Intent serviceIntent = new Intent(context, AlarmService.class);
         serviceIntent.putExtra("title", title);
+        serviceIntent.putExtra("triggerId", triggerId);
         if (reminderId != null) {
             serviceIntent.putExtra("reminderId", reminderId);
         }

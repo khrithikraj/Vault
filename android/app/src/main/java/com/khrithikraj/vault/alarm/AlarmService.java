@@ -37,6 +37,21 @@ public class AlarmService extends Service {
     }
 
     public static void stopAlarm(Context context) {
+        if (context == null) return;
+        AlarmPreferences.clearActiveAlarm(context, null);
+        stopPlaybackService(context);
+    }
+
+    static void stopForSnooze(Context context) {
+        if (context == null) return;
+        stopPlaybackService(context);
+    }
+
+    private static void stopPlaybackService(Context context) {
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager != null) {
+            manager.cancel(NOTIFICATION_ID);
+        }
         Intent stopIntent = new Intent(context, AlarmService.class);
         context.stopService(stopIntent);
     }
@@ -57,6 +72,7 @@ public class AlarmService extends Service {
 
         acquireWakeLock();
         startForegroundWithNotification(title, reminderId);
+        stopExistingPlayback();
         startAlarmAudioAndVibration();
         ringing = true;
 
@@ -84,8 +100,12 @@ public class AlarmService extends Service {
     }
 
     private void startForegroundWithNotification(String title, String reminderId) {
+        AlarmPreferences.ActiveAlarm activeAlarm = AlarmPreferences.getActiveAlarm(this);
+        String triggerId = activeAlarm != null ? activeAlarm.triggerId : null;
         Intent dismissIntent = new Intent(this, AlarmDismissReceiver.class);
         dismissIntent.setAction(AlarmDismissReceiver.ACTION_DISMISS);
+        if (reminderId != null) dismissIntent.putExtra(AlarmActivity.EXTRA_REMINDER_ID, reminderId);
+        if (triggerId != null) dismissIntent.putExtra(AlarmActivity.EXTRA_TRIGGER_ID, triggerId);
         PendingIntent dismissPendingIntent = PendingIntent.getBroadcast(
             this,
             2001,
@@ -97,19 +117,21 @@ public class AlarmService extends Service {
         snoozeIntent.setAction(AlarmSnoozeReceiver.ACTION_SNOOZE);
         snoozeIntent.putExtra(AlarmActivity.EXTRA_TITLE, title);
         snoozeIntent.putExtra(AlarmSnoozeReceiver.EXTRA_SNOOZE_SECONDS, AlarmActivity.SNOOZE_SECONDS);
+        if (reminderId != null) snoozeIntent.putExtra(AlarmActivity.EXTRA_REMINDER_ID, reminderId);
+        if (triggerId != null) snoozeIntent.putExtra(AlarmActivity.EXTRA_TRIGGER_ID, triggerId);
         PendingIntent snoozePendingIntent = PendingIntent.getBroadcast(
             this,
             2004,
             snoozeIntent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
-
         // Content intent: tapping notification body opens the dedicated AlarmActivity while ringing
         Intent contentIntent = new Intent(this, AlarmActivity.class);
         contentIntent.putExtra(AlarmActivity.EXTRA_TITLE, title);
         if (reminderId != null) {
             contentIntent.putExtra(AlarmActivity.EXTRA_REMINDER_ID, reminderId);
         }
+        if (triggerId != null) contentIntent.putExtra(AlarmActivity.EXTRA_TRIGGER_ID, triggerId);
         contentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent contentPendingIntent = PendingIntent.getActivity(
             this,
@@ -124,6 +146,7 @@ public class AlarmService extends Service {
         if (reminderId != null) {
             fullScreenIntent.putExtra(AlarmActivity.EXTRA_REMINDER_ID, reminderId);
         }
+        if (triggerId != null) fullScreenIntent.putExtra(AlarmActivity.EXTRA_TRIGGER_ID, triggerId);
         fullScreenIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
             this,
@@ -142,10 +165,23 @@ public class AlarmService extends Service {
         if (title != null) {
             viewInVaultIntent.putExtra(AlarmActivity.EXTRA_TITLE, title);
         }
+        if (triggerId != null) viewInVaultIntent.putExtra(AlarmActivity.EXTRA_TRIGGER_ID, triggerId);
         PendingIntent viewInVaultPendingIntent = PendingIntent.getActivity(
             this,
             2005,
             viewInVaultIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        Intent deleteIntent = new Intent(this, AlarmDismissReceiver.class);
+        deleteIntent.setAction(AlarmDismissReceiver.ACTION_DISMISS);
+        if (triggerId != null) {
+            deleteIntent.putExtra(AlarmActivity.EXTRA_TRIGGER_ID, triggerId);
+        }
+        PendingIntent deletePendingIntent = PendingIntent.getBroadcast(
+            this,
+            2006,
+            deleteIntent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
@@ -158,6 +194,7 @@ public class AlarmService extends Service {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setDeleteIntent(deletePendingIntent)
             .setContentIntent(contentPendingIntent)
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "STOP", dismissPendingIntent)
@@ -174,6 +211,7 @@ public class AlarmService extends Service {
     }
 
     private void startAlarmAudioAndVibration() {
+        stopExistingPlayback();
         mediaPlayer = new MediaPlayer();
         boolean customPlayed = false;
 
@@ -196,6 +234,7 @@ public class AlarmService extends Service {
                 android.util.Log.e("VaultAlarm", "Failed to play cached custom alarm tone: " + ex.getMessage(), ex);
                 mediaPlayer.reset();
             }
+
         }
 
         // 2. Fallback to system alarm tone if custom tone was not played
@@ -251,6 +290,22 @@ public class AlarmService extends Service {
         }
     }
 
+    private void stopExistingPlayback() {
+        if (mediaPlayer != null) {
+            try {
+                if (mediaPlayer.isPlaying()) mediaPlayer.stop();
+            } catch (Exception ignored) {}
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+        if (vibrator != null) {
+            try {
+                vibrator.cancel();
+            } catch (Exception ignored) {}
+            vibrator = null;
+        }
+    }
+
     @Override
     public void onDestroy() {
         ringing = false;
@@ -261,22 +316,7 @@ public class AlarmService extends Service {
             sendBroadcast(stoppedIntent);
         } catch (Exception ignored) {}
 
-        if (mediaPlayer != null) {
-            try {
-                if (mediaPlayer.isPlaying()) {
-                    mediaPlayer.stop();
-                }
-            } catch (Exception ignored) {}
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
-
-        if (vibrator != null) {
-            try {
-                vibrator.cancel();
-            } catch (Exception ignored) {}
-            vibrator = null;
-        }
+        stopExistingPlayback();
 
         if (wakeLock != null) {
             try {

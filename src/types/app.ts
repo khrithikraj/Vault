@@ -49,6 +49,12 @@ export type ChecklistItem = {
   id: string
   text: string
   done: boolean
+  /** Stable manual order, independent of completion order. */
+  original_order?: number
+  /** ISO timestamp for the most recent completion. */
+  completed_at?: string | null
+  /** Manual order within the completed group. */
+  completed_order?: number
 }
 
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
@@ -64,6 +70,8 @@ export type ChecklistReminder = {
   is_favorite: boolean
   recurrence: 'once' | 'daily' | 'weekdays' | 'weekly'
   day_of_week?: Weekday | null
+  /** Selected weekdays for weekly reminders; day_of_week remains the legacy fallback. */
+  weekdays?: Weekday[] | null
   /** 'YYYY-MM-DD' calendar date the user picked for a 'once' reminder. NULL for
    *  every repeating mode. The exact UTC instant still lives in next_fire_at. */
   fire_on_date?: string | null

@@ -46,7 +46,19 @@ function remindersSupportFireOnDate(): Promise<boolean> {
       return !error
     })().catch(() => false)
   }
+
   return fireOnDateColumnProbe
+}
+
+let weekdaysColumnProbe: Promise<boolean> | null = null
+function remindersSupportWeekdays(): Promise<boolean> {
+  if (!weekdaysColumnProbe) {
+    weekdaysColumnProbe = (async () => {
+      const { error } = await supabase.from('reminders').select('weekdays').limit(0)
+      return !error
+    })().catch(() => false)
+  }
+  return weekdaysColumnProbe
 }
 
 function getAuthErrorMessage(message: string) {
@@ -808,6 +820,7 @@ export function useVault() {
     enabled: boolean
     recurrence?: ReminderRecurrence
     dayOfWeek?: Weekday | null
+    weekdays?: Weekday[] | null
     /** Exact calendar date ("YYYY-MM-DD") for a 'once' reminder. */
     fireOnDate?: string | null
     timezone?: string
@@ -824,7 +837,11 @@ export function useVault() {
     const targetItemId = input.checklistItemId ?? null
     const timezone = input.timezone ?? browserTimezone()
     const recurrence = input.recurrence ?? 'daily'
-    const dayOfWeek = recurrence === 'weekly' ? (input.dayOfWeek ?? null) : null
+    const selectedWeekdays = recurrence === 'weekly'
+      ? [...new Set(input.weekdays ?? (input.dayOfWeek ? [input.dayOfWeek] : []))]
+      : []
+    const dayOfWeek = recurrence === 'weekly' ? (selectedWeekdays[0] ?? null) : null
+    const weekdays = recurrence === 'weekly' && selectedWeekdays.length > 0 ? selectedWeekdays : null
     // Only a 'once' reminder carries a date. Every repeating mode is explicitly
     // stored as NULL so switching Once -> Daily/Weekdays/Weekly can never leave a
     // stale date behind on a repeating row.
@@ -841,6 +858,7 @@ export function useVault() {
           recurrence,
           timezone,
           dayOfWeek,
+          weekdays,
           fireOnDate,
         })
       : null
@@ -857,6 +875,7 @@ export function useVault() {
         : undefined
 
     const includeDayOfWeek = await remindersSupportDayOfWeek()
+    const includeWeekdays = await remindersSupportWeekdays()
     const includeFireOnDate = await remindersSupportFireOnDate()
     const reminderFields = {
       title: input.title ? input.title.trim() : null,
@@ -866,6 +885,7 @@ export function useVault() {
       timezone,
       next_fire_at: nextFireAt,
       ...(includeDayOfWeek ? { day_of_week: dayOfWeek } : {}),
+      ...(includeWeekdays ? { weekdays } : {}),
       ...(includeFireOnDate ? { fire_on_date: fireOnDate } : {}),
     }
 
@@ -909,6 +929,8 @@ export function useVault() {
             recurrence: data.recurrence,
             timezone: data.timezone,
             dayOfWeek: data.day_of_week,
+            weekdays: data.weekdays,
+            nextFireAt: data.next_fire_at,
             now: new Date(),
           })
           triggerTime = new Date(nextIso).getTime()
@@ -923,6 +945,7 @@ export function useVault() {
             localTime: data.local_time,
             timezone: data.timezone,
             dayOfWeek: data.day_of_week,
+            weekdays: data.weekdays,
           })
         } else {
           void cancelNativeAlarmById(data.id)

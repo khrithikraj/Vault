@@ -170,6 +170,72 @@ test('primary content views share section and empty-state patterns', async ({ pa
   expect(overflow).toBeLessThanOrEqual(0)
 })
 
+test('mobile floating navigation follows document scroll with hysteresis', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 640 })
+  await openDemo(page)
+
+  const dock = page.locator('.float-nav')
+  await expect(dock).toHaveAttribute('data-compact', 'false')
+
+  await page.evaluate(() => window.scrollTo(0, 56))
+  await expect(dock).toHaveAttribute('data-compact', 'true')
+  await expect(dock.locator('.float-nav-label').first()).toHaveCSS('max-width', '0px')
+
+  await page.evaluate(() => window.scrollTo(0, 40))
+  await expect(dock).toHaveAttribute('data-compact', 'true')
+
+  await page.evaluate(() => window.scrollTo(0, 24))
+  await expect(dock).toHaveAttribute('data-compact', 'false')
+  await expect(dock.locator('.float-nav-label').first()).toHaveCSS('max-width', '128px')
+})
+
+test('floating navigation keeps accessible names and 44px tap targets', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 640 })
+  await openDemo(page)
+
+  const labels = ['All items', 'Notes', 'Documents', 'Reminders', 'Favorites']
+  for (const label of labels) {
+    const button = page.getByRole('button', { name: label })
+    await expect(button).toHaveAttribute('aria-label', label)
+    const box = await button.boundingBox()
+    if (!box) throw new Error(`Missing navigation button geometry for ${label}`)
+    expect(box.width, `${label} width`).toBeGreaterThanOrEqual(44)
+    expect(box.height, `${label} height`).toBeGreaterThanOrEqual(44)
+  }
+
+  await page.getByRole('button', { name: 'Notes' }).click()
+  await expect(page.getByRole('button', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
+  await expect(page.locator('.float-nav')).toHaveAttribute('data-compact', 'false')
+})
+
+test('mobile floating navigation remains compact and centered in both states', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 640 })
+  await openDemo(page)
+
+  const dock = page.locator('.float-nav')
+  const expanded = await dock.boundingBox()
+  if (!expanded) throw new Error('Missing expanded navigation geometry')
+  expect(expanded.height).toBeLessThanOrEqual(52)
+  expect(Math.abs(expanded.x + expanded.width / 2 - 195)).toBeLessThanOrEqual(1)
+
+  await page.evaluate(() => window.scrollTo(0, 56))
+  await expect(dock).toHaveAttribute('data-compact', 'true')
+  const compact = await dock.boundingBox()
+  if (!compact) throw new Error('Missing compact navigation geometry')
+  expect(compact.height).toBeLessThanOrEqual(48)
+  expect(Math.abs(compact.x + compact.width / 2 - 195)).toBeLessThanOrEqual(1)
+})
+
+test('desktop floating navigation remains expanded while scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await openDemo(page)
+
+  const dock = page.locator('.float-nav')
+  await page.evaluate(() => window.scrollTo(0, 200))
+  await expect(dock).toHaveAttribute('data-compact', 'false')
+  await expect(dock.locator('.float-nav-label').first()).toHaveCSS('max-width', 'none')
+})
+
 test('note editor uses the shared dialog contract', async ({ page }) => {
   await openDemo(page)
   await page.getByRole('button', { name: 'Notes' }).click()
@@ -666,6 +732,28 @@ test('checklist reorder mode toggles drag handles and keeps contextual actions',
   await page.getByRole('menuitem', { name: 'Delete' }).click()
   await expect(editor.locator('input[value="First chore"]')).toHaveCount(0)
   await expect(editor.locator('input[value="Second chore"]')).toBeVisible()
+})
+
+test('checklist completion keeps completed and incomplete groups ordered independently', async ({ page }) => {
+  await openDemo(page)
+  await page.getByRole('button', { name: 'Notes' }).click()
+  await page.getByRole('button', { name: 'Add item' }).click()
+  const editor = page.getByRole('dialog', { name: 'Note editor' })
+  const newTask = editor.getByPlaceholder('Add new task or list item...')
+  for (const text of ['First chore', 'Second chore', 'Third chore']) {
+    await newTask.fill(text)
+    await editor.getByRole('button', { name: 'Add', exact: true }).click()
+  }
+
+  const values = () => editor.locator('input[placeholder="Checklist item..."]').evaluateAll(
+    (inputs) => inputs.map((input) => (input as HTMLInputElement).value),
+  )
+  await editor.getByRole('checkbox', { name: 'Mark "Second chore" as done' }).check()
+  await expect.poll(values).toEqual(['Second chore', 'First chore', 'Third chore'])
+  await editor.getByRole('checkbox', { name: 'Mark "Third chore" as done' }).check()
+  await expect.poll(values).toEqual(['Second chore', 'Third chore', 'First chore'])
+  await editor.getByRole('checkbox', { name: 'Mark "Second chore" as done' }).uncheck()
+  await expect.poll(values).toEqual(['Third chore', 'First chore', 'Second chore'])
 })
 
 /** The phones this regression targets — portrait 320–412px plus narrow landscape. */

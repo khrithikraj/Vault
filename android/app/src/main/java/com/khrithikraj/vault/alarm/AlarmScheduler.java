@@ -17,6 +17,13 @@ public final class AlarmScheduler {
 
     private AlarmScheduler() {}
 
+    public static String buildTriggerId(String reminderId, long triggerTimeMillis) {
+        String identity = reminderId == null || reminderId.trim().isEmpty()
+            ? "test"
+            : reminderId.trim();
+        return identity + ":" + triggerTimeMillis;
+    }
+
     /**
      * Computes a deterministic positive 31-bit request code from a reminder UUID.
      * Reserves 1001 for test alarms.
@@ -162,6 +169,8 @@ public final class AlarmScheduler {
             Intent triggerIntent = new Intent(context, AlarmReceiver.class);
             triggerIntent.setAction(AlarmReceiver.ACTION_TRIGGER);
             triggerIntent.putExtra("title", title);
+            triggerIntent.putExtra("triggerId", buildTriggerId(reminderId, triggerTimeMillis));
+            triggerIntent.putExtra("triggerTimeMillis", triggerTimeMillis);
             if (reminderId != null) {
                 triggerIntent.putExtra("reminderId", reminderId);
             }

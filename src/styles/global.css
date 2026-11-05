@@ -357,25 +357,25 @@
     text-wrap: balance;
   }
 
-  /* Primary screen title — Inter, 28–32px. */
+  /* Primary screen title — Instrument Serif, 28–32px. */
   .vault-page-title {
-    font-family: var(--font-body);
+    font-family: var(--font-accession-serif);
     font-size: clamp(1.75rem, 1.55rem + 0.9vw, 2rem);
-    font-weight: 600;
+    font-weight: 400;
     line-height: 1.15;
     letter-spacing: -0.02em;
     text-transform: none;
     text-wrap: balance;
   }
 
-  /* Section heading — Inter, 20–24px. `.vault-heading` is the legacy alias. */
+  /* Section heading — Instrument Serif, 20–24px. */
   .vault-section-title,
   .vault-heading {
     min-width: 0;
     margin: 0;
-    font-family: var(--font-body);
+    font-family: var(--font-accession-serif);
     font-size: clamp(1.25rem, 1.14rem + 0.5vw, 1.5rem);
-    font-weight: 600;
+    font-weight: 400;
     line-height: 1.2;
     letter-spacing: -0.01em;
     text-transform: none;
@@ -442,9 +442,9 @@
     text-transform: none;
   }
 
-  /* Timestamps, counts and secondary metadata — Inter, 12px. */
+  /* Timestamps, counts and secondary metadata — Space Grotesk, 12px. */
   .vault-meta {
-    font-family: var(--font-body);
+    font-family: var(--font-display);
     font-size: 0.75rem;
     font-weight: 400;
     line-height: 1.4;
@@ -1019,6 +1019,72 @@
   display: none;
   width: 0;
   height: 0;
+}
+
+@media (max-width: 639px) {
+  .float-nav {
+    gap: 0.125rem;
+    min-height: 48px;
+    padding: 0.125rem 0.375rem;
+    transition:
+      gap 220ms ease,
+      min-height 220ms ease,
+      padding 220ms ease,
+      border-radius 220ms ease;
+  }
+
+  .float-nav[data-compact='true'] {
+    gap: 0;
+    height: 46px;
+    padding: 0.0625rem 0.25rem;
+  }
+
+  .float-nav[data-reduced-motion='true'],
+  .float-nav[data-reduced-motion='true'] .float-nav-label,
+  .float-nav[data-reduced-motion='true'] [data-floating-nav-button='true'] {
+    transition-duration: 0ms;
+  }
+
+  .float-nav [data-floating-nav-button='true'] {
+    box-sizing: border-box;
+    height: 44px;
+    min-height: 44px;
+    gap: 0.125rem;
+    padding: 0.25rem 0.375rem;
+    transition:
+      gap 220ms ease,
+      padding 220ms ease,
+      min-width 220ms ease;
+  }
+
+  .float-nav[data-compact='true'] [data-floating-nav-button='true'] {
+    gap: 0;
+    padding-inline: 0.25rem;
+  }
+
+  .float-nav-label {
+    display: block;
+    max-width: 8rem;
+    overflow: hidden;
+    opacity: 1;
+    font-size: 0.625rem;
+    max-height: 1rem;
+    transform-origin: center;
+    transition:
+      max-width 220ms ease,
+      max-height 220ms ease,
+      opacity 160ms ease,
+      font-size 220ms ease,
+      transform 220ms ease;
+  }
+
+  .float-nav[data-compact='true'] .float-nav-label {
+    max-width: 0;
+    max-height: 0;
+    opacity: 0;
+    font-size: 0;
+    transform: translateY(-1px);
+  }
 }
  
 /* Vault hairline — ultra-fine spanning rule used for archive index rows. */

@@ -4,7 +4,7 @@ import { cn } from '../../design/cn'
 
 /**
  * VaultHeading — semantic section/dialog heading with an optional folio.
- * Renders the `.vault-section-title` role (Inter, natural casing).
+ * Renders the `.vault-section-title` role (Instrument Serif, natural casing).
  */
 type VaultHeadingProps = HTMLAttributes<HTMLElement> & {
   as?: ElementType
@@ -19,4 +19,3 @@ export function VaultHeading({ as: Component = 'h2', folio, className, children,
     </Component>
   )
 }
-

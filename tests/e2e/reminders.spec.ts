@@ -89,12 +89,12 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
 
   // Switch to Weekly + pick a weekday different from today
   const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-  const todayName = weekdayNames[new Date().getDay()]
   const pick = weekdayNames[(new Date().getDay() + 1) % 7]
   await dialog2.getByRole('button', { name: 'Daily', exact: true }).click()
   await dialog2.getByRole('button', { name: 'Weekly', exact: true }).click()
-  await dialog2.getByRole('button', { name: todayName, exact: true }).click()
-  await dialog2.getByRole('button', { name: pick, exact: true }).click()
+  await dialog2.getByRole('button', { name: /Repeats every/ }).click()
+  await dialog2.getByRole('button', { name: `Add ${pick}` }).click()
+  await dialog2.getByRole('button', { name: /Repeats every/ }).click()
   await dialog2.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(dialog2).toBeHidden()
   await moreActions.click()
@@ -108,7 +108,8 @@ test('note and item reminders save, reopen, and persist recurrence via real keys
   await expect(dialog3).toBeVisible()
   await expect(dialog3.getByText('Weekly')).toBeVisible()
   await expect(dialog3.getByText('09:46 AM')).toBeVisible()
-  await expect(dialog3.getByRole('button', { name: pick, exact: true })).toBeVisible()
+  await dialog3.getByRole('button', { name: /Repeats every/ }).click()
+  await expect(dialog3.getByRole('button', { name: `Remove ${pick}` })).toBeVisible()
   await dialog3.getByRole('button', { name: 'Close' }).click()
 
   // ── TEST B — item-level reminder via real keystrokes, edit, remove ──────────
@@ -577,24 +578,26 @@ test('reminder editor recurrence switching stays contained at mobile viewport', 
   }
 
   // Default is Daily — no date field, no weekday row
-  await expect(dialog.getByText('Day of the Week')).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: /Add (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/ })).toHaveCount(0)
   await expectContained()
 
   // Once — date field appears, dialog stays contained on the short 640 px viewport
   await dialog.getByRole('button', { name: 'Once', exact: true }).click()
   await expect(dialog.getByText('Date *')).toBeVisible()
-  await expect(dialog.getByText('Day of the Week')).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: /Add (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/ })).toHaveCount(0)
   await expectContained()
 
   // Weekly — weekday row appears, date field disappears
   await dialog.getByRole('button', { name: 'Weekly', exact: true }).click()
-  await expect(dialog.getByText('Day of the Week')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /Remove (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/ })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Add Monday' }).click()
+  await expect(dialog.getByText(/Repeats every .* and Monday/)).toBeVisible()
   await expect(dialog.getByText('Date *')).toHaveCount(0)
   await expectContained()
 
   // Back to Daily — both mode-specific fields gone, no leftover scroll residue
   await dialog.getByRole('button', { name: 'Daily', exact: true }).click()
-  await expect(dialog.getByText('Day of the Week')).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: /Add (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/ })).toHaveCount(0)
   await expect(dialog.getByText('Date *')).toHaveCount(0)
   await expectContained()
 

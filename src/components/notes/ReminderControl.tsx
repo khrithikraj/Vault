@@ -8,6 +8,7 @@ import {
   formatReminderDate,
   formatReminderTime,
   formatWeekdayLabel,
+  formatWeekdaySummary,
   isCompletedToday,
   isValidFireOnDate,
   type ReminderRecurrence,
@@ -33,6 +34,7 @@ export type ReminderControlProps = {
     recurrence?: ReminderRecurrence,
     dayOfWeek?: Weekday | null,
     fireOnDate?: string | null,
+    weekdays?: Weekday[] | null,
   ) => void
   onRemoveReminder: () => void
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
@@ -104,6 +106,11 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
     if (reminder?.day_of_week) return reminder.day_of_week
     return zonedWeekday(new Date(), reminder?.timezone ?? browserTimezone())
   })
+  const [weekdays, setWeekdays] = useState<Weekday[]>(() =>
+    reminder?.weekdays?.length
+      ? reminder.weekdays
+      : [reminder?.day_of_week ?? zonedWeekday(new Date(), reminder?.timezone ?? browserTimezone())],
+  )
   // Exact calendar date for a 'once' reminder. Restored from the saved reminder
   // when one exists; otherwise seeded with the reminder timezone's "today", so
   // switching into Once always lands on a selectable, non-past date.
@@ -125,7 +132,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
 
   const isOnce = recurrence === 'once'
   const dateMissing = isOnce && !isValidFireOnDate(fireOnDate)
-  const cannotSave = !localTime || dateMissing
+  const cannotSave = !localTime || dateMissing || (recurrence === 'weekly' && weekdays.length === 0)
 
   useEffect(() => {
     if (reminder && reminder.enabled) {
@@ -136,6 +143,11 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
       } else {
         setDayOfWeek(zonedWeekday(new Date(), reminder.timezone || browserTimezone()))
       }
+      setWeekdays(
+        reminder.weekdays?.length
+          ? reminder.weekdays
+          : [reminder.day_of_week ?? zonedWeekday(new Date(), reminder.timezone || browserTimezone())],
+      )
       // Restore the saved date. A 'once' reminder always has one; if a legacy row
       // somehow lacks it, fall back to today so the field is never blank.
       setFireOnDate(
@@ -147,6 +159,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
       setLocalTime('')
       setRecurrence('daily')
       setDayOfWeek(zonedWeekday(new Date(), browserTimezone()))
+      setWeekdays([zonedWeekday(new Date(), browserTimezone())])
       setFireOnDate(zonedDateStr(new Date(), browserTimezone()))
     }
   }, [reminder, open])
@@ -160,6 +173,14 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
   const handleRecurrenceChange = (next: ReminderRecurrence) => {
     setRecurrence(next)
     setRecurrenceMenuOpen(false)
+    if (next !== 'weekly') {
+      setWeekdays([])
+      setDayOfWeek('monday')
+    } else if (weekdays.length === 0) {
+      const fallback = zonedWeekday(new Date(), reminderTimezone)
+      setWeekdays([fallback])
+      setDayOfWeek(fallback)
+    }
     if (next !== 'once') {
       setFireOnDate('')
     } else if (!isValidFireOnDate(fireOnDate)) {
@@ -262,6 +283,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
       recurrence === 'weekly' ? dayOfWeek : null,
       // Only 'once' carries a date. Every repeating mode is saved as NULL.
       isOnce ? fireOnDate : null,
+      recurrence === 'weekly' ? weekdays : null,
     )
     requestOpen(false)
   }
@@ -478,7 +500,7 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
           {recurrence === 'weekly' && (
             <div className="flex flex-col gap-1 relative">
               <span className="vault-label text-ink-soft">
-                Day
+                Weekdays
               </span>
               <button
                 type="button"
@@ -490,32 +512,45 @@ const getTrigger = useCallback((): HTMLButtonElement | null => {
                 aria-expanded={dayMenuOpen}
                 className="vault-action flex items-center justify-between rounded border border-ink/10 bg-ink/5 px-3 py-2 text-xs text-ink transition-all hover:border-ink/25"
               >
-                <span className="font-semibold">{formatWeekdayLabel(dayOfWeek)}</span>
+                <span className="font-semibold">{formatWeekdaySummary(weekdays)}</span>
                 <ChevronDown size={14} className="text-ink-soft" />
               </button>
 
               {dayMenuOpen && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-ink/20 bg-cloud shadow-xl py-1">
+                <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border border-ink/20 bg-cloud p-2 shadow-xl">
+                  <div className="grid grid-cols-7 gap-1">
                   {WEEKDAYS.map((day) => (
                     <button
                       key={day}
                       type="button"
                       onClick={() => {
+                        setWeekdays((current) =>
+                          current.includes(day)
+                            ? current.filter((value) => value !== day)
+                            : [...current, day],
+                        )
                         setDayOfWeek(day)
-                        setDayMenuOpen(false)
                       }}
-                      className={`vault-action flex w-full items-center justify-between px-3 py-1.5 text-xs text-left transition-colors ${
-                        dayOfWeek === day
+                      aria-pressed={weekdays.includes(day)}
+                      aria-label={`${weekdays.includes(day) ? 'Remove' : 'Add'} ${formatWeekdayLabel(day)}`}
+                      title={formatWeekdayLabel(day)}
+                      className={`vault-action min-h-11 rounded border px-1 py-2 text-center text-xs transition-colors ${
+                        weekdays.includes(day)
                           ? 'bg-accent/15 text-accent font-bold'
                           : 'text-ink hover:bg-ink/5'
                       }`}
                     >
-                      <span>{formatWeekdayLabel(day)}</span>
-                      {dayOfWeek === day && <Check size={12} className="stroke-[2.5]" />}
+                      {formatWeekdayLabel(day).slice(0, 2)}
                     </button>
                   ))}
+                  </div>
                 </div>
               )}
+              {recurrence === 'weekly' ? (
+                <p className="mt-1 text-[11px] text-ink-soft" aria-live="polite">
+                   {formatWeekdaySummary(weekdays)}
+                </p>
+              ) : null}
             </div>
           )}
 
