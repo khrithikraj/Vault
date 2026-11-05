@@ -35,6 +35,7 @@ export interface ScheduleRealAlarmOptions {
   localTime?: string
   timezone?: string
   dayOfWeek?: string | null
+  weekdays?: string[] | null
 }
 
 export interface ScheduleRealAlarmResult {
@@ -62,6 +63,7 @@ export interface ScheduledAlarmItem {
   localTime?: string
   timezone?: string
   dayOfWeek?: string | null
+  weekdays?: string[] | null
   isPast?: boolean
 }
 
@@ -416,6 +418,7 @@ export interface ReconcileReminderInput {
   local_time?: string | null
   timezone?: string | null
   day_of_week?: string | null
+  weekdays?: string[] | null
   next_fire_at: string | null
   title?: string | null
   note_id?: string | null
@@ -455,6 +458,7 @@ export async function reconcileNativeAlarms(
         localTime?: string
         timezone?: string
         dayOfWeek?: string | null
+        weekdays?: string[] | null
       }
     >()
 
@@ -504,6 +508,8 @@ export async function reconcileNativeAlarms(
           recurrence: recurrence as ReminderRecurrence,
           timezone,
           dayOfWeek: (r.day_of_week as Weekday | null) ?? null,
+          weekdays: r.weekdays as Weekday[] | null,
+          nextFireAt: r.next_fire_at,
           now: isCompletedToday ? new Date(now + 86400000) : new Date(now),
         })
           candidateTrigger = new Date(nextIso).getTime()
@@ -518,6 +524,7 @@ export async function reconcileNativeAlarms(
             localTime,
             timezone,
             dayOfWeek: r.day_of_week ?? null,
+            weekdays: r.weekdays ?? null,
           })
         }
       }
@@ -549,6 +556,7 @@ export async function reconcileNativeAlarms(
           localTime: active.localTime,
           timezone: active.timezone,
           dayOfWeek: active.dayOfWeek,
+          weekdays: active.weekdays,
         })
       }
     }
@@ -573,4 +581,3 @@ export async function reconcileNativeOneTimeAlarms(
 if (typeof window !== 'undefined') {
   ;(window as unknown as { VaultAlarm?: typeof VaultAlarm }).VaultAlarm = VaultAlarm
 }
-

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import {
   Bell,
@@ -20,6 +20,13 @@ import {
   isCompletedToday,
   type DueGroup,
 } from '../../lib/reminders'
+import { Capacitor } from '@capacitor/core'
+import {
+  checkAlarmPermissions,
+  openFullScreenIntentSettings,
+  requestExactAlarmPermission,
+  requestNotificationPermission,
+} from '../../native/alarmBridge'
 import type { ChecklistItem, ChecklistReminder, DailyChecklistCompletion, Note } from '../../types/app'
 
 export type RemindersPanelProps = {
@@ -46,6 +53,40 @@ export function RemindersPanel({
   onEnableNotifications,
 }: RemindersPanelProps) {
   const [notifMessage, setNotifMessage] = useState('')
+  const [alarmPermissionMessage, setAlarmPermissionMessage] = useState('')
+  const [alarmPermissions, setAlarmPermissions] = useState<Awaited<ReturnType<typeof checkAlarmPermissions>> | null>(null)
+
+  const loadAlarmPermissions = async () => {
+    if (!Capacitor.isNativePlatform()) return
+    try {
+      setAlarmPermissions(await checkAlarmPermissions())
+    } catch (error) {
+      console.error('Failed to check alarm permissions:', error)
+    }
+  }
+
+  useEffect(() => {
+    void loadAlarmPermissions()
+  }, [])
+
+  const explainPermission = async (kind: 'notifications' | 'exact' | 'fullscreen') => {
+    try {
+      if (kind === 'notifications') {
+        await requestNotificationPermission()
+        setAlarmPermissionMessage('Notification access is needed for reliable Stop and Snooze actions.')
+      } else if (kind === 'exact') {
+        await requestExactAlarmPermission()
+        setAlarmPermissionMessage('Exact alarm access keeps reminders on time.')
+      } else {
+        await openFullScreenIntentSettings()
+        setAlarmPermissionMessage('Full-screen access lets Vault show the alarm screen when another app is open.')
+      }
+      await loadAlarmPermissions()
+    } catch (error) {
+      console.error(`Failed to request ${kind} alarm permission:`, error)
+      setAlarmPermissionMessage('Unable to open this permission setting.')
+    }
+  }
 
   // Map notes by ID for quick title/checklist lookup
   const notesById = new Map<string, Note>(notes.map((n) => [n.id, n]))
@@ -121,6 +162,35 @@ export function RemindersPanel({
 
         {/* Native Alarm Audio Preferences */}
         <AlarmToneCard />
+        {Capacitor.isNativePlatform() && alarmPermissions &&
+        (!alarmPermissions.notificationsGranted ||
+          !alarmPermissions.exactAlarmGranted ||
+          alarmPermissions.fullScreenIntentGranted === false) ? (
+          <div className="mb-6 rounded-xl border border-accent/25 bg-accent/10 px-4 py-3 text-xs text-ink-soft">
+            <p className="font-medium text-ink">Improve reminder reliability</p>
+            <p className="mt-1">
+              Vault uses notifications for Stop/Snooze controls, exact alarms for timing, and full-screen access when Android permits it.
+            </p>
+            {alarmPermissionMessage ? <p className="mt-2 text-accent">{alarmPermissionMessage}</p> : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {!alarmPermissions.notificationsGranted ? (
+                <button type="button" className="vault-action rounded-lg border border-ink/20 px-3 py-1" onClick={() => void explainPermission('notifications')}>
+                  Enable notifications
+                </button>
+              ) : null}
+              {!alarmPermissions.exactAlarmGranted ? (
+                <button type="button" className="vault-action rounded-lg border border-ink/20 px-3 py-1" onClick={() => void explainPermission('exact')}>
+                  Enable exact alarms
+                </button>
+              ) : null}
+              {alarmPermissions.fullScreenIntentGranted === false ? (
+                <button type="button" className="vault-action rounded-lg border border-ink/20 px-3 py-1" onClick={() => void explainPermission('fullscreen')}>
+                  Allow alarm screen
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         {/* Reminders List by Groups */}
         {totalCount === 0 && todayCompleted.length === 0 ? (

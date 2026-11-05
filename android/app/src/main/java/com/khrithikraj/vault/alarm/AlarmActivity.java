@@ -429,8 +429,6 @@ public class AlarmActivity extends Activity {
 
     /** Snooze: silences sound, reschedules one alarm for SNOOZE_SECONDS, closes screen. */
     private void handleSnooze() {
-        AlarmService.stopAlarm(this);
-
         Intent snoozeIntent = new Intent(this, AlarmSnoozeReceiver.class);
         snoozeIntent.setAction(AlarmSnoozeReceiver.ACTION_SNOOZE);
         snoozeIntent.putExtra(EXTRA_TITLE, getTitleFromIntent());
@@ -439,6 +437,8 @@ public class AlarmActivity extends Activity {
         if (reminderId != null && !reminderId.trim().isEmpty()) {
             snoozeIntent.putExtra(EXTRA_REMINDER_ID, reminderId.trim());
         }
+        String triggerId = getIntent() != null ? getIntent().getStringExtra(EXTRA_TRIGGER_ID) : null;
+        if (triggerId != null) snoozeIntent.putExtra(EXTRA_TRIGGER_ID, triggerId);
         sendBroadcast(snoozeIntent);
         finish();
     }
@@ -490,6 +490,7 @@ public class AlarmActivity extends Activity {
     }
 
     public static final String EXTRA_REMINDER_ID = "reminderId";
+    public static final String EXTRA_TRIGGER_ID = "triggerId";
 
     private String getReminderIdFromIntent() {
         if (getIntent() == null) return null;

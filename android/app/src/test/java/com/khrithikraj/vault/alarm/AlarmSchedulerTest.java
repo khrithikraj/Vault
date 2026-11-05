@@ -22,6 +22,31 @@ public class AlarmSchedulerTest {
     }
 
     @Test
+    public void testTriggerIdentityIncludesReminderAndScheduledTime() {
+        String first = AlarmScheduler.buildTriggerId("reminder-a", 1_000L);
+        String same = AlarmScheduler.buildTriggerId("reminder-a", 1_000L);
+        String later = AlarmScheduler.buildTriggerId("reminder-a", 2_000L);
+        String otherReminder = AlarmScheduler.buildTriggerId("reminder-b", 1_000L);
+
+        assertEquals(first, same);
+        assertNotEquals(first, later);
+        assertNotEquals(first, otherReminder);
+        assertEquals("test:1000", AlarmScheduler.buildTriggerId(null, 1_000L));
+    }
+
+    @Test
+    public void testReminderRequestCodesDoNotUseTestAlarmIdentity() {
+        assertNotEquals(
+            AlarmScheduler.TEST_ALARM_REQUEST_CODE,
+            AlarmScheduler.getRequestCode("reminder-a")
+        );
+        assertNotEquals(
+            AlarmScheduler.getRequestCode("reminder-a"),
+            AlarmScheduler.getRequestCode("reminder-b")
+        );
+    }
+
+    @Test
     public void testComputeNextOccurrenceDailyBeforeTime() {
         // 2026-09-15 08:00:00 UTC = 13:30:00 IST (Tuesday)
         long baseMillis = 1789459200000L;

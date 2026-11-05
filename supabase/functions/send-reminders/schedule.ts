@@ -16,6 +16,7 @@ export type ScheduledReminder = {
   next_fire_at: string | null
   recurrence?: ReminderRecurrence
   day_of_week?: Weekday | null
+  weekdays?: Weekday[] | null
   /** Exact calendar date ("YYYY-MM-DD") chosen for a 'once' reminder. NULL for
    *  every repeating mode, and for legacy 'once' rows written before the column
    *  existed. */
@@ -196,23 +197,21 @@ export function nextFireAtForRecurrence(reminder: ScheduledReminder, now = new D
   }
 
   if (recurrence === 'weekly') {
-    // A prior fire date is trustworthy: advance exactly 7 days to preserve the weekday.
-    if (reminder.next_fire_at) {
+    const selectedWeekdays = normalizeWeekdays(reminder.weekdays, reminder.day_of_week)
+    if (selectedWeekdays.length === 0 && reminder.next_fire_at) {
       const nextDate = nextWeeklyDate(zonedDateStr(reference, zone))
       return zonedWallClockToUtc(nextDate, localTime, zone).toISOString()
     }
-    // No prior schedule yet (e.g. freshly inserted row): honor the stored day_of_week
-    // (falling back to today's weekday when unset on legacy rows), matching the
-    // client-side computeNextFireAt so the first occurrence can never land on the
-    // wrong weekday.
-    const targetDow = reminder.day_of_week
-      ? WEEKDAY_TO_NUMBER[reminder.day_of_week]
-      : zonedDayOfWeek(zonedDateStr(now, zone), zone)
-    let cursor = zonedDateStr(now, zone)
+    const targetDows = selectedWeekdays.length > 0
+      ? selectedWeekdays.map((day) => WEEKDAY_TO_NUMBER[day])
+      : [zonedDayOfWeek(zonedDateStr(reference, zone), zone)]
+    let cursor = reminder.next_fire_at
+      ? zonedDateStr(reference, zone)
+      : zonedDateStr(now, zone)
     for (let i = 0; i < 14; i++) {
-      if (zonedDayOfWeek(cursor, zone) === targetDow) {
+      if (targetDows.includes(zonedDayOfWeek(cursor, zone))) {
         const candidate = zonedWallClockToUtc(cursor, localTime, zone)
-        if (candidate.getTime() > now.getTime()) return candidate.toISOString()
+        if (candidate.getTime() > reference.getTime()) return candidate.toISOString()
       }
       cursor = addDay(cursor)
     }
@@ -221,6 +220,16 @@ export function nextFireAtForRecurrence(reminder: ScheduledReminder, now = new D
 
   // Fallback to daily
   return nextFireAt(reminder, now)
+}
+
+export function normalizeWeekdays(
+  weekdays?: Weekday[] | null,
+  legacyDay?: Weekday | null,
+): Weekday[] {
+  return (weekdays ?? (legacyDay ? [legacyDay] : [])).filter(
+    (day, index, values): day is Weekday =>
+      day in WEEKDAY_TO_NUMBER && values.indexOf(day) === index,
+  )
 }
 
 /** Strict, allocation-free "YYYY-MM-DD" parser. Returns null for anything that is
@@ -336,6 +345,7 @@ export type ReminderPreflightInput = {
   checklist_item_id: string | null
   recurrence?: ReminderRecurrence | null
   day_of_week?: Weekday | null
+  weekdays?: Weekday[] | null
   fire_on_date?: string | null
   local_time: string
   timezone: string
@@ -407,8 +417,18 @@ export function preflightReminder(
     return { ok: false, reason: 'invalid-next-fire-at' }
   }
 
-  if (recurrence === 'weekly' && reminder.day_of_week != null && !(reminder.day_of_week in WEEKDAY_TO_NUMBER)) {
-    return { ok: false, reason: 'invalid-weekday' }
+  if (recurrence === 'weekly') {
+    if (reminder.day_of_week != null && !(reminder.day_of_week in WEEKDAY_TO_NUMBER)) {
+      return { ok: false, reason: 'invalid-weekday' }
+    }
+    if (
+      reminder.weekdays != null &&
+      (!Array.isArray(reminder.weekdays) ||
+        reminder.weekdays.length === 0 ||
+        reminder.weekdays.some((day) => !(day in WEEKDAY_TO_NUMBER)))
+    ) {
+      return { ok: false, reason: 'invalid-weekday' }
+    }
   }
 
   // A 'once' reminder that names a date must name a REAL one. NULL is a legacy

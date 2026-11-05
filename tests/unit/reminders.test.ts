@@ -522,6 +522,26 @@ describe('exact-date "Once" reminders (fire_on_date)', () => {
     expect(computeNextFireAt('10:00', 'daily', ZONE, null, now, '2026-09-18')).toBe('2026-09-16T04:30:00.000Z')
   })
 
+  it('preserves a legacy weekly weekday from the existing scheduled occurrence', () => {
+    expect(resolveNextFireAt({
+      localTime: '09:00',
+      recurrence: 'weekly',
+      timezone: ZONE,
+      nextFireAt: '2026-09-16T03:30:00.000Z',
+      now: new Date('2026-09-17T03:30:00.000Z'),
+    })).toBe('2026-09-23T03:30:00.000Z')
+  })
+
+  it('preserves a legacy weekly weekday across a daylight-saving transition', () => {
+    expect(resolveNextFireAt({
+      localTime: '09:00',
+      recurrence: 'weekly',
+      timezone: 'America/New_York',
+      nextFireAt: '2026-11-01T13:00:00.000Z',
+      now: new Date('2026-11-02T15:00:00.000Z'),
+    })).toBe('2026-11-08T14:00:00.000Z')
+  })
+
   it('formats the date for display without a timezone-dependent parse', () => {
     expect(formatReminderDate('2026-10-14')).toBe('14 Oct 2026')
     expect(formatReminderDate('2026-01-05')).toBe('5 Jan 2026')
@@ -593,4 +613,3 @@ describe('getReminderDueGroup', () => {
     expect(rEdited.is_favorite).toBe(true)
   })
 })
-

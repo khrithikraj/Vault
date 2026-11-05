@@ -125,6 +125,7 @@ import {
   type DeliveryDeps,
   type ReminderRowForDelivery,
 } from './delivery.ts'
+import { fetchReminderRows } from './reminderQuery.ts'
 
 const vapidSubject = Deno.env.get('VAPID_SUBJECT')
 const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')
@@ -150,12 +151,14 @@ Deno.serve(
 
       const now = new Date()
       const nowIso = now.toISOString()
-      const { data: reminders, error } = await supabase
-        .from('reminders')
-        .select('id,user_id,title,note_id,checklist_item_id,recurrence,day_of_week,fire_on_date,local_time,timezone,next_fire_at,notes(title,deleted_at,checklist)')
-        .eq('enabled', true)
-        .or(`next_fire_at.is.null,next_fire_at.lte.${nowIso}`)
-        .limit(100)
+      const { data: reminders, error } = await fetchReminderRows((selection) =>
+        supabase
+          .from('reminders')
+          .select(selection)
+          .eq('enabled', true)
+          .or(`next_fire_at.is.null,next_fire_at.lte.${nowIso}`)
+          .limit(100),
+      )
       if (error) {
         console.error(`[fetch-reminders-error] ${error.message}`)
         return new Response(JSON.stringify({ error: error.message }), { status: 500 })

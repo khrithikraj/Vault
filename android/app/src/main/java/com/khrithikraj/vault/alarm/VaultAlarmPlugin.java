@@ -444,12 +444,17 @@ public class VaultAlarmPlugin extends Plugin {
                 : AlarmActivity.SNOOZE_SECONDS;
             String title = call.getString("title", "Vault Alarm (Snoozed)");
 
-            AlarmService.stopAlarm(getContext());
-
             Intent snoozeIntent = new Intent(getContext(), AlarmSnoozeReceiver.class);
             snoozeIntent.setAction(AlarmSnoozeReceiver.ACTION_SNOOZE);
             snoozeIntent.putExtra(AlarmActivity.EXTRA_TITLE, title);
             snoozeIntent.putExtra(AlarmSnoozeReceiver.EXTRA_SNOOZE_SECONDS, snoozeSeconds);
+            AlarmPreferences.ActiveAlarm active = AlarmPreferences.getActiveAlarm(getContext());
+            if (active != null) {
+                if (active.reminderId != null) {
+                    snoozeIntent.putExtra(AlarmActivity.EXTRA_REMINDER_ID, active.reminderId);
+                }
+                snoozeIntent.putExtra(AlarmActivity.EXTRA_TRIGGER_ID, active.triggerId);
+            }
             getContext().sendBroadcast(snoozeIntent);
 
             JSObject ret = new JSObject();

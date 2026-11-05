@@ -159,6 +159,9 @@ export type ReminderScheduleInput = {
   recurrence: ReminderRecurrence
   timezone?: string | null
   dayOfWeek?: Weekday | null
+  weekdays?: Weekday[] | null
+  /** Existing scheduled occurrence used to preserve legacy weekly weekday. */
+  nextFireAt?: string | null
   /** Exact calendar date for a 'once' reminder ("YYYY-MM-DD"). Ignored otherwise. */
   fireOnDate?: string | null
   now?: Date
@@ -177,7 +180,7 @@ export type ReminderScheduleInput = {
  *               weekday if omitted).
  */
 export function resolveNextFireAt(input: ReminderScheduleInput): string {
-  const { recurrence, dayOfWeek, fireOnDate } = input
+  const { recurrence, dayOfWeek, weekdays, nextFireAt, fireOnDate } = input
   const now = input.now ?? new Date()
   const zone = input.timezone || browserTimezone()
   const time = input.localTime.slice(0, 5)
@@ -224,13 +227,21 @@ export function resolveNextFireAt(input: ReminderScheduleInput): string {
   }
 
   if (recurrence === 'weekly') {
-    const targetDow = dayOfWeek
-      ? WEEKDAY_TO_NUMBER[dayOfWeek]
-      : zonedDayOfWeek(zonedDateStr(now, zone), zone)
+    const selectedWeekdays = normalizeWeekdays(weekdays, dayOfWeek)
+    if (selectedWeekdays.length === 0 && nextFireAt) {
+      let nextDate = zonedDateStr(new Date(nextFireAt), zone)
+      for (let i = 0; i < 7; i++) nextDate = addDay(nextDate)
+      return zonedWallClockToUtc(nextDate, time, zone).toISOString()
+    }
+    const reference = nextFireAt ? new Date(nextFireAt) : now
+    const effectiveWeekdays = selectedWeekdays.length > 0
+      ? selectedWeekdays
+      : [NUMBER_TO_WEEKDAY[zonedDayOfWeek(zonedDateStr(reference, zone), zone)]]
+    const targetDows = effectiveWeekdays.map((day) => WEEKDAY_TO_NUMBER[day])
 
-    let localDate = zonedDateStr(now, zone)
+    let localDate = zonedDateStr(reference, zone)
     for (let i = 0; i < 14; i++) {
-      if (zonedDayOfWeek(localDate, zone) === targetDow) {
+      if (targetDows.includes(zonedDayOfWeek(localDate, zone))) {
         const candidate = zonedWallClockToUtc(localDate, time, zone)
         if (candidate.getTime() > now.getTime()) return candidate.toISOString()
       }
@@ -268,9 +279,31 @@ export function computeNextFireAt(
   dayOfWeek?: Weekday | null,
   now = new Date(),
   fireOnDate?: string | null,
+  weekdays?: Weekday[] | null,
+  nextFireAt?: string | null,
 ): string {
-  return resolveNextFireAt({ localTime, recurrence, timezone, dayOfWeek, now, fireOnDate })
+  return resolveNextFireAt({ localTime, recurrence, timezone, dayOfWeek, weekdays, nextFireAt, now, fireOnDate })
 }
+
+export function normalizeWeekdays(
+  weekdays?: Weekday[] | null,
+  legacyDay?: Weekday | null,
+): Weekday[] {
+  const selected = (weekdays ?? (legacyDay ? [legacyDay] : [])).filter(
+    (day, index, values): day is Weekday =>
+      WEEKDAYS.includes(day) && values.indexOf(day) === index,
+  )
+  return WEEKDAYS.filter((day) => selected.includes(day))
+}
+
+export function formatWeekdaySummary(days: Weekday[]): string {
+  const labels = days.map(formatWeekdayLabel)
+  if (labels.length === 0) return 'Select at least one day'
+  if (labels.length === 1) return `Repeats every ${labels[0]}`
+  if (labels.length === 2) return `Repeats every ${labels[0]} and ${labels[1]}`
+  return `Repeats every ${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`
+}
+
 
 export function isCompletedToday(
   reminder: ChecklistReminder,
@@ -451,4 +484,3 @@ export function getReminderDueGroup(reminder: ChecklistReminder, now = new Date(
 
   return 'today'
 }
-

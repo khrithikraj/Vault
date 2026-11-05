@@ -22,8 +22,17 @@ public class AlarmSnoozeReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (context == null) return;
 
-        // Ensure ringing service is stopped if still active
-        AlarmService.stopAlarm(context);
+        AlarmPreferences.ActiveAlarm activeAlarm = AlarmPreferences.getActiveAlarm(context);
+        String triggerId = intent != null
+            ? intent.getStringExtra(AlarmActivity.EXTRA_TRIGGER_ID)
+            : null;
+        if (triggerId == null && activeAlarm != null) {
+            triggerId = activeAlarm.triggerId;
+        }
+        if (activeAlarm == null || !AlarmPreferences.clearActiveAlarm(context, triggerId)) {
+            return;
+        }
+        AlarmService.stopForSnooze(context);
 
         String title = null;
         int snoozeSeconds = DEFAULT_SNOOZE_SECONDS;
@@ -61,13 +70,16 @@ public class AlarmSnoozeReceiver extends BroadcastReceiver {
         Intent triggerIntent = new Intent(context, AlarmReceiver.class);
         triggerIntent.setAction(AlarmReceiver.ACTION_TRIGGER);
         triggerIntent.putExtra("title", title);
+        triggerIntent.putExtra("triggerTimeMillis", triggerTimeMillis);
+        triggerIntent.putExtra("triggerId", AlarmScheduler.buildTriggerId(reminderId, triggerTimeMillis));
         if (reminderId != null && !reminderId.trim().isEmpty()) {
             triggerIntent.putExtra("reminderId", reminderId.trim());
         }
 
+        int requestCode = AlarmScheduler.getRequestCode(reminderId);
         PendingIntent operation = PendingIntent.getBroadcast(
             context,
-            VaultAlarmPlugin.ALARM_REQUEST_CODE,
+            requestCode,
             triggerIntent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
@@ -83,5 +95,8 @@ public class AlarmSnoozeReceiver extends BroadcastReceiver {
         AlarmManager.AlarmClockInfo clockInfo =
             new AlarmManager.AlarmClockInfo(triggerTimeMillis, showPendingIntent);
         alarmManager.setAlarmClock(clockInfo, operation);
+        if (reminderId != null && !reminderId.trim().isEmpty()) {
+            AlarmPreferences.saveScheduledAlarm(context, reminderId, triggerTimeMillis, title);
+        }
     }
 }

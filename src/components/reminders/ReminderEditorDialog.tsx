@@ -8,6 +8,7 @@ import { CustomDatePicker } from '../ui/CustomDatePicker'
 import {
   browserTimezone,
   formatRecurrenceLabel,
+  formatWeekdaySummary,
   formatWeekdayLabel,
   isValidFireOnDate,
   validateReminderTime,
@@ -28,6 +29,7 @@ export type ReminderEditorDialogProps = {
     localTime: string
     recurrence: ReminderRecurrence
     dayOfWeek?: Weekday | null
+    weekdays?: Weekday[] | null
     fireOnDate?: string | null
     enabled: boolean
   }) => void
@@ -51,6 +53,7 @@ export function ReminderEditorDialog({
   const [localTime, setLocalTime] = useState('09:00')
   const [recurrence, setRecurrence] = useState<ReminderRecurrence>('daily')
   const [dayOfWeek, setDayOfWeek] = useState<Weekday>('monday')
+  const [weekdays, setWeekdays] = useState<Weekday[]>(['monday'])
   const [fireOnDate, setFireOnDate] = useState<string>('')
   const [error, setError] = useState('')
 
@@ -64,6 +67,11 @@ export function ReminderEditorDialog({
           reminder.day_of_week ||
             zonedWeekday(new Date(), reminder.timezone || browserTimezone()),
         )
+        setWeekdays(
+          reminder.weekdays?.length
+            ? reminder.weekdays
+            : [reminder.day_of_week || zonedWeekday(new Date(), reminder.timezone || browserTimezone())],
+        )
         setFireOnDate(
           isValidFireOnDate(reminder.fire_on_date)
             ? (reminder.fire_on_date as string)
@@ -74,6 +82,7 @@ export function ReminderEditorDialog({
         setLocalTime('09:00')
         setRecurrence('daily')
         setDayOfWeek(zonedWeekday(new Date(), browserTimezone()))
+        setWeekdays([zonedWeekday(new Date(), browserTimezone())])
         setFireOnDate(zonedDateStr(new Date(), browserTimezone()))
       }
       setError('')
@@ -84,6 +93,11 @@ export function ReminderEditorDialog({
     e.preventDefault()
     if (isStandalone && !title.trim()) {
       setError('Please enter a reminder title.')
+      return
+    }
+
+    if (recurrence === 'weekly' && weekdays.length === 0) {
+      setError('Select at least one weekday.')
       return
     }
     if (!validateReminderTime(localTime)) {
@@ -101,10 +115,23 @@ export function ReminderEditorDialog({
       localTime,
       recurrence,
       dayOfWeek: recurrence === 'weekly' ? dayOfWeek : null,
+      weekdays: recurrence === 'weekly' ? weekdays : null,
       fireOnDate: recurrence === 'once' ? fireOnDate : null,
       enabled: reminder ? reminder.enabled : true,
     })
     onClose()
+  }
+
+  const handleRecurrenceChange = (next: ReminderRecurrence) => {
+    setRecurrence(next)
+    if (next !== 'weekly') {
+      setWeekdays([])
+      setDayOfWeek('monday')
+    } else if (weekdays.length === 0) {
+      const fallback = zonedWeekday(new Date(), reminder?.timezone || browserTimezone())
+      setWeekdays([fallback])
+      setDayOfWeek(fallback)
+    }
   }
 
   return (
@@ -244,7 +271,7 @@ export function ReminderEditorDialog({
               <button
                 key={opt}
                 type="button"
-                onClick={() => setRecurrence(opt)}
+                onClick={() => handleRecurrenceChange(opt)}
                 className={`vault-action rounded py-2 text-xs transition-colors ${
                   recurrence === opt
                     ? 'bg-accent font-semibold text-ink shadow-sm'
@@ -275,25 +302,37 @@ export function ReminderEditorDialog({
         {recurrence === 'weekly' ? (
           <div>
             <label className="vault-label mb-1.5 block text-ink-soft">
-              Day of the Week
+              Weekdays
             </label>
             <div className="grid grid-cols-7 gap-1">
               {WEEKDAYS.map((day) => (
                 <button
                   key={day}
                   type="button"
-                  onClick={() => setDayOfWeek(day)}
+                  aria-pressed={weekdays.includes(day)}
+                  aria-label={`${weekdays.includes(day) ? 'Remove' : 'Add'} ${formatWeekdayLabel(day)}`}
+                  onClick={() => {
+                    setWeekdays((current) =>
+                      current.includes(day)
+                        ? current.filter((value) => value !== day)
+                        : [...current, day],
+                    )
+                    setDayOfWeek(day)
+                  }}
                   title={formatWeekdayLabel(day)}
-                  className={`vault-label rounded py-2 text-center transition-colors ${
-                    dayOfWeek === day
-                      ? 'border border-accent bg-accent/20 text-accent'
-                      : 'border border-ink/10 bg-surface text-ink-soft/60 hover:text-ink'
+                  className={`vault-label min-h-11 rounded border px-1 py-2 text-center transition-colors ${
+                    weekdays.includes(day)
+                      ? 'border-accent bg-accent/20 text-accent'
+                      : 'border-ink/10 bg-surface text-ink-soft/60 hover:text-ink'
                   }`}
                 >
-                  {formatWeekdayLabel(day).slice(0, 3)}
+                  {formatWeekdayLabel(day).slice(0, 2)}
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-xs text-ink-soft" aria-live="polite">
+              {formatWeekdaySummary(weekdays)}
+            </p>
           </div>
         ) : null}
 

@@ -66,6 +66,7 @@ public final class AlarmPreferences {
     public static class ScheduledAlarm {
         public final String reminderId;
         public final long triggerTimeMillis;
+        public final String triggerId;
         public final String title;
         public final String recurrence;
         public final String localTime;
@@ -73,7 +74,7 @@ public final class AlarmPreferences {
         public final String dayOfWeek;
 
         public ScheduledAlarm(String reminderId, long triggerTimeMillis, String title) {
-            this(reminderId, triggerTimeMillis, title, "once", null, null, null);
+            this(reminderId, triggerTimeMillis, title, "once", null, null, null, null);
         }
 
         public ScheduledAlarm(
@@ -83,10 +84,12 @@ public final class AlarmPreferences {
             String recurrence,
             String localTime,
             String timezone,
-            String dayOfWeek
+            String dayOfWeek,
+            String triggerId
         ) {
             this.reminderId = reminderId;
             this.triggerTimeMillis = triggerTimeMillis;
+            this.triggerId = triggerId;
             this.title = title;
             this.recurrence = recurrence != null ? recurrence : "once";
             this.localTime = localTime;
@@ -96,6 +99,83 @@ public final class AlarmPreferences {
     }
 
     private static final String KEY_SCHEDULED_ALARMS = "scheduled_alarms_map";
+    private static final String KEY_ACTIVE_ALARM = "active_alarm";
+
+    public static final class ActiveAlarm {
+        public final String reminderId;
+        public final String triggerId;
+        public final String title;
+
+        public ActiveAlarm(String reminderId, String triggerId, String title) {
+            this.reminderId = reminderId;
+            this.triggerId = triggerId;
+            this.title = title;
+        }
+    }
+
+    public static synchronized boolean claimActiveAlarm(
+        Context context,
+        String reminderId,
+        String triggerId,
+        String title
+    ) {
+        if (context == null || triggerId == null || triggerId.trim().isEmpty()) return false;
+        ActiveAlarm active = getActiveAlarm(context);
+        if (active != null && triggerId.equals(active.triggerId)) return false;
+        try {
+            org.json.JSONObject item = new org.json.JSONObject();
+            item.put("reminderId", reminderId);
+            item.put("triggerId", triggerId);
+            item.put("title", title != null ? title : "Vault Alarm");
+            getPrefs(context).edit()
+                .putString(KEY_ACTIVE_ALARM, item.toString())
+                .apply();
+            return true;
+        } catch (Exception e) {
+            android.util.Log.e("AlarmPreferences", "Failed to claim active alarm: " + triggerId, e);
+            return false;
+        }
+    }
+
+    public static synchronized ActiveAlarm getActiveAlarm(Context context) {
+        if (context == null) return null;
+        try {
+            String raw = getPrefs(context).getString(KEY_ACTIVE_ALARM, null);
+            if (raw == null || raw.trim().isEmpty()) return null;
+            org.json.JSONObject item = new org.json.JSONObject(raw);
+            return new ActiveAlarm(
+                item.optString("reminderId", null),
+                item.getString("triggerId"),
+                item.optString("title", "Vault Alarm")
+            );
+        } catch (Exception e) {
+            android.util.Log.e("AlarmPreferences", "Failed to read active alarm", e);
+            return null;
+        }
+    }
+
+    public static synchronized boolean clearActiveAlarm(Context context, String triggerId) {
+        if (context == null) return false;
+        ActiveAlarm active = getActiveAlarm(context);
+        if (active == null) return false;
+        if (triggerId != null && !triggerId.equals(active.triggerId)) return false;
+        getPrefs(context).edit().remove(KEY_ACTIVE_ALARM).apply();
+        return true;
+    }
+
+    public static synchronized boolean isCurrentTrigger(
+        Context context,
+        String reminderId,
+        String triggerId
+    ) {
+        if (context == null || reminderId == null || triggerId == null) return false;
+        for (ScheduledAlarm alarm : getScheduledAlarms(context)) {
+            if (reminderId.equals(alarm.reminderId) && triggerId.equals(alarm.triggerId)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static synchronized void saveScheduledAlarm(
         Context context,
@@ -115,6 +195,7 @@ public final class AlarmPreferences {
             org.json.JSONObject item = new org.json.JSONObject();
             item.put("reminderId", reminderId);
             item.put("triggerTimeMillis", triggerTimeMillis);
+            item.put("triggerId", AlarmScheduler.buildTriggerId(reminderId, triggerTimeMillis));
             item.put("title", title != null ? title : "Vault Reminder");
             item.put("recurrence", recurrence != null ? recurrence : "once");
             if (localTime != null) item.put("localTime", localTime);
@@ -164,7 +245,14 @@ public final class AlarmPreferences {
                     item.optString("recurrence", "once"),
                     item.optString("localTime", null),
                     item.optString("timezone", null),
-                    item.optString("dayOfWeek", null)
+                    item.optString("dayOfWeek", null),
+                    item.optString(
+                        "triggerId",
+                        AlarmScheduler.buildTriggerId(
+                            item.getString("reminderId"),
+                            item.getLong("triggerTimeMillis")
+                        )
+                    )
                 ));
             }
         } catch (Exception e) {

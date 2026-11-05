@@ -7,7 +7,7 @@ export type NoteReminderControlProps = {
   reminder?: ChecklistReminder
   dailyCompletions: DailyChecklistCompletion[]
   targetTitle?: string
-  onSaveReminder: (localTime: string, recurrence?: ReminderRecurrence, dayOfWeek?: Weekday | null, fireOnDate?: string | null) => void
+  onSaveReminder: (localTime: string, recurrence?: ReminderRecurrence, dayOfWeek?: Weekday | null, fireOnDate?: string | null, weekdays?: Weekday[] | null) => void
   onRemoveReminder: () => void
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
   open?: boolean

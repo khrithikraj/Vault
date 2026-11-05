@@ -12,6 +12,7 @@ import { isNoteFavorite } from '../lib/favorites'
 import { browserTimezone, formatRecurrenceLabel, formatReminderDate, formatReminderTime, formatWeekdayLabel, isCompletedToday, isValidFireOnDate, noteReminder, reminderForItem, type ReminderRecurrence } from '../lib/reminders'
 import { getNotificationStatus, type NotificationStatus } from '../lib/notifications'
 import { cn } from '../design/cn'
+import { normalizeChecklistOrder, reorderChecklistGroup, sortChecklistItems } from '../lib/checklistOrder'
 import { NoteReminderControl } from './notes/NoteReminderControl'
 import { ReminderControl } from './notes/ReminderControl'
 
@@ -43,7 +44,7 @@ export function NoteEditor({
   onUpdate: (patch: Partial<Pick<Note, 'title' | 'body' | 'checklist' | 'is_favorite'>>) => Promise<void>
   reminders: ChecklistReminder[]
   dailyCompletions: DailyChecklistCompletion[]
-  onUpsertReminder: (input: { checklistItemId?: string | null; localTime: string; enabled: boolean; recurrence?: ReminderRecurrence; dayOfWeek?: Weekday | null; fireOnDate?: string | null; timezone?: string }) => void
+  onUpsertReminder: (input: { checklistItemId?: string | null; localTime: string; enabled: boolean; recurrence?: ReminderRecurrence; dayOfWeek?: Weekday | null; weekdays?: Weekday[] | null; fireOnDate?: string | null; timezone?: string }) => void
   onRemoveReminder: (reminderId: string) => void
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
   onEnableNotifications: () => Promise<{ message?: string }>
@@ -86,6 +87,9 @@ export function NoteEditor({
     currentNoteReminder?.enabled && isCompletedToday(currentNoteReminder, dailyCompletions),
   )
   const metaDate = formatMetaDate(note.updated_at || note.created_at)
+  const displayedChecklist = sortChecklistItems(checklist)
+  const displayedCompletedChecklist = displayedChecklist.filter((item) => item.done)
+  const displayedIncompleteChecklist = displayedChecklist.filter((item) => !item.done)
 
   useEffect(() => {
     void getNotificationStatus().then(setNotificationStatus)
@@ -137,7 +141,14 @@ export function NoteEditor({
   const addChecklistItem = () => {
     const text = newItemText.trim()
     if (!text) return
-    setChecklist((current) => [...current, { id: crypto.randomUUID(), text, done: false }])
+    setChecklist((current) => {
+      const ordered = normalizeChecklistOrder(current)
+      const nextOrder = ordered.reduce(
+        (maximum, item) => Math.max(maximum, item.original_order ?? -1),
+        -1,
+      ) + 1
+      return [...ordered, { id: crypto.randomUUID(), text, done: false, original_order: nextOrder, completed_at: null }]
+    })
     setNewItemText('')
   }
 
@@ -148,9 +159,27 @@ export function NoteEditor({
   }
 
   const toggleChecklistItem = (itemId: string) => {
-    setChecklist((current) =>
-      current.map((item) => (item.id === itemId ? { ...item, done: !item.done } : item)),
-    )
+    setChecklist((current) => {
+      const normalized = normalizeChecklistOrder(current)
+      const target = normalized.find((item) => item.id === itemId)
+      if (!target) return normalized
+      const completing = !target.done
+      const maximumCompletedOrder = normalized
+        .filter((item) => item.done && item.id !== itemId)
+        .reduce((maximum, item) => Math.max(maximum, item.completed_order ?? -1), -1)
+      return normalized.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              done: completing,
+              completed_at: completing ? new Date().toISOString() : null,
+              ...(completing
+                ? { completed_order: maximumCompletedOrder + 1 }
+                : { completed_order: undefined }),
+            }
+          : item,
+      )
+    })
   }
 
   const removeChecklistItem = (itemId: string) => {
@@ -398,7 +427,7 @@ export function NoteEditor({
           onOpenChange={setReminderOpen}
           triggerRef={reminderAnchorRef}
           hideTrigger
-          onSaveReminder={(localTime, recurrence, dayOfWeek, fireOnDate) =>
+          onSaveReminder={(localTime, recurrence, dayOfWeek, fireOnDate, weekdays) =>
             onUpsertReminder({
               checklistItemId: null,
               localTime,
@@ -406,6 +435,7 @@ export function NoteEditor({
               recurrence,
               dayOfWeek,
               fireOnDate,
+              weekdays,
               timezone: browserTimezone(),
             })
           }
@@ -466,13 +496,16 @@ export function NoteEditor({
         </div>
 
         <div className="mt-3 flex min-w-0 flex-col gap-2">
-          <Reorder.Group
-            axis="y"
-            values={checklist}
-            onReorder={setChecklist}
-            className="flex min-w-0 flex-col gap-2"
-          >
-            {checklist.map((item) => (
+          <div className="flex min-w-0 flex-col gap-2">
+            <Reorder.Group
+              axis="y"
+              values={displayedCompletedChecklist}
+              onReorder={(next) => setChecklist((current) =>
+                reorderChecklistGroup(current, next, 'completed'),
+              )}
+              className="flex min-w-0 flex-col gap-2"
+            >
+            {displayedCompletedChecklist.map((item) => (
               <ChecklistRow
                 key={item.id}
                 item={item}
@@ -483,7 +516,7 @@ export function NoteEditor({
                 onToggle={() => toggleChecklistItem(item.id)}
                 onTextChange={(text) => updateChecklistItemText(item.id, text)}
                 onRemove={() => removeChecklistItem(item.id)}
-                onSetItemReminder={(localTime, recurrence, dayOfWeek, fireOnDate) =>
+                onSetItemReminder={(localTime, recurrence, dayOfWeek, fireOnDate, weekdays) =>
                   onUpsertReminder({
                     checklistItemId: item.id,
                     localTime,
@@ -491,6 +524,7 @@ export function NoteEditor({
                     recurrence,
                     dayOfWeek,
                     fireOnDate,
+                    weekdays,
                     timezone: reminderForItem(reminders, note.id, item.id)?.timezone ?? browserTimezone(),
                   })
                 }
@@ -501,7 +535,47 @@ export function NoteEditor({
                 onToggleDailyCompletion={onToggleDailyCompletion}
               />
             ))}
-          </Reorder.Group>
+            </Reorder.Group>
+            <Reorder.Group
+              axis="y"
+              values={displayedIncompleteChecklist}
+              onReorder={(next) => setChecklist((current) =>
+                reorderChecklistGroup(current, next, 'incomplete'),
+              )}
+              className="flex min-w-0 flex-col gap-2"
+            >
+            {displayedIncompleteChecklist.map((item) => (
+              <ChecklistRow
+                key={item.id}
+                item={item}
+                reducedMotion={reducedMotion}
+                reorderMode={reorderMode && checklist.length > 1}
+                itemReminder={reminderForItem(reminders, note.id, item.id)}
+                dailyCompletions={dailyCompletions}
+                onToggle={() => toggleChecklistItem(item.id)}
+                onTextChange={(text) => updateChecklistItemText(item.id, text)}
+                onRemove={() => removeChecklistItem(item.id)}
+                onSetItemReminder={(localTime, recurrence, dayOfWeek, fireOnDate, weekdays) =>
+                  onUpsertReminder({
+                    checklistItemId: item.id,
+                    localTime,
+                    enabled: true,
+                    recurrence,
+                    dayOfWeek,
+                    fireOnDate,
+                    weekdays,
+                    timezone: reminderForItem(reminders, note.id, item.id)?.timezone ?? browserTimezone(),
+                  })
+                }
+                onRemoveItemReminder={() => {
+                  const r = reminderForItem(reminders, note.id, item.id)
+                  if (r) onRemoveReminder(r.id)
+                }}
+                onToggleDailyCompletion={onToggleDailyCompletion}
+              />
+            ))}
+            </Reorder.Group>
+          </div>
         </div>
 
         <div className="mt-3 flex min-w-0 gap-2">
@@ -554,7 +628,7 @@ function ChecklistRow({
   onToggle: () => void
   onTextChange: (text: string) => void
   onRemove: () => void
-  onSetItemReminder: (localTime: string, recurrence?: ReminderRecurrence, dayOfWeek?: Weekday | null, fireOnDate?: string | null) => void
+  onSetItemReminder: (localTime: string, recurrence?: ReminderRecurrence, dayOfWeek?: Weekday | null, fireOnDate?: string | null, weekdays?: Weekday[] | null) => void
   onRemoveItemReminder: () => void
   onToggleDailyCompletion: (reminder: ChecklistReminder) => void
 }) {
@@ -671,4 +745,3 @@ function ChecklistRow({
     </Reorder.Item>
   )
 }
-

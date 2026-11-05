@@ -12,6 +12,7 @@ import {
   isValidTimezone,
   nextFireAt,
   nextFireAtForRecurrence,
+  normalizeWeekdays,
   normalizeNote,
   onceFireAt,
   parseFireOnDate,
@@ -121,12 +122,51 @@ describe('nextFireAtForRecurrence', () => {
     expect(nextFireAtForRecurrence(wednesdayReminder)).toBe('2026-09-23T03:30:00.000Z')
   })
 
+  it('weekly recurrence infers a missing weekday from the prior scheduled occurrence', () => {
+    const thursdayReminder = reminder({
+      recurrence: 'weekly',
+      next_fire_at: '2026-09-17T03:30:00.000Z',
+    })
+    const saturdayReminder = reminder({
+      recurrence: 'weekly',
+      next_fire_at: '2026-09-19T03:30:00.000Z',
+    })
+    expect(nextFireAtForRecurrence(thursdayReminder)).toBe('2026-09-24T03:30:00.000Z')
+    expect(nextFireAtForRecurrence(saturdayReminder)).toBe('2026-09-26T03:30:00.000Z')
+  })
+
+  it('preserves the inferred weekday across a daylight-saving transition', () => {
+    const reminderAcrossDst = reminder({
+      recurrence: 'weekly',
+      timezone: 'America/New_York',
+      local_time: '09:00',
+      next_fire_at: '2026-11-01T13:00:00.000Z',
+    })
+    expect(nextFireAtForRecurrence(reminderAcrossDst)).toBe('2026-11-08T14:00:00.000Z')
+  })
+
   it('weekly recurrence schedules on the stored day_of_week when there is no prior fire date', () => {
     // Now is Tuesday 2026-09-15 09:00 IST (03:30 UTC), stored day = Thursday.
     const now = new Date('2026-09-15T03:30:00.000Z')
     const fresh = reminder({ recurrence: 'weekly', day_of_week: 'thursday', next_fire_at: null })
     // First occurrence must be Thursday 2026-09-17 at 09:00 IST (03:30 UTC), never the weekday of "now".
     expect(nextFireAtForRecurrence(fresh, now)).toBe('2026-09-17T03:30:00.000Z')
+  })
+
+  it('weekly recurrence advances to the next selected weekday', () => {
+    const mondayReminder = reminder({
+      recurrence: 'weekly',
+      weekdays: ['monday', 'wednesday', 'friday'],
+      next_fire_at: '2026-09-14T03:30:00.000Z',
+    })
+    expect(nextFireAtForRecurrence(mondayReminder)).toBe('2026-09-16T03:30:00.000Z')
+  })
+})
+
+describe('normalizeWeekdays', () => {
+  it('deduplicates selected days and falls back to legacy day_of_week', () => {
+    expect(normalizeWeekdays(['monday', 'monday', 'friday'], 'wednesday')).toEqual(['monday', 'friday'])
+    expect(normalizeWeekdays(null, 'wednesday')).toEqual(['wednesday'])
   })
 })
 

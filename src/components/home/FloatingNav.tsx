@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Bell, FolderLock, Heart, Home, NotebookPen } from 'lucide-react'
@@ -55,7 +55,35 @@ export function FloatingNav({
   onSelectFavorites,
 }: FloatingNavProps) {
   const [showCategories, setShowCategories] = useState(false)
+  const [isCompact, setIsCompact] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.innerWidth < 640 &&
+      window.scrollY >= 56,
+  )
   const reducedMotion = usePrefersReducedMotion()
+
+  useEffect(() => {
+    const updateCompactState = () => {
+      if (window.innerWidth >= 640) {
+        setIsCompact(false)
+        return
+      }
+
+      const scrollY = window.scrollY
+      setIsCompact((currentlyCompact) =>
+        currentlyCompact ? scrollY > 24 : scrollY >= 56,
+      )
+    }
+
+    updateCompactState()
+    window.addEventListener('scroll', updateCompactState, { passive: true })
+    window.addEventListener('resize', updateCompactState)
+    return () => {
+      window.removeEventListener('scroll', updateCompactState)
+      window.removeEventListener('resize', updateCompactState)
+    }
+  }, [])
 
   const isEverything =
     !notesActive && !docsActive && !remindersActive && !favoritesActive && selectedCategoryId === null
@@ -137,9 +165,13 @@ export function FloatingNav({
       className="fixed inset-x-0 flex justify-center px-3"
       style={{ bottom: 'max(env(safe-area-inset-bottom, 0px), 0.875rem)', zIndex: layers.navigation }}
     >
-      <div
+      <motion.div
+        layout
         className="float-nav no-scrollbar flex max-w-full items-stretch gap-0.5 overflow-x-auto rounded-full px-2 py-1.5"
+        data-compact={isCompact}
+        data-reduced-motion={reducedMotion}
         style={{ scrollbarWidth: 'none' }}
+        transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34, mass: 0.7 }}
       >
         {/* Category section — toggle + category pills */}
         {categories.length > 0 ? (
@@ -223,7 +255,7 @@ export function FloatingNav({
             item={item}
           />
         ))}
-      </div>
+      </motion.div>
     </nav>
   )
 }
@@ -239,13 +271,16 @@ function NavButton({
     <motion.button
       type="button"
       onClick={item.onClick}
+      layout
       whileTap={{ scale: reducedMotion ? 1 : 0.86 }}
       className={`relative flex min-w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-full px-2 py-1.5 transition-colors ${
         item.active ? 'text-ink' : 'text-ink-soft'
       }`}
+      data-floating-nav-button="true"
       aria-label={item.label}
       aria-current={item.active ? 'page' : undefined}
       data-tour={item.key === 'favorites' ? 'nav-favorites' : undefined}
+      transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34, mass: 0.7 }}
     >
       {/* Active background pill — slides via shared layoutId */}
       {item.active ? (
@@ -270,7 +305,7 @@ function NavButton({
       </span>
       {/* Bottom dock labels are a genuine tight-space exception: the dock scrolls
           horizontally instead of clipping any destination's name. */}
-      <span className="vault-label relative z-10 whitespace-nowrap leading-none text-current">
+      <span className="float-nav-label vault-label relative z-10 whitespace-nowrap leading-none text-current">
         {item.label}
       </span>
     </motion.button>
