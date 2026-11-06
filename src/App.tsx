@@ -1321,7 +1321,9 @@ export default function App({ onReturnToLanding = () => window.location.assign('
           onQuickAddDocument={handleQuickAddDocument}
           onQuickAddReminder={handleQuickAddReminder}
           existingItems={vault.items}
+          trashedItems={vault.trashedItems}
           onViewExistingItem={(id) => handleOpenItem(id)}
+          onRestoreExistingItem={vault.restoreItem}
         />
       ) : null}
  

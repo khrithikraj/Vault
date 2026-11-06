@@ -701,6 +701,37 @@ test('capture reference image step stays overflow-free across narrow mobile widt
   }
 })
 
+test('capture form shows an early warning for an existing same-category title', async ({ page }) => {
+  await openDemo(page)
+
+  const createMovie = async () => {
+    await page.getByRole('button', { name: 'Add item' }).click()
+    await page.getByRole('menuitem', { name: /Item/ }).click()
+    const capture = page.getByRole('dialog', { name: 'Add item' })
+    await capture.getByRole('button', { name: 'Movies & Series' }).click()
+    await capture.getByRole('button', { name: 'Skip →' }).click()
+    return capture
+  }
+
+  const firstCapture = await createMovie()
+  await firstCapture.getByRole('textbox').fill('Early Warning Film')
+  await firstCapture.getByRole('button', { name: 'Continue →' }).click()
+  await firstCapture.getByRole('button', { name: 'Continue →' }).click()
+  await firstCapture.getByRole('button', { name: 'Continue →' }).click()
+  await firstCapture.getByRole('button', { name: 'Continue →' }).click()
+  await firstCapture.getByRole('button', { name: 'Review →' }).click()
+  await firstCapture.getByRole('button', { name: 'Save to vault' }).click()
+  await expect(firstCapture).toBeHidden()
+
+  const secondCapture = await createMovie()
+  await secondCapture.getByRole('textbox').fill('Early Warning Film')
+  await expect(
+    secondCapture.getByText('This item may already exist in your vault.'),
+  ).toBeVisible({ timeout: 2_000 })
+  await secondCapture.getByRole('button', { name: 'Continue →' }).click()
+  await expect(secondCapture.getByRole('heading', { name: /> Genre/ })).toBeVisible()
+})
+
 test('checklist reorder mode toggles drag handles and keeps contextual actions', async ({ page }) => {
   await openDemo(page)
   await page.getByRole('button', { name: 'Notes' }).click()
