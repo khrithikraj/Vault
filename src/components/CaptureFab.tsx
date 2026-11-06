@@ -34,8 +34,11 @@ type CaptureFabProps = {
   onQuickAddReminder?: () => void
   /** Live items used to warn about probable duplicates while creating an item. */
   existingItems?: VaultItem[]
+  /** Trashed items are included so users can restore an existing record. */
+  trashedItems?: VaultItem[]
   /** Jump straight to a matched existing item from the duplicate warning. */
   onViewExistingItem?: (itemId: string) => void
+  onRestoreExistingItem?: (item: VaultItem) => Promise<boolean>
 }
 
 type Stage = 'category' | 'photo' | 'fields' | 'review'
@@ -80,7 +83,9 @@ export function CaptureFab({
   onQuickAddDocument,
   onQuickAddReminder,
   existingItems,
+  trashedItems,
   onViewExistingItem,
+  onRestoreExistingItem,
 }: CaptureFabProps) {
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -105,6 +110,10 @@ export function CaptureFab({
   const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null)
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null)
   const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
+  const [earlyDuplicateInput, setEarlyDuplicateInput] = useState<{
+    categoryId: string
+    values: Record<string, string>
+  }>({ categoryId: '', values: {} })
   const reducedMotion = usePrefersReducedMotion()
 
   const fabRef = useRef<HTMLButtonElement>(null)
@@ -245,8 +254,37 @@ export function CaptureFab({
   }, [categoryId, fields, ocrExtraction])
 
   const duplicates = useMemo(
-    () => findItemDuplicates(existingItems ?? [], categories, { categoryId, values }),
-    [existingItems, categories, categoryId, values],
+    () => findItemDuplicates(
+      [...(existingItems ?? []), ...(trashedItems ?? [])],
+      categories,
+      { categoryId, values },
+    ),
+    [existingItems, trashedItems, categories, categoryId, values],
+  )
+
+  // Delay title-level feedback until the user pauses, while still using the full
+  // current field set so location/model differences can clear a provisional match.
+  useEffect(() => {
+    const title = values.title?.trim() ?? ''
+    if (!categoryId || title.length < 3) {
+      setEarlyDuplicateInput({ categoryId: '', values: {} })
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      setEarlyDuplicateInput({ categoryId, values: { ...values } })
+    }, 350)
+
+    return () => window.clearTimeout(timer)
+  }, [categoryId, values])
+
+  const earlyDuplicates = useMemo(
+    () => findItemDuplicates(
+      [...(existingItems ?? []), ...(trashedItems ?? [])],
+      categories,
+      earlyDuplicateInput,
+    ),
+    [existingItems, trashedItems, categories, earlyDuplicateInput],
   )
 
   // An edit to any value re-evaluates the duplicate match — require a fresh decision.
@@ -806,6 +844,27 @@ export function CaptureFab({
                                     </div>
                                   )}
                                 </div>
+                                {fieldAtStep(stepIndex)!.key === 'title'
+                                && earlyDuplicateInput.categoryId === categoryId
+                                && earlyDuplicateInput.values.title === values.title
+                                && earlyDuplicates.length > 0 ? (
+                                  <div
+                                    role="status"
+                                    aria-live="polite"
+                                    className="mt-2 rounded border border-amber-500/30 bg-amber-950/15 px-3 py-2 text-sm text-amber-200"
+                                  >
+                                    {earlyDuplicates.map((duplicate) => (
+                                      <p key={duplicate.item.id}>
+                                        {duplicate.item.deleted_at
+                                          ? 'This item is currently in your Trash.'
+                                          : 'This item may already exist in your vault.'}
+                                        <span className="mt-0.5 block text-xs text-amber-200/75">
+                                          Existing item: {duplicate.item.title}
+                                        </span>
+                                      </p>
+                                    ))}
+                                  </div>
+                                ) : null}
                                 {fieldError ? (
                                   <p id="capture-field-error" role="alert" className="mt-2 text-sm text-red-400">
                                     {fieldError}
@@ -1028,34 +1087,62 @@ export function CaptureFab({
                           <p className="vault-label flex items-center gap-2 text-amber-300">
                             <CopyX size={14} /> This looks like a duplicate
                           </p>
-                          <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
-                            An item titled{' '}
-                            <span className="font-semibold text-ink">
-                              “{duplicates[0].item.title}”
-                            </span>{' '}
-                            already exists in {duplicates[0].category.name}.
-                            {duplicates[0].matchedFields.length > 0 ? (
-                              <> It matches on {duplicates[0].matchedFields.join(', ')}.</>
-                            ) : null}{' '}
-                            This is just a heads-up — you decide.
-                          </p>
+                          <div className="mt-1.5 space-y-2 text-sm leading-relaxed text-ink-soft">
+                            {duplicates.map((duplicate) => (
+                              <p key={duplicate.item.id}>
+                                <span className="font-semibold text-ink">“{duplicate.item.title}”</span>{' '}
+                                already exists in {duplicate.category.name}{' '}
+                                {duplicate.item.deleted_at ? (
+                                  <span className="text-amber-300">(in Trash)</span>
+                                ) : '(active)'}.
+                                {duplicate.matchedFields.length > 0
+                                  ? <> It matches on {duplicate.matchedFields.join(', ')}.</>
+                                  : null}
+                              </p>
+                            ))}
+                          </div>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setOpen(false)
-                                onViewExistingItem?.(duplicates[0].item.id)
-                              }}
-                              className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 vault-label text-ink"
-                            >
-                              <Eye size={12} /> View existing
-                            </button>
+                            {duplicates.map((duplicate) => duplicate.item.deleted_at ? (
+                              <button
+                                key={`restore-${duplicate.item.id}`}
+                                type="button"
+                                disabled={!onRestoreExistingItem}
+                                onClick={() => {
+                                  if (!onRestoreExistingItem) return
+                                  void onRestoreExistingItem(duplicate.item).then((restored) => {
+                                    if (restored) setOpen(false)
+                                  })
+                                }}
+                                className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 vault-label text-ink disabled:opacity-50"
+                              >
+                                <CheckCircle2 size={12} /> Restore existing
+                              </button>
+                            ) : (
+                              <button
+                                key={`view-${duplicate.item.id}`}
+                                type="button"
+                                onClick={() => {
+                                  setOpen(false)
+                                  onViewExistingItem?.(duplicate.item.id)
+                                }}
+                                className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 vault-label text-ink"
+                              >
+                                <Eye size={12} /> View existing
+                              </button>
+                            ))}
                             <button
                               type="button"
                               onClick={() => setDuplicateAcknowledged(true)}
                               className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 vault-label text-accent"
                             >
                               Create anyway
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setOpen(false)}
+                              className="vault-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 vault-label text-ink-soft"
+                            >
+                              Cancel
                             </button>
                           </div>
                         </div>
@@ -1146,4 +1233,3 @@ export function CaptureFab({
     </>
   )
 }
-
